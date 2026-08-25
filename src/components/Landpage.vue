@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref } from "vue";
 import {
   ArrowRight,
   BookOpen,
@@ -14,55 +14,57 @@ import {
   Sparkles,
   Users,
   X,
-} from '@lucide/vue'
+} from "@lucide/vue";
 
-const menuAberto = ref(false)
-const aviso = ref('')
+const menuAberto = ref(false);
+const aviso = ref("");
 
 function abrirComunidade() {
-  aviso.value = 'Perfeito. Sua jornada no Conecta começa agora.'
-  document.querySelector('#comunidade')?.scrollIntoView({ behavior: 'smooth' })
+  aviso.value = "Perfeito. Sua jornada no Conecta começa agora.";
+  document.querySelector("#comunidade")?.scrollIntoView({ behavior: "smooth" });
 }
 
 function fecharAviso() {
-  aviso.value = ''
+  aviso.value = "";
 }
 
 const beneficios = [
   {
     icon: HeartHandshake,
-    title: 'Apoio sem julgamento',
-    text: 'Encontre pessoas que entendem a pressão da faculdade e estão prontas para ouvir.',
+    title: "Apoio sem julgamento",
+    text:
+      "Encontre pessoas que entendem a pressão da faculdade e estão prontas para ouvir.",
   },
   {
     icon: BookOpen,
-    title: 'Estude acompanhado',
-    text: 'Crie salas, tire dúvidas e mantenha o foco com quem está vivendo o mesmo desafio.',
+    title: "Estude acompanhado",
+    text:
+      "Crie salas, tire dúvidas e mantenha o foco com quem está vivendo o mesmo desafio.",
   },
   {
     icon: Users,
-    title: 'Conexões de verdade',
-    text: 'Faça amizades que começam em uma conversa e continuam para além da tela.',
+    title: "Conexões de verdade",
+    text: "Faça amizades que começam em uma conversa e continuam para além da tela.",
   },
-]
+];
 
 const passos = [
   {
-    number: '01',
-    title: 'Escolha como você está',
-    text: 'Compartilhe seu momento ou apenas passe para descobrir novas conversas.',
+    number: "01",
+    title: "Escolha como você está",
+    text: "Compartilhe seu momento ou apenas passe para descobrir novas conversas.",
   },
   {
-    number: '02',
-    title: 'Encontre sua sala',
-    text: 'Entre em grupos sobre ansiedade, rotina, provas, carreira e muito mais.',
+    number: "02",
+    title: "Encontre sua sala",
+    text: "Entre em grupos sobre ansiedade, rotina, provas, carreira e muito mais.",
   },
   {
-    number: '03',
-    title: 'Sinta que pertence',
-    text: 'Converse no seu ritmo e construa uma rede para chamar de sua.',
+    number: "03",
+    title: "Sinta que pertence",
+    text: "Converse no seu ritmo e construa uma rede para chamar de sua.",
   },
-]
+];
 </script>
 
 <template>
@@ -83,12 +85,16 @@ const passos = [
         class="hidden items-center gap-8 text-sm font-medium text-[#667087] md:flex"
         aria-label="Navegação principal"
       >
-        <a class="transition-colors hover:text-[#263b73]" href="#por-que">Por que o Conecta</a>
-        <a class="transition-colors hover:text-[#263b73]" href="#como-funciona">Como funciona</a>
+        <a class="transition-colors hover:text-[#263b73]" href="#por-que"
+          >Por que o Conecta</a
+        >
+        <a class="transition-colors hover:text-[#263b73]" href="#como-funciona"
+          >Como funciona</a
+        >
         <a class="transition-colors hover:text-[#263b73]" href="#seguranca">Segurança</a>
       </nav>
       <button
-        class="hidden rounded-full bg-[#ec765d] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#ec765d]/20 transition-transform hover:-translate-y-0.5 md:block"
+        class="hidden cursor-pointer rounded-full bg-[#ec765d] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#ec765d]/20 transition-transform hover:-translate-y-0.5 md:block"
         @click="abrirComunidade"
       >
         Entrar na comunidade
@@ -122,24 +128,29 @@ const passos = [
           <div
             class="mb-7 inline-flex items-center gap-2 rounded-full border border-[#dfe2eb] bg-white/70 px-3 py-2 text-xs font-semibold text-[#667087] shadow-sm"
           >
-            <Sparkles :size="14" class="text-[#ec765d]" /> Um espaço feito para a vida universitária
+            <Sparkles :size="14" class="text-[#ec765d]" /> Um espaço feito para a vida
+            universitária
           </div>
           <h1
-            class="max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#19253d] sm:text-6xl lg:text-7xl"
+            class=" select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#19253d] sm:text-6xl lg:text-7xl"
           >
-            Você não precisa enfrentar a faculdade <span class="text-[#ec765d]">sozinho.</span>
+            Você não precisa enfrentar a faculdade
+            <span class="text-[#ec765d]">sozinho.</span>
           </h1>
-          <p class="mt-7 max-w-xl text-lg leading-8 text-[#667087]">
-            O Conecta é o lugar onde estudantes se apoiam, estudam juntos e encontram leveza para
-            seguir em frente.
+          <p class="mt-7 max-w-xl text-lg leading-8 text-[#667087] select-none">
+            O Conecta é o lugar onde estudantes se apoiam, estudam juntos e encontram
+            leveza para seguir em frente.
           </p>
           <div class="mt-9 flex flex-col gap-3 sm:flex-row">
             <button
-              class="group inline-flex items-center justify-center gap-3 rounded-full bg-[#263b73] px-6 py-4 font-bold text-white shadow-xl shadow-[#263b73]/20 transition-all hover:-translate-y-1 hover:bg-[#1e315f]"
+              class="group cursor-pointer inline-flex items-center justify-center gap-3 rounded-full bg-[#263b73] px-6 py-4 font-bold text-white shadow-xl shadow-[#263b73]/20 transition-all hover:-translate-y-1 hover:bg-[#1e315f]"
               @click="abrirComunidade"
             >
               Quero fazer parte
-              <ArrowRight :size="18" class="transition-transform group-hover:translate-x-1" />
+              <ArrowRight
+                :size="18"
+                class="transition-transform group-hover:translate-x-1"
+              />
             </button>
             <a
               href="#como-funciona"
@@ -149,10 +160,12 @@ const passos = [
           </div>
           <div class="mt-10 flex items-center gap-3 text-sm text-[#667087]">
             <span class="flex -space-x-2"
-              ><span class="avatar bg-[#f2b7a8]">L</span><span class="avatar bg-[#a9b7e5]">M</span
+              ><span class="avatar bg-[#f2b7a8]">L</span
+              ><span class="avatar bg-[#a9b7e5]">M</span
               ><span class="avatar bg-[#c4d5bf]">R</span></span
             ><span
-              ><strong class="text-[#19253d]">+2.400 estudantes</strong> já estão conectados</span
+              ><strong class="text-[#19253d]">+2.400 estudantes</strong> já estão
+              conectados</span
             >
           </div>
         </div>
@@ -166,7 +179,9 @@ const passos = [
           >
             <div class="flex items-center justify-between border-b border-[#edf0f5] pb-5">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[.18em] text-[#98a0b3]">
+                <p
+                  class="text-xs font-semibold uppercase tracking-[.18em] text-[#98a0b3]"
+                >
                   sua comunidade
                 </p>
                 <h2 class="mt-1 text-xl font-bold">Perto de você</h2>
@@ -218,7 +233,8 @@ const passos = [
           <div
             class="absolute -bottom-2 -left-2 flex max-w-[250px] items-center gap-3 rounded-2xl border border-white bg-[#263b73] p-4 text-white shadow-xl sm:-left-8"
           >
-            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#5369a3]"
+            <span
+              class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#5369a3]"
               ><MessageCircle :size="18"
             /></span>
             <div>
@@ -266,15 +282,15 @@ const passos = [
       <section id="como-funciona" class="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-32">
         <div class="grid gap-14 lg:grid-cols-[.8fr_1.2fr] lg:gap-24">
           <div>
-            <p class="eyebrow">Do seu jeito</p>
-            <h2 class="section-title mt-4">Conexão que cabe na sua rotina.</h2>
-            <p class="mt-6 leading-7 text-[#667087]">
-              Você decide quando falar, o que compartilhar e quais comunidades fazem sentido para o
-              seu momento.
+            <p class="eyebrow select-none">Do seu jeito</p>
+            <h2 class="section-title mt-4 select-none">Conexão que cabe na sua rotina.</h2>
+            <p class="mt-6 leading-7 text-[#667087] select-none">
+              Você decide quando falar, o que compartilhar e quais comunidades fazem
+              sentido para o seu momento.
             </p>
             <a
               href="#comunidade"
-              class="mt-8 inline-flex items-center gap-2 font-bold text-[#263b73] hover:text-[#ec765d]"
+              class="mt-8 inline-flex items-center gap-2 font-bold text-[#263b73] select-none hover:text-[#ec765d]"
               >Começar agora <ArrowRight :size="17"
             /></a>
           </div>
@@ -284,7 +300,9 @@ const passos = [
               :key="passo.number"
               class="flex gap-6 border-b border-[#e5e6eb] pb-9"
             >
-              <span class="font-mono text-sm font-bold text-[#ec765d]">{{ passo.number }}</span>
+              <span class="font-mono text-sm font-bold text-[#ec765d]">{{
+                passo.number
+              }}</span>
               <div>
                 <h3 class="text-xl font-bold">{{ passo.title }}</h3>
                 <p class="mt-2 leading-7 text-[#667087]">{{ passo.text }}</p>
@@ -301,16 +319,16 @@ const passos = [
           <div>
             <div class="flex items-center gap-3 text-[#263b73]">
               <ShieldCheck :size="22" />
-              <p class="eyebrow !text-[#263b73]">Cuidado em primeiro lugar</p>
+              <p class="eyebrow !text-[#263b73] select-none">Cuidado em primeiro lugar</p>
             </div>
             <h2
-              class="mt-5 max-w-2xl text-3xl font-semibold tracking-tight text-[#19253d] sm:text-4xl"
+              class="mt-5 select-none max-w-2xl text-3xl font-semibold tracking-tight text-[#19253d] sm:text-4xl"
             >
               Um espaço seguro para conversas reais.
             </h2>
-            <p class="mt-5 max-w-2xl leading-7 text-[#667087]">
-              O Conecta promove apoio entre pares, mas não substitui ajuda profissional. Se você
-              estiver em risco, procure o CVV (188) ou um serviço de emergência.
+            <p class="mt-5 max-w-2xl leading-7 text-[#667087] select-none">
+              O Conecta promove apoio entre pares, mas não substitui ajuda profissional.
+              Se você estiver em risco, procure o CVV (188) ou um serviço de emergência.
             </p>
           </div>
           <div
@@ -325,14 +343,16 @@ const passos = [
         <div
           class="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#263b73] px-8 py-14 text-center text-white sm:px-12 lg:py-20"
         >
-          <p class="font-mono text-sm uppercase tracking-[.2em] text-[#bfc9e7]">
+          <p class="font-mono select-none text-sm uppercase tracking-[.2em] text-[#bfc9e7]">
             Seu próximo capítulo começa aqui
           </p>
-          <h2 class="mx-auto mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
+          <h2
+            class="mx-auto select-none mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl"
+          >
             Faculdade é difícil. Você não precisa torná-la solitária.
           </h2>
           <button
-            class="mt-9 inline-flex items-center gap-3 rounded-full bg-[#ec765d] px-7 py-4 font-bold text-white transition-transform hover:-translate-y-1"
+            class="mt-9 cursor-pointer inline-flex items-center gap-3 rounded-full bg-[#ec765d] px-7 py-4 font-bold text-white transition-transform hover:-translate-y-1"
             @click="aviso = 'Você entrou na lista. Em breve, o Conecta estará com você.'"
           >
             Entrar na comunidade <ArrowRight :size="18" />
