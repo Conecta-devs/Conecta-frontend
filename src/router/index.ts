@@ -8,6 +8,16 @@ const router = createRouter({
       name: 'Landpage',
       component: () => import('../components/Landpage.vue'),
     },
+    {
+      path: '/dashboard',
+      name: 'Dashboard',
+      component: () => import('../components/Dashboard.vue'),
+    },
+    {
+      path: '/login',
+      name: 'Login',
+      component: () => import('../components/Login.vue'),
+    },
   ],
 })
 

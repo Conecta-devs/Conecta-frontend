@@ -1,27 +1,24 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
-  ArrowRight,
-  BookOpen,
-  Check,
-  HeartHandshake,
-  LockKeyhole,
-  Menu,
-  PenLine,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  X,
-} from '@lucide/vue'
+  faArrowRight,
+  faBars,
+  faBookOpen,
+  faHandshake,
+  faWandSparkles,
+  faUsers,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons'
 
 const menuAberto = ref(false)
+const router = useRouter()
 
 const aviso = ref('')
 
 function abrirComunidade() {
-  aviso.value = 'Perfeito. Sua jornada no Conecta começa agora.'
-  document.querySelector('#comunidade')?.scrollIntoView({ behavior: 'smooth' })
+  router.push('/login')
 }
 
 function fecharAviso() {
@@ -30,19 +27,19 @@ function fecharAviso() {
 
 const beneficios = [
   {
-    icon: HeartHandshake,
+    icon: faHandshake,
     title: 'Um lugar para conversar',
     text: 'Fale com outros estudantes que também passam pelos desafios da faculdade.',
   },
 
   {
-    icon: BookOpen,
+    icon: faBookOpen,
     title: 'Estude com outras pessoas',
     text: 'Tire dúvidas, monte grupos de estudo e encontre quem está estudando as mesmas matérias.',
   },
 
   {
-    icon: Users,
+    icon: faUsers,
     title: 'Conheça gente nova',
     text: 'Converse, faça amizades e conheça outras pessoas do seu curso e da sua faculdade.',
   },
@@ -74,14 +71,14 @@ const passos = [
     <header
       class="relative z-20 mx-auto flex min-w-6xl max-w-dvh items-center justify-between px-6 py-6 lg:px-10"
     >
-      <a href="#inicio" class="flex items-center gap-3" aria-label="Conecta, início">
+      <a href="#inicio" class="flex items-center gap-[11px]" aria-label="Conecta, início">
         <span
-          class="grid h-10 w-10 place-items-center rounded-2xl bg-[#263b73] text-lg font-bold text-white shadow-lg shadow-[#263b73]/15"
+          class="grid size-9 place-items-center rounded-xl bg-[#263b73] font-['Space_Grotesk',sans-serif] text-lg font-bold text-white shadow-lg shadow-[#263b73]/15"
         >
           C
         </span>
 
-        <span class="font-mono text-lg font-semibold tracking-tight">
+        <span class="font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px]">
           conecta<span class="text-[#ec765d]">.</span>
         </span>
       </a>
@@ -99,13 +96,6 @@ const passos = [
         <a class="transition-colors hover:text-[#263b73]" href="#seguranca"> Segurança </a>
       </nav>
 
-      <button
-        class="hidden cursor-pointer rounded-full bg-[#d88c7d] px-5 py-3 text-sm font-bold text-white md:block hover:bg-[#d87663] transition-colors"
-        @click="abrirComunidade"
-      >
-        Quero fazer parte
-      </button>
-
       <a
         href="#como-funciona"
         class="hidden items-center justify-center gap-2 rounded-full border border-[#dfe2eb] bg-white px-5 py-3 font-bold md:block text-[#263b73] transition-colors hover:border-[#263b73]"
@@ -119,9 +109,9 @@ const passos = [
         aria-label="Abrir menu"
         @click="menuAberto = !menuAberto"
       >
-        <X v-if="menuAberto" :size="24" />
+        <font-awesome-icon v-if="menuAberto" :icon="faXmark" />
 
-        <Menu v-else :size="24" />
+        <font-awesome-icon v-else :icon="faBars" />
       </button>
     </header>
 
@@ -150,7 +140,7 @@ const passos = [
           <div
             class="mb-7 inline-flex items-center gap-2 rounded-full border border-[#dfe2eb] bg-white/70 px-3 py-2 text-xs font-semibold text-[#667087] shadow-sm"
           >
-            <Sparkles :size="14" class="text-[#ec765d]" />
+            <font-awesome-icon :icon="faWandSparkles" class="text-[#ec765d]" />
 
             Feito pensando na vida de quem está na faculdade
           </div>
@@ -170,12 +160,15 @@ const passos = [
 
           <div class="mt-9 flex flex-col gap-3 sm:flex-row">
             <button
-              class="group cursor-pointer inline-flex items-center justify-center gap-3 rounded-full bg-[#263b73] px-6 py-4 font-bold text-white shadow-xl shadow-[#263b73]/20 transition-all hover:-translate-y-1 hover:bg-[#1e315f]"
+              class="group cursor-pointer inline-flex items-center justify-center gap-3 rounded-2xl bg-[#263b73] px-6 py-4 font-bold text-white shadow-xl shadow-[#263b73]/20 transition-all  hover:bg-[#1e315f]"
               @click="abrirComunidade"
             >
               Quero fazer parte
 
-              <ArrowRight :size="18" class="transition-transform group-hover:translate-x-1" />
+              <font-awesome-icon
+                :icon="faArrowRight"
+                class="transition-transform group-hover:translate-x-1"
+              />
             </button>
           </div>
         </div>
@@ -215,7 +208,7 @@ const passos = [
               <div
                 class="mb-12 grid h-12 w-12 place-items-center rounded-2xl bg-white text-[#263b73] shadow-sm"
               >
-                <component :is="beneficio.icon" :size="22" />
+                <font-awesome-icon :icon="beneficio.icon" />
               </div>
 
               <h3 class="text-xl font-bold">
@@ -250,7 +243,7 @@ const passos = [
             >
               Começar agora
 
-              <ArrowRight :size="17" />
+              <font-awesome-icon :icon="faArrowRight" />
             </a>
           </div>
 
@@ -296,11 +289,11 @@ const passos = [
 
           <button
             class="mt-9 cursor-pointer inline-flex items-center gap-3 rounded-full bg-[#ec765d] px-7 py-4 font-bold text-white transition-colors hover:bg-[#f1421f]"
-            @click="aviso = 'Você entrou na lista. Em breve, o Conecta estará com você.'"
+            @click="abrirComunidade"
           >
             Quero fazer parte
 
-            <ArrowRight :size="18" />
+            <font-awesome-icon :icon="faArrowRight" />
           </button>
         </div>
       </section>
@@ -311,7 +304,9 @@ const passos = [
     <footer
       class="mx-auto flex max-w-7xl flex-col gap-4 px-6 pb-10 text-sm text-[#98a0b3] sm:flex-row sm:items-center sm:justify-between lg:px-10"
     >
-      <span class="font-mono font-semibold text-[#263b73]">
+      <span
+        class="font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px] text-[#263b73]"
+      >
         conecta<span class="text-[#ec765d]">.</span>
       </span>
 
@@ -335,7 +330,7 @@ const passos = [
         aria-label="Fechar aviso"
         @click="fecharAviso"
       >
-        <X :size="18" />
+        <font-awesome-icon :icon="faXmark" />
       </button>
     </div>
   </div>
