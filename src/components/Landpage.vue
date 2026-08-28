@@ -69,6 +69,7 @@ const passos = [
 <template>
   <div class="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#19253d]">
     <header
+    
       class="relative z-20 mx-auto flex min-w-6xl max-w-dvh items-center justify-between px-6 py-6 lg:px-10"
     >
       <a href="#inicio" class="flex items-center gap-[11px]" aria-label="Conecta, início">
@@ -96,13 +97,7 @@ const passos = [
         <a class="transition-colors hover:text-[#263b73]" href="#seguranca"> Segurança </a>
       </nav>
 
-      <a
-        href="#como-funciona"
-        class="hidden items-center justify-center gap-2 rounded-full border border-[#dfe2eb] bg-white px-5 py-3 font-bold md:block text-[#263b73] transition-colors hover:border-[#263b73]"
-      >
-        Como funciona
-      </a>
-
+    
       <button
         class="rounded-xl p-2 text-[#263b73] md:hidden"
         :aria-expanded="menuAberto"
@@ -188,30 +183,37 @@ const passos = [
 
       <section
         id="por-que"
-        class="border-y border-[#e5e6eb] bg-white/60 px-6 py-20 lg:px-10 lg:py-28"
+        class="border-y border-[#dfe2eb] bg-[#eef1f7] px-6 py-20 lg:px-10 lg:py-28"
       >
         <div class="mx-auto max-w-7xl">
-          <div class="max-w-xl">
-            <p class="eyebrow">Por que o Conecta?</p>
+          <div class="max-w-2xl">
+            <p class="eyebrow text-2xl font-bold uppercase tracking-[0.16em] text-[#ec765d]">
+              Por que usar o Conecta?
+            </p>
 
-            <h2 class="section-title mt-4">
-              Faculdade fica melhor quando você tem com quem contar.
+            <h2 class="section-title mt-4 text-[1.25rem] font-semibold text-[#19253d]">
+              Faculdade fica mais leve quando você não precisa enfrentar tudo sozinho.
             </h2>
+
+            <p class="mt-5 max-w-xl text-lg leading-8 text-[#667087]">
+              Encontre pessoas que entendem sua rotina, seus desafios e as pequenas dúvidas que
+              aparecem todos os dias.
+            </p>
           </div>
 
-          <div class="mt-14 grid gap-5 md:grid-cols-3">
+          <div class="mt-12 grid gap-5 select-none md:grid-cols-3">
             <article
               v-for="beneficio in beneficios"
               :key="beneficio.title"
-              class="rounded-3xl border border-[#e5e6eb] bg-[#f8f7f4] p-7 transition-transform hover:-translate-y-1"
+              class="cursor-pointer rounded-2xl border border-[#dfe2eb] bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#ec765d] hover:shadow-lg hover:shadow-[#263b73]/10"
             >
               <div
-                class="mb-12 grid h-12 w-12 place-items-center rounded-2xl bg-white text-[#263b73] shadow-sm"
+                class="mb-10 grid h-11 w-11 place-items-center rounded-xl bg-[#fff0ec] text-[#ec765d]"
               >
                 <font-awesome-icon :icon="beneficio.icon" />
               </div>
 
-              <h3 class="text-xl font-bold">
+              <h3 class="text-xl font-bold text-[#19253d]">
                 {{ beneficio.title }}
               </h3>
 
@@ -226,7 +228,7 @@ const passos = [
       <!-- COMO FUNCIONA -->
 
       <section id="como-funciona" class="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-32">
-        <div class="grid gap-14 lg:grid-cols-[.8fr_1.2fr] lg:gap-24">
+        <div class="grid ga -14 lg:grid-cols-[.8fr_1.2fr] lg:gap-24">
           <div>
             <p class="eyebrow select-none">Como funciona</p>
 
@@ -273,7 +275,7 @@ const passos = [
 
       <!-- COMUNIDADE -->
 
-      <section id="comunidade" class="px-6 pb-20 lg:px-10 lg:pb-28 p-8">
+      <section id="comunidade"  class="px-6 pb-20 lg:px-10 lg:pb-28 p-8">
         <div
           class="mx-auto max-w-7xl overflow-hidden rounded-[1rem] bg-[#263b73] px-8 py-14 text-center text-white sm:px-12 lg:py-20"
         >
