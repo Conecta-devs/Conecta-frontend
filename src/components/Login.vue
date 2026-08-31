@@ -50,11 +50,11 @@ function entrar() {
         <h1
           class="max-w-[430px] font-['Space_Grotesk',sans-serif] text-4xl font-semibold leading-[1.05] tracking-[-1.5px] sm:text-5xl"
         >
-          Sua jornada fica melhor quando é compartilhada.(text a decidir)
+          texto aleatorio sujeito a mudança apenas layout mesmo...
         </h1>
         <p class="mt-5 max-w-[390px] text-sm leading-6 text-[#c7d0e9]">
           Conecte-se com estudantes, encontre seu grupo e construa novas histórias dentro e fora da
-          sala de aula.(text a decidir)
+          sala de aula.(texto aleatorio sujeito a mudança)
         </p>
         <div class="mt-8 flex items-center gap-3 text-xs font-semibold text-[#dbe2f3]">
           <span class="grid size-8 place-items-center rounded-full bg-[#e8755f] text-white"
@@ -78,7 +78,7 @@ function entrar() {
         >
         <div class="mb-8">
           <p class="mb-2 text-[10px] font-bold uppercase tracking-[1.4px] text-[#e8755f]">
-            Bem-vindo ao Conecta
+            Bem-vindo ao <span class="span-wel text-[#263b73] text-[12px]">Conecta</span> <span class="spawn-wel text-[13px] text[#8755f]">.</span>
           </p>
           <h2 class="font-['Space_Grotesk',sans-serif] text-3xl font-semibold tracking-[-1px]">
             {{

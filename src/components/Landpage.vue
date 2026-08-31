@@ -129,7 +129,7 @@ const passos = [
           <h1
             class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#19253d] sm:text-6xl lg:text-7xl">
             <span class="text-[#ec765d]"> Conect-se!</span>
-            A vida universitária não precisa ser só
+            A vida universitária não precisa ser solitária.
 
 
           </h1>
@@ -248,14 +248,21 @@ const passos = [
           </p>
 
           <h2 class="mx-auto select-none mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            <span class="Texto-col text-[#]">
+            <span class="Texto-col text-[#ec765d]">
               Estude,
             </span>
-             converse e compartilhe
+             <span class="Texto-col text-[#]">
+             converse 
+            </span>
+             <span class="Texto-col text-[#cfdbfa]">
+             e compartilhe
+            </span>
+             
+            
           </h2>
 
           <button
-            class="mt-9 cursor-pointer inline-flex items-center gap-3 rounded-full bg-[#ec765d] px-7 py-4 font-bold text-white transition-colors hover:bg-[#f1421f]"
+            class="mt-9 cursor-pointer inline-flex items-center gap-3 rounded-2xl bg-[#ec765d] px-7 py-4 font-bold text-white transition-colors hover:bg-[#f1421f]"
             @click="abrirComunidade">
             Quero fazer parte
 

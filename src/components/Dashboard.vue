@@ -14,7 +14,7 @@ import {
 
 const menuItems = [
   { label: 'Visão geral', icon: faTableColumns, active: true },
-  { label: 'Conversas', icon: faMessage, badge: '12' },
+  { label: 'Conversas', icon: faMessage, badge: '{notificações}' },
   { label: 'Comunidades', icon: faUsers },
   { label: 'Agenda', icon: faCalendarDays },
 ]
@@ -57,6 +57,16 @@ const conversations = [
     color: '{color}',
   },
 ]
+
+const today = new Date()
+
+const data = {
+  day: today.getDate(),
+  month: today.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+  year: today.getFullYear(),
+  weekday: today.toLocaleDateString('pt-BR', { weekday: 'long' }),
+}
+
 </script>
 
 <template>
@@ -157,7 +167,8 @@ const conversations = [
           <p
             class="header-eyebrow m-0 text-[10px] font-bold uppercase tracking-[1.1px] text-[#8b94a6]"
           >
-            Quinta-feira, 27 de agosto de 2026
+            {{ data.weekday }}, {{ data.day }} de {{ today.toLocaleDateString('pt-BR', { month: 'long' }) }} de {{ data.year }}
+
           </p>
           <h1
             class="my-2 font-['Space_Grotesk',sans-serif] text-[clamp(15px,2vw,35px)] font-bold leading-tight tracking-[-1.2px]"
