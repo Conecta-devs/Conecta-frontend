@@ -70,10 +70,11 @@ const passos = [
   <div class="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#19253d]">
     <header class="relative z-20 mx-auto flex min-w-6xl max-w-dvh items-center justify-between px-6 py-6 lg:px-10">
       <a href="#inicio" class="flex items-center gap-[11px]" aria-label="Conecta, início">
-        <span
-          class="grid size-9 place-items-center rounded-xl bg-[#263b73] font-['Space_Grotesk',sans-serif] text-lg font-bold text-white shadow-lg shadow-[#263b73]/15">
-          C
-        </span>
+        <img
+          src="../assets/Logo3.svg"
+          alt="Logo Conecta"
+          class="h-10 w-auto"
+        />
 
         <span class="font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px]">
           conecta<span class="text-[#ec765d]">.</span>
