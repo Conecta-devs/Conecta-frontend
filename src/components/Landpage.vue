@@ -95,7 +95,7 @@ const passos = [
       <button class="rounded-xl p-2 text-[#263b73] md:hidden" :aria-expanded="menuAberto" aria-label="Abrir menu"
         @click="menuAberto = !menuAberto">
         <font-awesome-icon v-if="menuAberto" :icon="faXmark" />
-
+      
         <font-awesome-icon v-else :icon="faBars" />
       </button>
     </header>
@@ -150,7 +150,7 @@ const passos = [
         </div>
 
         <div class="connection-tree relative mx-auto w-full max-w-[600px]" aria-hidden="true">
-          <img src="../assets/connection-tree.png" alt="" class="h-auto w-full" />
+          <img src="../assets/AConexao.svg" alt="" class="h-auto w-full" />
 
           <div
             class="select-none connection-tree-note absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full border border-[#dfe2eb] bg-white/90 px-4 py-2 text-xs font-semibold text-[#667087] shadow-lg shadow-[#263b73]/10">
