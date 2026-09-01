@@ -76,7 +76,7 @@ const passos = [
           class="h-10 w-auto"
         />
 
-        <span class="font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px]">
+        <span class="font-['Space_Grotesk',sans-serif] text-[21px] text-[#263B73] font-bold tracking-[-.7px]">
           conecta<span class="text-[#ec765d]">.</span>
         </span>
       </a>
@@ -128,9 +128,9 @@ const passos = [
           </div>
 
           <h1
-            class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#19253d] sm:text-6xl lg:text-7xl">
-            <span class="text-[#ec765d]"> Conect-se!</span>
-            A vida universitária não precisa ser solitária.
+            class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
+            Um Lugar Amigável para Aprender.
+            <span class="text-[#ec765d]"> Conecte-se!</span>
 
 
           </h1>
