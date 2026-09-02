@@ -70,12 +70,13 @@ const passos = [
   <div class="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#19253d]">
     <header class="relative z-20 mx-auto flex min-w-6xl max-w-dvh items-center justify-between px-6 py-6 lg:px-10">
       <a href="#inicio" class="flex items-center gap-[11px]" aria-label="Conecta, início">
-        <span
-          class="grid size-9 place-items-center rounded-xl bg-[#263b73] font-['Space_Grotesk',sans-serif] text-lg font-bold text-white shadow-lg shadow-[#263b73]/15">
-          C
-        </span>
+        <img
+          src="../assets/Logo3.svg"
+          alt="Logo Conecta"
+          class="h-10 w-auto"
+        />
 
-        <span class="font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px]">
+        <span class="font-['Space_Grotesk',sans-serif] text-[21px] text-[#263B73] font-bold tracking-[-.7px]">
           conecta<span class="text-[#ec765d]">.</span>
         </span>
       </a>
@@ -95,7 +96,7 @@ const passos = [
       <button class="rounded-xl p-2 text-[#263b73] md:hidden" :aria-expanded="menuAberto" aria-label="Abrir menu"
         @click="menuAberto = !menuAberto">
         <font-awesome-icon v-if="menuAberto" :icon="faXmark" />
-
+      
         <font-awesome-icon v-else :icon="faBars" />
       </button>
     </header>
@@ -127,9 +128,9 @@ const passos = [
           </div>
 
           <h1
-            class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#19253d] sm:text-6xl lg:text-7xl">
-            <span class="text-[#ec765d]"> Conect-se!</span>
-            A vida universitária não precisa ser solitária.
+            class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
+            Um Lugar Amigável para Aprender.
+            <span class="text-[#ec765d]"> Conecte-se!</span>
 
 
           </h1>
@@ -150,7 +151,7 @@ const passos = [
         </div>
 
         <div class="connection-tree relative mx-auto w-full max-w-[600px]" aria-hidden="true">
-          <img src="../assets/connection-tree.png" alt="" class="h-auto w-full" />
+          <img src="../assets/AConexao.svg" alt="" class="h-auto w-full" />
 
           <div
             class="select-none connection-tree-note absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full border border-[#dfe2eb] bg-white/90 px-4 py-2 text-xs font-semibold text-[#667087] shadow-lg shadow-[#263b73]/10">
