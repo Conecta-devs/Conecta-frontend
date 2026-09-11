@@ -71,7 +71,7 @@ const passos = [
     <header class="relative z-20 mx-auto flex min-w-6xl max-w-dvh items-center justify-between px-6 py-6 lg:px-10">
       <a href="#inicio" class="flex items-center gap-[11px]" aria-label="Conecta, início">
         <img
-          src="../assets/Logo3.svg"
+          src="../../assets/Logo3.svg"
           alt="Logo Conecta"
           class="h-10 w-auto"
         />
@@ -151,7 +151,7 @@ const passos = [
         </div>
 
         <div class="connection-tree relative mx-auto w-full max-w-[600px]" aria-hidden="true">
-          <img src="../assets/AConexao.svg" alt="" class="h-auto w-full" />
+          <img src="../../assets/AConexao.svg" alt="" class="h-auto w-full" />
 
           <div
             class="select-none connection-tree-note absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full border border-[#dfe2eb] bg-white/90 px-4 py-2 text-xs font-semibold text-[#667087] shadow-lg shadow-[#263b73]/10">
