@@ -11,7 +11,18 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'Dashboard',
-      component: () => import('../components/pages/Dashboard.vue'),
+      component: () => import('../components/pages/Base.vue'),
+      children: [
+        {
+          path: '',
+          component: () => import('../components/pages/Dashboard.vue'),
+        },
+        {
+          path: 'chat',
+          component: () => import('../components/pages/chat.vue'),
+          meta: { hideHeader: true },
+        },
+      ],
     },
     {
       path: '/login',
