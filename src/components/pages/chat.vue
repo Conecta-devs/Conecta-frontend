@@ -261,7 +261,7 @@ function sendMessage() {
         </div>
       </header>
 
-      <div class="flex-1 space-y-4 overflow-y-auto bg-[#fcfcfb] px-[clamp(18px,5vw,70px)] py-6">
+      <div class="flex-1 space-y-4 overflow-y-auto bg-[#e9e8e7] px-[clamp(18px,5vw,70px)] py-6">
         <p
           class="mx-auto w-fit rounded-full bg-[#f0f2f5] px-3 py-1 text-[9px] font-bold uppercase tracking-[.8px] text-[#929aaa]"
         >

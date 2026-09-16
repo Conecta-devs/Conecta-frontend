@@ -39,7 +39,7 @@ const conversations = [
 
 <template>
   <section
-    class="dashboard-content mx-auto max-w-[1240px] px-[clamp(24px,5vw,70px)] pb-[60px] pt-[38px] max-[620px]:px-[18px] max-[620px]:py-[25px]"
+    class="dashboard-content mx-auto max-w-[1240px] max-h-4 px-[clamp(24px,5vw,70px)] pb-[60px] pt-[38px] max-[620px]:px-[18px] max-[620px]:py-[25px]"
   >
     <div
       class="dashboard-grid mt-[37px] grid grid-cols-[1.1fr_.9fr] gap-[22px] max-[850px]:grid-cols-1"
