@@ -10,11 +10,11 @@ const router = createRouter({
     },
     {
       path: '/dashboard',
-      name: 'Dashboard',
       component: () => import('../components/pages/Base.vue'),
       children: [
         {
           path: '',
+          name: 'Dashboard',
           component: () => import('../components/pages/Dashboard.vue'),
         },
         {
