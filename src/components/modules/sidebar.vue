@@ -9,6 +9,12 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useRoute } from 'vue-router'
 
+import { computed } from 'vue'
+import { currentUser } from '../../services/session'
+
+const name_user = computed(() => currentUser.user?.name ?? 'usuário')
+const email_user = computed(() => currentUser.user?.email ?? '')
+const course = computed(() => currentUser.course?.email ?? 'indefinido')
 const menuItems = [
   { label: 'Visão geral', icon: faTableColumns, path: '/dashboard' },
   { label: 'Conversas', icon: faMessage, path: '/dashboard/chat', badge: '{notificações}' },
@@ -26,8 +32,8 @@ function isActive(path: string) {
 
 const profile = {
   image: '{image}',
-  name: '{Name_profile}',
-  curso: '{course}',
+  name: name_user,
+  curso: course,
 }
 </script>
 
@@ -35,11 +41,7 @@ const profile = {
   <aside
     class="dashboard-sidebar flex w-[260px] shrink-0 flex-col border-r border-[#e8ebf0] bg-white px-[18px] py-7 max-[850px]:w-[72px] max-[850px]:px-2.5 max-[620px]:hidden"
   >
-    <RouterLink
-      class="brand-mark flex items-center gap-[11px] px-[13px] text-[#172238] no-underline max-[850px]:justify-center max-[850px]:px-0"
-      to="/"
-      aria-label="Conecta, início"
-    >
+    <div class="conecta-text flex gap-2 items-end select-none h-8">
       <span
         class="brand-icon grid size-9 place-items-center rounded-xl bg-[#253b73] font-['Space_Grotesk',sans-serif] text-lg font-bold text-white"
         >C</span
@@ -48,7 +50,7 @@ const profile = {
         class="brand-name font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px] max-[850px]:hidden"
         >conecta<span class="text-[#e8755f]">.</span></span
       >
-    </RouterLink>
+    </div>
 
     <nav class="sidebar-navigation mt-[66px] max-[850px]:mt-14" aria-label="Navegação do dashboard">
       <p

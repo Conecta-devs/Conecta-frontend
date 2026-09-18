@@ -9,13 +9,44 @@ import {
   faLock,
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
-
+import { LoginUser, registerUser } from '../../services/auth'
+import { saveSession } from '../../services/session'
 const router = useRouter()
 const modoCadastro = ref(false)
 const mostrarSenha = ref(false)
+const nome = ref('')
+const email = ref('')
+const senha = ref('')
+const erro = ref('')
+const enviando = ref(false)
 
-function entrar() {
-  router.push('/dashboard')
+async function enviarFormulario() {
+  erro.value = ''
+
+  enviando.value = true
+
+  try {
+    if (modoCadastro.value) {
+      await registerUser({
+        name: nome.value,
+        email: email.value,
+        password: senha.value,
+      })
+    } else {
+      const loginResponse = await LoginUser({
+        email: email.value,
+        password: senha.value,
+      })
+
+      saveSession(loginResponse.user, loginResponse.accessToken)
+    }
+
+    router.push('/dashboard')
+  } catch (error) {
+    erro.value = error instanceof Error ? error.message : 'Erro ao criar sua conta.'
+  } finally {
+    enviando.value = false
+  }
 }
 </script>
 
@@ -78,7 +109,8 @@ function entrar() {
         >
         <div class="mb-8">
           <p class="mb-2 text-[10px] font-bold uppercase tracking-[1.4px] text-[#e8755f]">
-            Bem-vindo ao <span class="span-wel text-[#263b73] text-[12px]">Conecta</span> <span class="spawn-wel text-[13px] text[#8755f]">.</span>
+            Bem-vindo ao <span class="span-wel text-[#263b73] text-[12px]">Conecta</span>
+            <span class="spawn-wel text-[13px] text[#8755f]">.</span>
           </p>
           <h2 class="font-['Space_Grotesk',sans-serif] text-3xl font-semibold tracking-[-1px]">
             {{
@@ -117,7 +149,7 @@ function entrar() {
           </button>
         </div>
 
-        <form class="auth-form flex flex-col gap-5" @submit.prevent="entrar">
+        <form class="auth-form flex flex-col gap-5" @submit.prevent="enviarFormulario">
           <label
             v-if="modoCadastro"
             class="form-field flex flex-col gap-2 text-xs font-bold text-[#53617a]"
@@ -130,6 +162,8 @@ function entrar() {
                 type="text"
                 placeholder="Como podemos chamar você?"
                 autocomplete="name"
+                v-model="nome"
+                maxlength="100"
                 required
               /></div
           ></label>
@@ -143,6 +177,8 @@ function entrar() {
                 type="email"
                 placeholder="voce@email.com"
                 autocomplete="email"
+                v-model="email"
+                maxlength="150"
                 required
               /></div
           ></label>
@@ -156,6 +192,9 @@ function entrar() {
                 :type="mostrarSenha ? 'text' : 'password'"
                 placeholder="Digite sua senha"
                 :autocomplete="modoCadastro ? 'new-password' : 'current-password'"
+                v-model="senha"
+                maxlength="20"
+                minlength="8"
                 required
               /><button
                 type="button"
@@ -174,11 +213,20 @@ function entrar() {
           <button
             class="auth-submit cursor-pointer mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-lg border-0 bg-[#253b73] text-sm font-bold text-white transition-colors hover:bg-[#1d2f61]"
             type="submit"
+            :disabled="enviando"
           >
-            {{ modoCadastro ? 'Criar minha conta' : 'Entrar na minha conta' }}
+            {{
+              enviando
+                ? 'Enviando...'
+                : modoCadastro
+                  ? 'Criar minha conta'
+                  : 'Entrar na minha conta'
+            }}
             <font-awesome-icon :icon="faArrowRight" />
           </button>
         </form>
+
+        <p v-if="erro" class="mt-4 text-center text-xs text-red-600" role="alert">{{ erro }}</p>
 
         <p class="mt-8 text-center text-xs text-[#858f9f]">
           {{ modoCadastro ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}

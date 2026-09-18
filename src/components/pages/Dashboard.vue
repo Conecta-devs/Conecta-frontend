@@ -6,6 +6,8 @@ import {
   faUsers,
 } from '@fortawesome/free-solid-svg-icons'
 
+
+
 const communities = [
   { name: '{group_name}', members: '{members_counter}', color: '{color}' },
   { name: '{group_name}', members: '{members_counter}', color: '{color}' },

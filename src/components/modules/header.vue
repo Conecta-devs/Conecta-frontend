@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { faBell, faSearch } from '@fortawesome/free-solid-svg-icons'
+import { currentUser } from '../../services/session'
 
+const name_user = computed(() => currentUser.user?.name ?? 'usuário')
+const email_user = computed(() => currentUser.user?.email ?? '')
 const profile = {
-  name: '{name_profile}',
-  image: '{image}',
+  image: 'EU',
 }
 
 const today = new Date()
@@ -26,10 +29,10 @@ const data = {
       <h1
         class="my-2 font-['Space_Grotesk',sans-serif] text-[clamp(15px,2vw,35px)] font-bold leading-tight tracking-[-1.2px]"
       >
-        Bom dia, {{ profile.name }} <span>!</span>
+        Bom dia, {{ name_user }} <span>!</span>
       </h1>
       <p class="header-description m-0 text-[13px] text-[#828c9d]">
-        Veja o que está acontecendo na sua comunidade hoje.
+        {{ email_user }}
       </p>
     </div>
     <div class="header-actions flex w-auto items-center gap-[18px] max-[620px]:w-full">
