@@ -6,11 +6,11 @@ Conecta é uma iniciativa dos estudantes da PUC-Campinas do curso de Engenharia 
 
 ## Tecnologias
 
-- **CSS** - 55.4%
-- **Vue** - 31.7%
-- **TypeScript** - 8.8%
-- **HTML** - 3.9%
-- **SCSS** - 0.2%
+- **CSS** - 1%
+- **Vue** - 91.7%
+- **TypeScript** - 7.3%
+- **HTML** - 1%
+- **SCSS** - 1%
 
 ---
 
