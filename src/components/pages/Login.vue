@@ -19,6 +19,7 @@ const email = ref('')
 const senha = ref('')
 const erro = ref('')
 const enviando = ref(false)
+const conta = ref('')
 
 async function enviarFormulario() {
   erro.value = ''
@@ -32,16 +33,19 @@ async function enviarFormulario() {
         email: email.value,
         password: senha.value,
       })
+      
+      conta.value = "conta criada com sucesso!"
+
     } else {
       const loginResponse = await LoginUser({
         email: email.value,
         password: senha.value,
+        
       })
-
+      router.push('/dashboard')
       saveSession(loginResponse.user, loginResponse.accessToken)
     }
 
-    router.push('/dashboard')
   } catch (error) {
     erro.value = error instanceof Error ? error.message : 'Erro ao criar sua conta.'
   } finally {
@@ -227,7 +231,7 @@ async function enviarFormulario() {
         </form>
 
         <p v-if="erro" class="mt-4 text-center text-xs text-red-600" role="alert">{{ erro }}</p>
-
+        <p v-if="modoCadastro" class="mt-4 text-center text-xs text-red-600" role="alert">{{ conta }}</p>
         <p class="mt-8 text-center text-xs text-[#858f9f]">
           {{ modoCadastro ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
           <button

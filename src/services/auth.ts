@@ -21,6 +21,10 @@ export interface LoginResponse {
   user: AuthUser
 }
 
+// adicionar payload do sala dos usuarios
+// junto da async fn
+
+
 export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
