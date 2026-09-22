@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import BlurReveal from '../ui/BlurReveal.vue'
+
 import {
   faArrowRight,
   faBars,
@@ -129,10 +131,8 @@ const passos = [
 
           <h1
             class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
-            Um Lugar Amigável para Aprender.
-            <span class="text-[#ec765d]"> Conecte-se!</span>
-
-
+            <BlurReveal as="span" text="Um Lugar Amigável para Aprender." />
+            <BlurReveal as="span" class="text-[#ec765d]" text=" Conecte-se!" :delay="0.6" />
           </h1>
 
           <p class="mt-7 max-w-xl text-lg leading-8 text-[#667087] select-none">
