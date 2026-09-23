@@ -22,17 +22,16 @@ export const currentUser = reactive<{ user: AuthUser | null }>({
   user: loadSession(),
 })
 
-export function saveSession(user: AuthUser, token?: string) {
+export function isAuthenticated(): boolean {
+  return Boolean(currentUser.user)
+}
+
+export function saveSession(user: AuthUser) {
   currentUser.user = user
   localStorage.setItem(SESSION_KEY, JSON.stringify(user))
   localStorage.setItem('userName', user.name)
   localStorage.setItem('userEmail', user.email)
   localStorage.setItem('course', user.course)
-
-  if (token) {
-    localStorage.setItem('token', token)
-    localStorage.setItem('conecta_token', token)
-  }
 }
 
 export function clearSession() {
@@ -40,6 +39,5 @@ export function clearSession() {
   localStorage.removeItem(SESSION_KEY)
   localStorage.removeItem('userName')
   localStorage.removeItem('userEmail')
-  localStorage.removeItem('token')
-  localStorage.removeItem('conecta_token')
+  localStorage.removeItem('course')
 }

@@ -11,6 +11,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { LoginUser, registerUser } from '../../services/auth'
 import { saveSession } from '../../services/session'
+import ProfileSetupModal from '../modules/ProfileSetupModal.vue'
+
 const router = useRouter()
 const modoCadastro = ref(false)
 const mostrarSenha = ref(false)
@@ -20,6 +22,8 @@ const senha = ref('')
 const erro = ref('')
 const enviando = ref(false)
 const conta = ref('')
+const modalPerfilAberto = ref(false)
+const perfilCriado = ref(false)
 
 async function enviarFormulario() {
   erro.value = ''
@@ -33,24 +37,34 @@ async function enviarFormulario() {
         email: email.value,
         password: senha.value,
       })
-      
-      conta.value = "conta criada com sucesso!"
 
+      conta.value = 'conta criada com sucesso!'
+      perfilCriado.value = true
+      modalPerfilAberto.value = true
+      modoCadastro.value = false
+      nome.value = ''
+      email.value = ''
+      senha.value = ''
     } else {
       const loginResponse = await LoginUser({
         email: email.value,
         password: senha.value,
-        
       })
-      router.push('/dashboard')
-      saveSession(loginResponse.user, loginResponse.accessToken)
-    }
 
+      saveSession(loginResponse.user)
+      router.push('/dashboard')
+    }
   } catch (error) {
     erro.value = error instanceof Error ? error.message : 'Erro ao criar sua conta.'
   } finally {
     enviando.value = false
   }
+}
+
+function finalizarPerfil(payload: { name: string; imageUrl: string; gender: string; bio: string }) {
+  console.log('Perfil configurado:', payload)
+  modalPerfilAberto.value = false
+  router.push('/dashboard')
 }
 </script>
 
@@ -244,6 +258,12 @@ async function enviarFormulario() {
       </div>
     </section>
   </main>
+
+  <ProfileSetupModal
+    :model-value="modalPerfilAberto"
+    @update:model-value="modalPerfilAberto = $event"
+    @save="finalizarPerfil"
+  />
 </template>
 
 <style scoped>

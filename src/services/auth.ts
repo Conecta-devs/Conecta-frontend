@@ -17,17 +17,13 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  accessToken: string
   user: AuthUser
 }
-
-// adicionar payload do sala dos usuarios
-// junto da async fn
-
 
 export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-type': 'application/json',
     },
@@ -44,6 +40,7 @@ export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
 export async function registerUser(payload: RegisterPayload): Promise<void> {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },
