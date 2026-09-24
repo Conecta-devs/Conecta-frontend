@@ -51,7 +51,9 @@ async function enviarFormulario() {
         password: senha.value,
       })
 
-      saveSession(loginResponse.user)
+      const token = loginResponse.accessToken ?? loginResponse.token ?? null
+
+      saveSession(loginResponse.user, token ?? undefined)
       router.push('/dashboard')
     }
   } catch (error) {
@@ -61,7 +63,7 @@ async function enviarFormulario() {
   }
 }
 
-function finalizarPerfil(payload: { name: string; imageUrl: string; gender: string; bio: string }) {
+function finalizarPerfil(payload: { name: string; image: string; gen: string; bio: string }) {
   console.log('Perfil configurado:', payload)
   modalPerfilAberto.value = false
   router.push('/dashboard')

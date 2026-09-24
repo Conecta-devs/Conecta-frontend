@@ -2,6 +2,7 @@ import { reactive } from 'vue'
 import type { AuthUser } from './auth'
 
 const SESSION_KEY = 'conecta_session'
+const TOKEN_KEY = 'conecta_access_token'
 
 function loadSession(): AuthUser | null {
   const savedSession = localStorage.getItem(SESSION_KEY)
@@ -18,6 +19,24 @@ function loadSession(): AuthUser | null {
   }
 }
 
+function readCookie(name: string): string | null {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() ?? null
+  }
+  return null
+}
+
+export function getStoredAccessToken(): string | null {
+  const localToken = localStorage.getItem(TOKEN_KEY)
+  if (localToken) {
+    return localToken
+  }
+
+  return readCookie('accessToken') ?? readCookie('token') ?? readCookie('jwt')
+}
+
 export const currentUser = reactive<{ user: AuthUser | null }>({
   user: loadSession(),
 })
@@ -26,12 +45,21 @@ export function isAuthenticated(): boolean {
   return Boolean(currentUser.user)
 }
 
-export function saveSession(user: AuthUser) {
+export function saveSession(user: AuthUser, accessToken?: string) {
   currentUser.user = user
   localStorage.setItem(SESSION_KEY, JSON.stringify(user))
   localStorage.setItem('userName', user.name)
   localStorage.setItem('userEmail', user.email)
-  localStorage.setItem('course', user.course)
+  if (user.image) {
+    localStorage.setItem('userImage', user.image)
+  } else {
+    localStorage.removeItem('userImage')
+  }
+
+  const token = accessToken ?? getStoredAccessToken()
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token)
+  }
 }
 
 export function clearSession() {
@@ -39,5 +67,9 @@ export function clearSession() {
   localStorage.removeItem(SESSION_KEY)
   localStorage.removeItem('userName')
   localStorage.removeItem('userEmail')
-  localStorage.removeItem('course')
+  localStorage.removeItem('userImage')
+  localStorage.removeItem(TOKEN_KEY)
+  document.cookie = 'token=; Max-Age=0; path=/; SameSite=Lax'
+  document.cookie = 'jwt=; Max-Age=0; path=/; SameSite=Lax'
+  document.cookie = 'accessToken=; Max-Age=0; path=/; SameSite=Lax'
 }

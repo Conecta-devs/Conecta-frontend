@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
+import { getUserProfile, updateUserProfile } from '../../services/auth'
+import { currentUser, saveSession } from '../../services/session'
+
 const props = defineProps<{
   modelValue: boolean
 }>()
@@ -11,50 +14,87 @@ const emit = defineEmits<{
 }>()
 
 interface ProfileForm {
-  imageUrl: string
-  gender: string
-  course: string
-  city: string
-  interests: string
+  name: string
+  image: string
+  gen: string
   bio: string
 }
 
-const form = ref<ProfileForm>({
-  imageUrl: '',
-  gender: 'Não informar',
-  course: '',
-  city: '',
-  interests: '',
+const emptyForm = (): ProfileForm => ({
+  name: '',
+  image: '',
+  gen: 'Não informar',
   bio: '',
 })
 
+const form = ref<ProfileForm>(emptyForm())
+const isSaving = ref(false)
+
 const imagePreview = computed(() => {
-  return form.value.imageUrl || 'https://placehold.co/240x240/edf2f7/53617a?text=Sua+foto'
+  return form.value.image || 'https://placehold.co/240x240/edf2f7/53617a?text=Sua+foto'
 })
 
 watch(
   () => props.modelValue,
-  (isOpen) => {
-    if (!isOpen) {
-      form.value = {
-        imageUrl: '',
-        gender: 'Não informar',
-        course: '',
-        city: '',
-        interests: '',
-        bio: '',
-      }
+  async (isOpen) => {
+    if (isOpen) {
+      await loadProfile()
+      return
     }
+
+    form.value = emptyForm()
   },
 )
+
+async function loadProfile() {
+  try {
+    const profile = await getUserProfile()
+
+    form.value = {
+      name: profile.name || '',
+      image: profile.image || '',
+      gen: profile.gen || 'Não informar',
+      bio: profile.bio || '',
+    }
+  } catch {
+    form.value = emptyForm()
+  }
+}
 
 function close() {
   emit('update:modelValue', false)
 }
 
-function saveProfile() {
-  emit('save', { ...form.value })
-  close()
+async function saveProfile() {
+  isSaving.value = true
+
+  try {
+    await updateUserProfile({
+      name: form.value.name,
+      bio: form.value.bio,
+      gen: form.value.gen,
+      image: form.value.image,
+    })
+
+    if (currentUser.user) {
+      saveSession(
+        {
+          ...currentUser.user,
+          name: form.value.name,
+          bio: form.value.bio,
+          gen: form.value.gen,
+          image: form.value.image,
+        },
+      )
+    } else {
+      localStorage.setItem('userImage', form.value.image)
+    }
+
+    emit('save', { ...form.value })
+    close()
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -111,10 +151,20 @@ function saveProfile() {
 
           <form class="space-y-5" @submit.prevent="saveProfile">
             <div class="grid gap-5 md:grid-cols-2">
+              <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a] md:col-span-2">
+                <span>Nome</span>
+                <input
+                  v-model="form.name"
+                  type="text"
+                  placeholder="Seu nome completo"
+                  class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
+                />
+              </label>
+
               <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
                 <span>Imagem de perfil</span>
                 <input
-                  v-model="form.imageUrl"
+                  v-model="form.image"
                   type="url"
                   placeholder="https://exemplo.com/foto.jpg"
                   class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
@@ -124,7 +174,7 @@ function saveProfile() {
               <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
                 <span>Gênero</span>
                 <select
-                  v-model="form.gender"
+                  v-model="form.gen"
                   class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
                 >
                   <option>Não informar</option>
@@ -133,37 +183,7 @@ function saveProfile() {
                   <option>Outro</option>
                 </select>
               </label>
-
-              <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
-                <span>Curso / área</span>
-                <input
-                  v-model="form.course"
-                  type="text"
-                  placeholder="Ex: Sistemas de informação"
-                  class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
-                />
-              </label>
-
-              <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
-                <span>Cidade</span>
-                <input
-                  v-model="form.city"
-                  type="text"
-                  placeholder="Ex: São Paulo"
-                  class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
-                />
-              </label>
             </div>
-
-            <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
-              <span>Interesses</span>
-              <input
-                v-model="form.interests"
-                type="text"
-                placeholder="Ex: tecnologia, música, esportes, inovação"
-                class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
-              />
-            </label>
 
             <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
               <span>Bio</span>
@@ -180,9 +200,10 @@ function saveProfile() {
               
               <button
                 type="submit"
-                class="inline-flex h-12 items-center justify-center rounded-xl bg-[#253b73] px-6 text-sm font-bold text-white transition hover:bg-[#1d2f61]"
+                class="inline-flex h-12 items-center justify-center rounded-xl bg-[#253b73] px-6 text-sm font-bold text-white transition hover:bg-[#1d2f61] disabled:cursor-not-allowed disabled:opacity-70"
+                :disabled="isSaving"
               >
-                Salvar perfil
+                {{ isSaving ? 'Salvando...' : 'Salvar perfil' }}
               </button>
             </div>
           </form>

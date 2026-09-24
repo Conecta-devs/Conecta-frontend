@@ -19,8 +19,7 @@ const menuAberto = ref(false)
 const submenuAberto = ref(false)
 
 const name_user = computed(() => currentUser.user?.name ?? 'usuário')
-const email_user = computed(() => currentUser.user?.email ?? '')
-const course = computed(() => currentUser.course?.email ?? 'indefinido')
+const course = computed(() => 'usuário')
 const menuItems = [
   { label: 'Visão geral', icon: faTableColumns, path: '/dashboard' },
   { label: 'Conversas', icon: faMessage, path: '/dashboard/chat', badge: '{notificações}' },
@@ -66,7 +65,7 @@ function abrirConfiguracaoPerfil() {
 }
 
 const profile = {
-  image: '{image}',
+  image: currentUser.user?.image || localStorage.getItem('userImage') || '{image}',
   name: name_user,
   curso: course,
 }
@@ -136,9 +135,16 @@ const profile = {
       class="sidebar-profile flex items-center gap-2.5 border-t border-[#edf0f4] px-2 pt-[17px] max-[850px]:justify-center max-[850px]:px-0"
     >
       <div
+        v-if="profile.image && profile.image !== '{image}'"
+        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+      >
+        <img :src="profile.image" alt="Avatar do usuário" class="h-full w-full object-cover" />
+      </div>
+      <div
+        v-else
         class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
       >
-        {{ profile.image }}
+        {{ profile.image === '{image}' ? 'EU' : profile.image }}
       </div>
       <div class="profile-details hover:cursor-pointer min-w-0 flex-1 max-[850px]:hidden">
         <strong class="block truncate text-xs">{{ profile.name }}</strong>

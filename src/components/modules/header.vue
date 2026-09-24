@@ -5,9 +5,11 @@ import { currentUser } from '../../services/session'
 
 const name_user = computed(() => currentUser.user?.name ?? 'usuário')
 const email_user = computed(() => currentUser.user?.email ?? '')
-const profile = {
-  image: 'EU',
-}
+const userImage = computed(() => currentUser.user?.image || localStorage.getItem('userImage') || '')
+const profileImage = computed(() => {
+  const image = userImage.value
+  return image || 'EU'
+})
 
 const today = new Date()
 const data = {
@@ -53,9 +55,16 @@ const data = {
         ></span>
       </button>
       <div
+        v-if="userImage"
+        class="profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-[#ffe9e2] text-[10px] font-bold text-[#db6d57]"
+      >
+        <img :src="userImage" alt="Foto do usuário" class="h-full w-full object-cover" />
+      </div>
+      <div
+        v-else
         class="profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-[#ffe9e2] text-[10px] font-bold text-[#db6d57]"
       >
-        {{ profile.image }}
+        {{ profileImage }}
       </div>
     </div>
   </header>

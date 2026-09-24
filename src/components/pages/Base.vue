@@ -9,15 +9,14 @@ const route = useRoute()
 const profileSetupOpen = ref(false)
 
 function handleProfileSave(payload: {
-  imageUrl: string
-  gender: string
-  course: string
-  city: string
-  interests: string
+  image: string
+  gen: string
   bio: string
+  name: string
 }) {
   console.log('Perfil salvo:', payload)
   localStorage.setItem('conecta_profile_setup', 'true')
+  localStorage.setItem('userImage', payload.image || '')
   profileSetupOpen.value = false
 }
 </script>
