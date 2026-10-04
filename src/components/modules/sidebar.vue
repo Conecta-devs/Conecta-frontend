@@ -7,14 +7,19 @@ import {
   faMessage,
   faUsers,
 } from '@fortawesome/free-solid-svg-icons'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
-import { computed } from 'vue'
-import { currentUser } from '../../services/session'
+import { computed, ref } from 'vue'
+import { clearSession, currentUser } from '../../services/session'
+
+const emit = defineEmits<{ (e: 'open-profile-config'): void }>()
+
+const router = useRouter()
+const menuAberto = ref(false)
+const submenuAberto = ref(false)
 
 const name_user = computed(() => currentUser.user?.name ?? 'usuário')
-const email_user = computed(() => currentUser.user?.email ?? '')
-const course = computed(() => currentUser.course?.email ?? 'indefinido')
+const course = computed(() => 'usuário')
 const menuItems = [
   { label: 'Visão geral', icon: faTableColumns, path: '/dashboard' },
   { label: 'Conversas', icon: faMessage, path: '/dashboard/chat', badge: '{notificações}' },
@@ -30,8 +35,37 @@ function isActive(path: string) {
   return route.path === targetPath && route.hash === (targetHash ? `#${targetHash}` : '')
 }
 
+async function logout() {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch {
+    // ignora falha do backend e continua limpando localmente
+  } finally {
+    clearSession()
+    document.cookie = 'token=; Max-Age=0; path=/; SameSite=Lax'
+    document.cookie = 'jwt=; Max-Age=0; path=/; SameSite=Lax'
+    document.cookie = 'accessToken=; Max-Age=0; path=/; SameSite=Lax'
+    menuAberto.value = false
+    submenuAberto.value = false
+    router.push('/login')
+  }
+}
+
+function abrirOpcoes() {
+  submenuAberto.value = !submenuAberto.value
+}
+
+function abrirConfiguracaoPerfil() {
+  menuAberto.value = false
+  submenuAberto.value = false
+  emit('open-profile-config')
+}
+
 const profile = {
-  image: '{image}',
+  image: currentUser.user?.image || localStorage.getItem('userImage') || '{image}',
   name: name_user,
   curso: course,
 }
@@ -101,20 +135,88 @@ const profile = {
       class="sidebar-profile flex items-center gap-2.5 border-t border-[#edf0f4] px-2 pt-[17px] max-[850px]:justify-center max-[850px]:px-0"
     >
       <div
+        v-if="profile.image && profile.image !== '{image}'"
+        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+      >
+        <img :src="profile.image" alt="Avatar do usuário" class="h-full w-full object-cover" />
+      </div>
+      <div
+        v-else
         class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
       >
-        {{ profile.image }}
+        {{ profile.image === '{image}' ? 'EU' : profile.image }}
       </div>
       <div class="profile-details hover:cursor-pointer min-w-0 flex-1 max-[850px]:hidden">
         <strong class="block truncate text-xs">{{ profile.name }}</strong>
         <span class="mt-0.5 block truncate text-[10px] text-[#929aaa]">{{ profile.curso }}</span>
       </div>
-      <button
-        class="icon-button border-0 hover:cursor-pointer transition-colors bg-transparent text-[#8c96a7] hover:text-[#536bad] max-[850px]:hidden"
-        aria-label="Mais opções"
-      >
-        <font-awesome-icon :icon="faEllipsis" />
-      </button>
+      <div class="relative flex items-center justify-center">
+        <button
+          class="icon-button border-0 hover:cursor-pointer transition-colors bg-transparent text-[#8c96a7] hover:text-[#536bad] max-[850px]:hidden"
+          aria-label="Mais opções"
+          @click="menuAberto = !menuAberto"
+        >
+          <font-awesome-icon :icon="faEllipsis" />
+        </button>
+
+        <div
+          v-if="menuAberto"
+          class="absolute bottom-0 left-[calc(100%+10px)] z-20 w-[180px] overflow-hidden rounded-[16px] border border-[#edf0f4] bg-white shadow-[0_12px_30px_rgba(17,24,39,0.12)]"
+          @click.stop
+        >
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            @click="abrirConfiguracaoPerfil"
+          >
+            <span>Perfil</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            @click="abrirOpcoes"
+          >
+            <span>Opções</span>
+            <span class="text-[11px] text-[#8b94a6]">›</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#e05d4d] transition-colors hover:bg-[#fff4f2]"
+            @click="logout"
+          >
+            <span>Sair</span>
+          </button>
+        </div>
+
+        <div
+          v-if="submenuAberto && menuAberto"
+          class="absolute bottom-0  left-[calc(100%+10.4dvw)] z-30 w-[180px] overflow-hidden rounded-[16px] border border-[#edf0f4] bg-white shadow-[0_12px_30px_rgba(17,24,39,0.12)]"
+        >
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            @click="submenuAberto = false; menuAberto = false"
+          >
+            <span>Conta</span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            @click="submenuAberto = false; menuAberto = false"
+          >
+            <span>Preferências</span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            @click="submenuAberto = false; menuAberto = false"
+          >
+            <span>Privacidade</span>
+          </button>
+        </div>
+      </div>
     </div>
   </aside>
 </template>
