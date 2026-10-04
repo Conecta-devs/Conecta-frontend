@@ -127,8 +127,7 @@ const passos = [
             Feito pensando na vida de quem está na faculdade
           </div>
 
-          <h1
-            class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
+          <h1 class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
             Um Lugar Amigável para Aprender.
             <span class="text-[#ec765d]"> Conecte-se!</span>
 
