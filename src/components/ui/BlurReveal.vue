@@ -33,8 +33,9 @@ const words = computed(() => {
 
 <template>
   <component :is="as" class="blur-reveal">
+    <span class="sr-only">{{ text }}</span>
     <template v-for="(word, wordIndex) in words" :key="`w-${wordIndex}`">
-      <span class="blur-reveal-word">
+      <span class="blur-reveal-word" aria-hidden="true">
         <span
           v-for="item in word.chars"
           :key="`c-${item.index}`"
@@ -46,7 +47,7 @@ const words = computed(() => {
           >{{ item.char }}</span
         >
       </span>
-      <span v-if="wordIndex < words.length - 1" class="blur-reveal-space">{{ ' ' }}</span>
+      <span v-if="wordIndex < words.length - 1" class="blur-reveal-space" aria-hidden="true">{{ ' ' }}</span>
     </template>
   </component>
 </template>
@@ -55,11 +56,6 @@ const words = computed(() => {
 .blur-reveal-word {
   display: inline-block;
   white-space: nowrap;
-}
-
-.blur-reveal-space {
-  display: inline-block;
-  white-space: pre;
 }
 
 .blur-reveal-char {
