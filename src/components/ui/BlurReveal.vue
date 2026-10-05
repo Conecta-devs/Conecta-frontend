@@ -58,11 +58,6 @@ const words = computed(() => {
   white-space: nowrap;
 }
 
-.blur-reveal-space {
-  display: inline-block;
-  white-space: pre;
-}
-
 .blur-reveal-char {
   display: inline-block;
   opacity: 0;
