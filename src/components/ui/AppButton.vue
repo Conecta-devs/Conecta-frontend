@@ -1,0 +1,146 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+
+/**
+ * Figma — Components > Buttons
+ *
+ * Cada variante é uma dupla base → hover (Smart Animate de 300ms Ease Out):
+ *   coral         = Button 1 (435:92) → Button 5 (435:96)
+ *   blue          = Button 2 (435:90) → Button 6 (435:95)
+ *   coral-outline = Button 3 (435:91) → Button 7 (435:94)
+ *   blue-outline  = Button 4 (435:93) → Button 8 (435:97)
+ *
+ * Base: 150x50, raio 10, Roboto Medium 16, padding-left 40, seta 16x12.
+ * No hover: borda aparece/some, sombra colorida entra e o gap vai de 15 para 23.
+ */
+type ButtonVariant = 'coral' | 'blue' | 'coral-outline' | 'blue-outline'
+type ButtonSize = 'md' | 'lg'
+
+const props = withDefaults(
+  defineProps<{
+    variant?: ButtonVariant
+    size?: ButtonSize
+    type?: 'button' | 'submit' | 'reset'
+    /** Distância do conteúdo à borda esquerda, em px. */
+    paddingLeft?: number
+    /** Sobrescreve a largura do tamanho (px). */
+    width?: number
+    /** Sobrescreve a altura do tamanho (px). */
+    height?: number
+    /** Espaçamento entre label e seta no estado base (px). Padrão: 15. */
+    gap?: number
+    /** Espaçamento entre label e seta no hover (px). Padrão: 23. */
+    gapHover?: number
+    /** Tamanho da fonte do label (px). Padrão: 16. */
+    labelSize?: number
+  }>(),
+  {
+    variant: 'coral',
+    size: 'md',
+    type: 'button',
+  },
+)
+
+/**
+ * md = 150x50 (botões padrão; conteúdo a 40px da esquerda)
+ * lg = 180x50 (CTA do Cartaz; padding esquerdo configurável)
+ *
+ * No Figma, o componente Cartaz usa 60px para o label "Text"; a instância
+ * da Landpage usa 18px, onde o texto real é inserido.
+ */
+const sizes: Record<ButtonSize, { root: string; paddingLeft: number; height: number }> = {
+  md: { root: 'w-[150px]', paddingLeft: 40, height: 50 },
+  lg: { root: 'w-[180px]', paddingLeft: 60, height: 50 },
+}
+
+const contentPaddingLeft = computed(() => props.paddingLeft ?? sizes[props.size].paddingLeft)
+const rootWidth = computed(() => (props.width ? `${props.width}px` : undefined))
+const rootHeight = computed(() => `${props.height ?? sizes[props.size].height}px`)
+
+const active = ref(false)
+
+const surfaces: Record<ButtonVariant, { base: string; hover: string }> = {
+  coral: {
+    base: 'border-transparent bg-co-coral shadow-none',
+    hover:
+      'border-co-coral bg-[rgba(236,118,93,0.01)] shadow-[0px_20px_25px_-5px_rgba(236,118,93,0.2)]',
+  },
+  blue: {
+    base: 'border-transparent bg-co-blue shadow-none',
+    hover:
+      'border-co-blue bg-[rgba(38,59,115,0.01)] shadow-[0px_20px_25px_-5px_rgba(38,59,115,0.2)]',
+  },
+  'coral-outline': {
+    base: 'border-co-coral bg-[rgba(236,118,93,0.01)] shadow-none',
+    hover:
+      'border-transparent bg-co-coral shadow-[0px_20px_25px_-5px_rgba(236,118,93,0.2)]',
+  },
+  'blue-outline': {
+    base: 'border-co-blue bg-[rgba(38,59,115,0.01)] shadow-none',
+    hover:
+      'border-transparent bg-co-blue shadow-[0px_20px_25px_-5px_rgba(38,59,115,0.2)]',
+  },
+}
+
+const contents: Record<ButtonVariant, { base: string; hover: string }> = {
+  coral: { base: 'text-co-white', hover: 'text-co-coral' },
+  blue: { base: 'text-co-white', hover: 'text-co-blue' },
+  'coral-outline': { base: 'text-co-coral', hover: 'text-co-white' },
+  'blue-outline': { base: 'text-co-blue', hover: 'text-co-white' },
+}
+
+const surfaceClasses = computed(() =>
+  active.value ? surfaces[props.variant].hover : surfaces[props.variant].base,
+)
+const contentClasses = computed(() =>
+  active.value ? contents[props.variant].hover : contents[props.variant].base,
+)
+</script>
+
+<template>
+  <button
+    :type="type"
+    class="relative shrink-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+    :class="sizes[size].root"
+    :style="{ width: rootWidth, height: rootHeight }"
+    @mouseenter="active = true"
+    @mouseleave="active = false"
+    @focus="active = true"
+    @blur="active = false"
+  >
+    <!-- Camada de fundo (431:120 / 435:71 e equivalentes) -->
+    <span
+      aria-hidden="true"
+      class="absolute inset-0 rounded-[10px] border transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
+      :class="surfaceClasses"
+    />
+
+    <!-- Conteúdo (431:128 / 435:72 e equivalentes) -->
+    <span
+      class="absolute inset-0 flex items-center justify-start transition-[gap,color] duration-300 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
+      :class="contentClasses"
+      :style="{
+        paddingLeft: `${contentPaddingLeft}px`,
+        gap: `${active ? (gapHover ?? 23) : (gap ?? 15)}px`,
+      }"
+    >
+      <span
+        class="leading-[normal] whitespace-nowrap"
+        :class="labelSize ? 'font-sans font-medium' : 'text-h5'"
+        :style="labelSize ? { fontSize: `${labelSize}px` } : undefined"
+      ><slot>Text</slot></span>
+
+      <svg
+        class="h-[12.005px] w-[15.999px] shrink-0"
+        viewBox="0 0 15.9992 12.0047"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          fill="currentColor"
+          d="M15.7063 6.70859C16.0969 6.31797 16.0969 5.68359 15.7063 5.29297L10.7063 0.292969C10.3156 -0.0976562 9.68125 -0.0976562 9.29062 0.292969C8.9 0.683594 8.9 1.31797 9.29062 1.70859L12.5844 5.00234H1C0.446875 5.00234 0 5.44922 0 6.00234C0 6.55547 0.446875 7.00234 1 7.00234H12.5844L9.29062 10.2961C8.9 10.6867 8.9 11.3211 9.29062 11.7117C9.68125 12.1023 10.3156 12.1023 10.7063 11.7117L15.7063 6.71172V6.70859Z"
+        />
+      </svg>
+    </span>
+  </button>
+</template>

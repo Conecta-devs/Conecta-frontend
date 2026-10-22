@@ -1,7 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isAuthenticated } from '../services/session'
 
-const publicRoutes = ['/', '/landpage', '/login']
+const publicRoutes = [
+  '/',
+  '/landpage',
+  '/catalog',
+  '/landpage-2',
+  '/landpage-v2',
+  '/login',
+  '/login-v2',
+  '/conta-criada',
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,6 +20,31 @@ const router = createRouter({
       alias: '/landpage',
       name: 'Landpage',
       component: () => import('../components/pages/Landpage.vue'),
+    },
+    {
+      path: '/catalog',
+      name: 'Catalog',
+      component: () => import('../components/pages/Catalog.vue'),
+    },
+    {
+      path: '/landpage-2',
+      redirect: '/catalog',
+    },
+    {
+      path: '/landpage-v2',
+      name: 'LandpageV2',
+      component: () => import('../components/pages/LandpageV2.vue'),
+    },
+    {
+      path: '/login-v2',
+      name: 'LoginV2',
+      component: () => import('../components/pages/LoginV2.vue'),
+    },
+    {
+      path: '/conta-criada',
+      name: 'ContaCriada',
+      component: () => import('../components/pages/LoginV2.vue'),
+      props: { estadoInicial: 'criado' },
     },
     {
       path: '/dashboard',
@@ -50,7 +84,7 @@ router.beforeEach((to) => {
   }
 
   if (authenticated) {
-    if (isDashboardRoute || to.path === '/landpage' || to.path === '/') {
+    if (isDashboardRoute || isPublicRoute) {
       return true
     }
 

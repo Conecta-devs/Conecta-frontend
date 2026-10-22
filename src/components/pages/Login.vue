@@ -72,50 +72,50 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
 
 <template>
   <main
-    class="login-page grid min-h-screen bg-[#f8f7f4] font-['DM_Sans',sans-serif] text-[#172238] lg:grid-cols-[.82fr_1.18fr]"
+    class="login-page grid min-h-screen bg-co-white text-text-1 lg:grid-cols-[.82fr_1.18fr]"
   >
     <section
-      class="login-intro relative flex min-h-[280px] flex-col justify-between overflow-hidden bg-[#253b73] px-7 py-8 text-white sm:px-12 lg:min-h-screen lg:px-[clamp(40px,7vw,105px)] lg:py-12"
+      class="login-intro relative flex min-h-[280px] flex-col justify-between overflow-hidden bg-co-blue px-7 py-8 text-co-white sm:px-12 lg:min-h-screen lg:px-[clamp(40px,7vw,105px)] lg:py-12"
     >
       <div
-        class="intro-orbit absolute -bottom-32 -right-28 size-[390px] rounded-full border border-white/10 shadow-[0_0_0_30px_rgba(255,255,255,.025),0_0_0_60px_rgba(255,255,255,.025)]"
+        class="intro-orbit absolute -bottom-32 -right-28 size-[390px] rounded-full border border-co-white/10 shadow-[0_0_0_30px_var(--color-co-white)]"
       ></div>
       <a
-        class="relative z-10 flex w-fit items-center gap-2.5 text-white no-underline"
+        class="relative z-10 flex w-fit items-center gap-2.5 text-co-white no-underline"
         href="/"
         aria-label="Voltar para o início"
       >
         <span
-          class="grid size-9 place-items-center rounded-xl bg-white/15 font-['Space_Grotesk',sans-serif] text-lg font-bold"
+          class="grid size-9 place-items-center rounded-xl bg-co-white/15 text-lg font-bold"
           >C</span
         >
-        <span class="font-['Space_Grotesk',sans-serif] text-xl font-bold tracking-[-.7px]"
-          >conecta<span class="text-[#f29a83]">.</span></span
+        <span class="text-xl font-bold tracking-[-.7px]"
+          >conecta<span class="text-s-coral">.</span></span
         >
       </a>
 
       <div class="relative z-10 max-w-[440px] py-8 lg:py-0">
-        <p class="mb-4 text-[10px] font-bold uppercase tracking-[1.5px] text-[#b9c5e8]">
+        <p class="mb-4 text-[10px] font-bold uppercase tracking-[1.5px] text-s-blue">
           Um lugar para pertencer(text a decidir)
         </p>
         <h1
-          class="max-w-[430px] font-['Space_Grotesk',sans-serif] text-4xl font-semibold leading-[1.05] tracking-[-1.5px] sm:text-5xl"
+          class="type-h2 max-w-[430px]"
         >
           texto aleatorio sujeito a mudança apenas layout mesmo...
         </h1>
-        <p class="mt-5 max-w-[390px] text-sm leading-6 text-[#c7d0e9]">
+        <p class="mt-5 max-w-[390px] text-sm leading-6 text-s-blue">
           Conecte-se com estudantes, encontre seu grupo e construa novas histórias dentro e fora da
           sala de aula.(texto aleatorio sujeito a mudança)
         </p>
-        <div class="mt-8 flex items-center gap-3 text-xs font-semibold text-[#dbe2f3]">
-          <span class="grid size-8 place-items-center rounded-full bg-[#e8755f] text-white"
+        <div class="mt-8 flex items-center gap-3 text-xs font-semibold text-s-blue">
+          <span class="grid size-8 place-items-center rounded-full bg-co-coral text-co-white"
             ><font-awesome-icon :icon="faUser"
           /></span>
           Comunidade feita para você(text a decidir)
         </div>
       </div>
 
-      <p class="relative z-10 m-0 hidden text-[11px] text-[#aebadd] lg:block">
+      <p class="relative z-10 m-0 hidden text-[11px] text-s-blue lg:block">
         Conversa que aproxima. Conecta que transforma.(text a decidir)
       </p>
     </section>
@@ -123,23 +123,23 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
     <section class="login-panel flex items-center justify-center px-6 py-10 sm:px-12 lg:px-16">
       <div class="login-box w-full max-w-[430px]">
         <a
-          class="mb-10 inline-flex items-center gap-2 text-xs font-bold text-[#7d8798] no-underline transition-colors hover:text-[#253b73]"
+          class="mb-10 inline-flex items-center gap-2 text-xs font-bold text-text-2 no-underline transition-colors hover:text-co-blue"
           href="/"
           ><font-awesome-icon :icon="faArrowLeft" /> Voltar para o início</a
         >
         <div class="mb-8">
-          <p class="mb-2 text-[10px] font-bold uppercase tracking-[1.4px] text-[#e8755f]">
-            Bem-vindo ao <span class="span-wel text-[#263b73] text-[12px]">Conecta</span>
-            <span class="spawn-wel text-[13px] text[#8755f]">.</span>
+          <p class="mb-2 text-[10px] font-bold uppercase tracking-[1.4px] text-co-coral">
+            Bem-vindo ao <span class="span-wel text-co-blue text-[12px]">Conecta</span>
+            <span class="spawn-wel text-[13px] text-co-coral">.</span>
           </p>
-          <h2 class="font-['Space_Grotesk',sans-serif] text-3xl font-semibold tracking-[-1px]">
+          <h2 class="type-h2">
             {{
               modoCadastro
                 ? 'Crie sua conta. (text a decidir)'
                 : 'Que bom ter você aqui. (text a decidir)'
             }}
           </h2>
-          <p class="mt-3 text-sm leading-6 text-[#7d8798]">
+          <p class="mt-3 text-sm leading-6 text-text-2">
             {{
               modoCadastro
                 ? 'Preencha seus dados e comece a fazer novas conexões. (text a decidir)'
@@ -148,11 +148,11 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
           </p>
         </div>
 
-        <div class="mb-7 grid grid-cols-2 border-b border-[#e4e7ed]">
+        <div class="mb-7 grid grid-cols-2 border-b border-traceline">
           <button
             class="auth-tab cursor-pointer border-0 border-b-2 bg-transparent pb-3 text-sm font-bold transition-colors"
             :class="
-              modoCadastro ? 'border-transparent text-[#929aaa]' : 'border-[#253b73] text-[#253b73]'
+              modoCadastro ? 'border-transparent text-text-2' : 'border-co-blue text-co-blue'
             "
             @click="modoCadastro = false"
           >
@@ -161,7 +161,7 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
           <button
             class="border-0 cursor-pointer border-b-2 bg-transparent pb-3 text-sm font-bold transition-colors"
             :class="
-              modoCadastro ? 'border-[#253b73] text-[#253b73]' : 'border-transparent text-[#929aaa]'
+              modoCadastro ? 'border-co-blue text-co-blue' : 'border-transparent text-text-2'
             "
             @click="modoCadastro = true"
           >
@@ -172,13 +172,13 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
         <form class="auth-form flex flex-col gap-5" @submit.prevent="enviarFormulario">
           <label
             v-if="modoCadastro"
-            class="form-field flex flex-col gap-2 text-xs font-bold text-[#53617a]"
+            class="form-field flex flex-col gap-2 text-xs font-bold text-text-2"
             ><span>Nome completo</span>
             <div
-              class="field-input flex h-12 items-center gap-2.5 rounded-[9px] border border-[#e1e5ec] px-3.5 text-[#9aa3b1] transition-[border-color,box-shadow] focus-within:border-[#536bad] focus-within:shadow-[0_0_0_3px_rgba(83,107,173,.1)]"
+              class="field-input flex h-12 items-center gap-2.5 rounded-[9px] border border-traceline px-3.5 text-text-2 transition-[border-color,box-shadow] focus-within:border-s-blue focus-within:shadow-co-blue/10"
             >
               <font-awesome-icon :icon="faUser" /><input
-                class="w-full border-0 bg-transparent text-[13px] text-[#172238] outline-none placeholder:text-[#a7afbb]"
+                class="w-full border-0 bg-transparent text-[13px] text-text-1 outline-none placeholder:text-text-2"
                 type="text"
                 placeholder="Como podemos chamar você?"
                 autocomplete="name"
@@ -187,13 +187,13 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
                 required
               /></div
           ></label>
-          <label class="form-field flex flex-col gap-2 text-xs font-bold text-[#53617a]"
+          <label class="form-field flex flex-col gap-2 text-xs font-bold text-text-2"
             ><span>E-mail</span>
             <div
-              class="field-input flex h-12 items-center gap-2.5 rounded-[9px] border border-[#e1e5ec] px-3.5 text-[#9aa3b1] transition-[border-color,box-shadow] focus-within:border-[#536bad] focus-within:shadow-[0_0_0_3px_rgba(83,107,173,.1)]"
+              class="field-input flex h-12 items-center gap-2.5 rounded-[9px] border border-traceline px-3.5 text-text-2 transition-[border-color,box-shadow] focus-within:border-s-blue focus-within:shadow-co-blue/10"
             >
               <font-awesome-icon :icon="faEnvelope" /><input
-                class="w-full border-0 bg-transparent text-[13px] text-[#172238] outline-none placeholder:text-[#a7afbb]"
+                class="w-full border-0 bg-transparent text-[13px] text-text-1 outline-none placeholder:text-text-2"
                 type="email"
                 placeholder="voce@email.com"
                 autocomplete="email"
@@ -202,13 +202,13 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
                 required
               /></div
           ></label>
-          <label class="form-field flex flex-col gap-2 text-xs font-bold text-[#53617a]"
+          <label class="form-field flex flex-col gap-2 text-xs font-bold text-text-2"
             ><span>Senha</span>
             <div
-              class="field-input flex h-12 items-center gap-2.5 rounded-[9px] border border-[#e1e5ec] px-3.5 text-[#9aa3b1] transition-[border-color,box-shadow] focus-within:border-[#536bad] focus-within:shadow-[0_0_0_3px_rgba(83,107,173,.1)]"
+              class="field-input flex h-12 items-center gap-2.5 rounded-[9px] border border-traceline px-3.5 text-text-2 transition-[border-color,box-shadow] focus-within:border-s-blue focus-within:shadow-co-blue/10"
             >
               <font-awesome-icon :icon="faLock" /><input
-                class="w-full border-0 bg-transparent text-[13px] text-[#172238] outline-none placeholder:text-[#a7afbb]"
+                class="w-full border-0 bg-transparent text-[13px] text-text-1 outline-none placeholder:text-text-2"
                 :type="mostrarSenha ? 'text' : 'password'"
                 placeholder="Digite sua senha"
                 :autocomplete="modoCadastro ? 'new-password' : 'current-password'"
@@ -218,7 +218,7 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
                 required
               /><button
                 type="button"
-                class="border-0 bg-transparent p-1 text-[#9aa3b1]"
+                class="border-0 bg-transparent p-1 text-text-2"
                 aria-label="Mostrar senha"
                 @click="mostrarSenha = !mostrarSenha"
               >
@@ -226,12 +226,12 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
               </button></div
           ></label>
           <div v-if="!modoCadastro" class="-mt-2 flex justify-end">
-            <a class="text-xs font-bold text-[#536bad] no-underline hover:text-[#253b73]" href="#"
+            <a class="text-xs font-bold text-s-blue no-underline hover:text-co-blue" href="#"
               >Esqueci minha senha</a
             >
           </div>
           <button
-            class="auth-submit cursor-pointer mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-lg border-0 bg-[#253b73] text-sm font-bold text-white transition-colors hover:bg-[#1d2f61]"
+            class="auth-submit cursor-pointer mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-lg border-0 bg-co-blue text-sm font-bold text-co-white transition-colors hover:bg-co-blue/90"
             type="submit"
             :disabled="enviando"
           >
@@ -246,12 +246,12 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
           </button>
         </form>
 
-        <p v-if="erro" class="mt-4 text-center text-xs text-red-600" role="alert">{{ erro }}</p>
-        <p v-if="modoCadastro" class="mt-4 text-center text-xs text-red-600" role="alert">{{ conta }}</p>
-        <p class="mt-8 text-center text-xs text-[#858f9f]">
+        <p v-if="erro" class="mt-4 text-center text-xs text-co-coral" role="alert">{{ erro }}</p>
+        <p v-if="modoCadastro" class="mt-4 text-center text-xs text-co-coral" role="alert">{{ conta }}</p>
+        <p class="mt-8 text-center text-xs text-text-2">
           {{ modoCadastro ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
           <button
-            class="border-0 bg-transparent p-0 font-bold text-[#e8755f]"
+            class="border-0 bg-transparent p-0 font-bold text-co-coral"
             @click="modoCadastro = !modoCadastro"
           >
             {{ modoCadastro ? 'Entrar' : 'Criar conta' }}
@@ -269,12 +269,7 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-
 :global(*) {
   box-sizing: border-box;
-}
-:global(body) {
-  margin: 0;
 }
 </style>

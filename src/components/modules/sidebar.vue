@@ -73,22 +73,22 @@ const profile = {
 
 <template>
   <aside
-    class="dashboard-sidebar flex w-[260px] shrink-0 flex-col border-r border-[#e8ebf0] bg-white px-[18px] py-7 max-[850px]:w-[72px] max-[850px]:px-2.5 max-[620px]:hidden"
+    class="dashboard-sidebar flex w-[260px] shrink-0 flex-col border-r border-traceline bg-co-white px-[18px] py-7 max-[850px]:w-[72px] max-[850px]:px-2.5 max-[620px]:hidden"
   >
     <div class="conecta-text flex gap-2 items-end select-none h-8">
       <span
-        class="brand-icon grid size-9 place-items-center rounded-xl bg-[#253b73] font-['Space_Grotesk',sans-serif] text-lg font-bold text-white"
+        class="brand-icon grid size-9 place-items-center rounded-xl bg-co-blue text-lg font-bold text-co-white"
         >C</span
       >
       <span
-        class="brand-name font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px] max-[850px]:hidden"
-        >conecta<span class="text-[#e8755f]">.</span></span
+        class="brand-name text-[21px] font-bold tracking-[-.7px] max-[850px]:hidden"
+        >conecta<span class="text-co-coral">.</span></span
       >
     </div>
 
     <nav class="sidebar-navigation mt-[66px] max-[850px]:mt-14" aria-label="Navegação do dashboard">
       <p
-        class="navigation-label mb-3 px-[13px] text-[10px] font-bold uppercase tracking-[1.1px] text-[#8b94a6] max-[850px]:hidden"
+        class="navigation-label mb-3 px-[13px] text-[10px] font-bold uppercase tracking-[1.1px] text-text-2 max-[850px]:hidden"
       >
         Menu principal
       </p>
@@ -97,62 +97,62 @@ const profile = {
         v-for="item in menuItems"
         :key="item.label"
         :to="item.path"
-        class="navigation-item hover:bg-[#eef1f9] transition-colors relative flex h-[46px] items-center gap-3 rounded-[11px] px-[13px] text-sm font-semibold text-[#6f7a8d] no-underline [&+&]:mt-[5px] max-[850px]:justify-center max-[850px]:px-0"
-        :class="isActive(item.path) ? 'navigation-item-active bg-[#e3e9fa] text-[#253b73]' : ''"
+        class="navigation-item hover:bg-s-blue/30 transition-colors relative flex h-[46px] items-center gap-3 rounded-[11px] px-[13px] text-sm font-semibold text-text-2 no-underline [&+&]:mt-[5px] max-[850px]:justify-center max-[850px]:px-0"
+        :class="isActive(item.path) ? 'navigation-item-active bg-s-blue text-co-blue' : ''"
       >
         <font-awesome-icon :icon="item.icon" />
         <span class="max-[850px]:hidden">{{ item.label }}</span>
         <span
           v-if="item.badge"
-          class="navigation-badge ml-auto min-w-[22px] rounded-full bg-[#e8755f] px-1.5 py-[3px] text-center text-[10px] text-white max-[850px]:absolute max-[850px]:-right-0.5 max-[850px]:-top-1 max-[850px]:min-w-[17px] max-[850px]:px-1 max-[850px]:py-0.5"
+          class="navigation-badge ml-auto min-w-[22px] rounded-full bg-co-coral px-1.5 py-[3px] text-center text-[10px] text-co-white max-[850px]:absolute max-[850px]:-right-0.5 max-[850px]:-top-1 max-[850px]:min-w-[17px] max-[850px]:px-1 max-[850px]:py-0.5"
           >{{ item.badge }}</span
         >
       </RouterLink>
     </nav>
 
     <div
-      class="sidebar-invite mt-auto mb-6 rounded-[14px] bg-[#fff6f1] p-[17px] max-[850px]:hidden"
+      class="sidebar-invite mt-auto mb-6 rounded-[14px] bg-s-coral p-[17px] max-[850px]:hidden"
     >
       <div
-        class="invite-icon mb-[13px] grid size-[34px] place-items-center rounded-[10px] bg-[#ffe5dc] text-[#e8755f]"
+        class="invite-icon mb-[13px] grid size-[34px] place-items-center rounded-[10px] bg-s-coral text-co-coral"
       >
         <font-awesome-icon :icon="faUsers" />
       </div>
-      <strong class="block font-['Space_Grotesk',sans-serif] text-[13px] font-semibold"
+      <strong class="block text-[13px] font-semibold"
         >Faça novas conexões</strong
       >
-      <p class="my-2 text-[11px] leading-[1.5] text-[#7a8494]">
+      <p class="my-2 text-[11px] leading-[1.5] text-text-2">
         Encontre pessoas com os mesmos interesses que você.
       </p>
       <RouterLink
-        class="flex items-center gap-1 text-[11px] font-bold text-[#d9624c] no-underline"
+        class="flex items-center gap-1 text-[11px] font-bold text-co-coral no-underline"
         to="/dashboard#comunidades"
         >Explorar comunidades <font-awesome-icon :icon="faArrowRight"
       /></RouterLink>
     </div>
 
     <div
-      class="sidebar-profile flex items-center gap-2.5 border-t border-[#edf0f4] px-2 pt-[17px] max-[850px]:justify-center max-[850px]:px-0"
+      class="sidebar-profile flex items-center gap-2.5 border-t border-traceline px-2 pt-[17px] max-[850px]:justify-center max-[850px]:px-0"
     >
       <div
         v-if="profile.image && profile.image !== '{image}'"
-        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-s-blue text-[10px] font-bold text-co-blue"
       >
         <img :src="profile.image" alt="Avatar do usuário" class="h-full w-full object-cover" />
       </div>
       <div
         v-else
-        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-s-blue text-[10px] font-bold text-co-blue"
       >
         {{ profile.image === '{image}' ? 'EU' : profile.image }}
       </div>
       <div class="profile-details hover:cursor-pointer min-w-0 flex-1 max-[850px]:hidden">
         <strong class="block truncate text-xs">{{ profile.name }}</strong>
-        <span class="mt-0.5 block truncate text-[10px] text-[#929aaa]">{{ profile.curso }}</span>
+        <span class="mt-0.5 block truncate text-[10px] text-text-2">{{ profile.curso }}</span>
       </div>
       <div class="relative flex items-center justify-center">
         <button
-          class="icon-button border-0 hover:cursor-pointer transition-colors bg-transparent text-[#8c96a7] hover:text-[#536bad] max-[850px]:hidden"
+          class="icon-button border-0 hover:cursor-pointer transition-colors bg-transparent text-text-2 hover:text-co-blue max-[850px]:hidden"
           aria-label="Mais opções"
           @click="menuAberto = !menuAberto"
         >
@@ -161,12 +161,12 @@ const profile = {
 
         <div
           v-if="menuAberto"
-          class="absolute bottom-0 left-[calc(100%+10px)] z-20 w-[180px] overflow-hidden rounded-[16px] border border-[#edf0f4] bg-white shadow-[0_12px_30px_rgba(17,24,39,0.12)]"
+          class="absolute bottom-0 left-[calc(100%+10px)] z-20 w-[180px] overflow-hidden rounded-[16px] border border-traceline bg-co-white shadow-lg shadow-co-blue/10"
           @click.stop
         >
           <button
             type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
             @click="abrirConfiguracaoPerfil"
           >
             <span>Perfil</span>
@@ -174,16 +174,16 @@ const profile = {
 
           <button
             type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
             @click="abrirOpcoes"
           >
             <span>Opções</span>
-            <span class="text-[11px] text-[#8b94a6]">›</span>
+            <span class="text-[11px] text-text-2">›</span>
           </button>
 
           <button
             type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#e05d4d] transition-colors hover:bg-[#fff4f2]"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-co-coral transition-colors hover:bg-s-coral"
             @click="logout"
           >
             <span>Sair</span>
@@ -192,25 +192,25 @@ const profile = {
 
         <div
           v-if="submenuAberto && menuAberto"
-          class="absolute bottom-0  left-[calc(100%+10.4dvw)] z-30 w-[180px] overflow-hidden rounded-[16px] border border-[#edf0f4] bg-white shadow-[0_12px_30px_rgba(17,24,39,0.12)]"
+          class="absolute bottom-0 left-[calc(100%+10.4dvw)] z-30 w-[180px] overflow-hidden rounded-[16px] border border-traceline bg-co-white shadow-lg shadow-co-blue/10"
         >
           <button
             type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
             @click="submenuAberto = false; menuAberto = false"
           >
             <span>Conta</span>
           </button>
           <button
             type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
             @click="submenuAberto = false; menuAberto = false"
           >
             <span>Preferências</span>
           </button>
           <button
             type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
             @click="submenuAberto = false; menuAberto = false"
           >
             <span>Privacidade</span>

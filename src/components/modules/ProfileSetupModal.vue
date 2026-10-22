@@ -31,7 +31,7 @@ const form = ref<ProfileForm>(emptyForm())
 const isSaving = ref(false)
 
 const imagePreview = computed(() => {
-  return form.value.image || 'https://placehold.co/240x240/edf2f7/53617a?text=Sua+foto'
+  return form.value.image || 'https://placehold.co/240x240/a9b7e5/667087?text=Sua+foto'
 })
 
 watch(
@@ -102,24 +102,24 @@ async function saveProfile() {
   <Teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-[#101827]/55 p-4 backdrop-blur-sm"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-text-1/55 p-4 backdrop-blur-sm"
       @click.self="close"
     >
       <div
-        class="min-h-[86dvh] w-full max-w-[70dvw] overflow-y-auto rounded-[15px] border border-none  bg-white shadow-[0_30px_90px_rgba(22,31,55,0.22)]"
+        class="min-h-[86dvh] w-full max-w-[70dvw] overflow-y-auto rounded-[15px] border border-none bg-co-white shadow-xl shadow-co-blue/20"
       >
-        <div class="flex items-center justify-between border-b border-[#edf1f7] px-6 py-5 sm:px-8">
+        <div class="flex items-center justify-between border-b border-traceline px-6 py-5 sm:px-8">
           <div>
-            <p class="mb-1 text-[10px] font-bold uppercase tracking-[1.6px] text-[#e8755f]">
+            <p class="mb-1 text-[10px] font-bold uppercase tracking-[1.6px] text-co-coral">
               Perfil de usuário
             </p>
-            <h2 class="font-['Space_Grotesk',sans-serif] text-2xl font-semibold text-[#172238]">
+            <h2 class="type-h2 text-text-1">
               Personalize sua presença
             </h2>
           </div>
           <button
             type="button"
-            class="flex cursor-pointer h-10 w-10 items-center justify-center rounded-full border border-[#e0e6f1] bg-white text-xl text-[#53617a] transition-colors hover:bg-[#f2f5fa]"
+            class="flex cursor-pointer h-10 w-10 items-center justify-center rounded-full border border-traceline bg-co-white text-xl text-text-2 transition-colors hover:bg-s-blue/30"
             @click="close"
             aria-label="Fechar modal"
           >
@@ -128,9 +128,9 @@ async function saveProfile() {
         </div>
 
         <div class="grid gap-8 px-6 py-6 sm:px-8 lg:grid-cols-[230px_1fr]">
-          <aside class="rounded-[24px] bg-[#f6f8fc] p-5">
+          <aside class="rounded-[24px] bg-s-blue/30 p-5">
             <div
-              class="mb-4 mx-auto flex h-[170px] w-[170px] items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#e8edf7] shadow-[0_10px_30px_rgba(37,59,115,0.12)]"
+              class="mb-4 mx-auto flex h-[170px] w-[170px] items-center justify-center overflow-hidden rounded-full border-4 border-co-white bg-s-blue shadow-lg shadow-co-blue/10"
             >
               <img
                 :src="imagePreview"
@@ -140,10 +140,10 @@ async function saveProfile() {
             </div>
 
             <div class="space-y-2 text-center">
-              <p class="text-[10px] font-bold uppercase tracking-[1.4px] text-[#8b94a6]">
+              <p class="text-[10px] font-bold uppercase tracking-[1.4px] text-text-2">
                 Sua identidade
               </p>
-              <p class="text-sm leading-6 text-[#53617a]">
+              <p class="text-sm leading-6 text-text-2">
                 Ajude a comunidade a conhecer melhor sua vibe, seus interesses e o que você busca.
               </p>
             </div>
@@ -151,31 +151,31 @@ async function saveProfile() {
 
           <form class="space-y-5" @submit.prevent="saveProfile">
             <div class="grid gap-5 md:grid-cols-2">
-              <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a] md:col-span-2">
+              <label class="flex flex-col gap-2 text-xs font-bold text-text-2 md:col-span-2">
                 <span>Nome</span>
                 <input
                   v-model="form.name"
                   type="text"
                   placeholder="Seu nome completo"
-                  class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
+                  class="h-12 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
                 />
               </label>
 
-              <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
+              <label class="flex flex-col gap-2 text-xs font-bold text-text-2">
                 <span>Imagem de perfil</span>
                 <input
                   v-model="form.image"
                   type="url"
                   placeholder="https://exemplo.com/foto.jpg"
-                  class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
+                  class="h-12 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
                 />
               </label>
 
-              <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
+              <label class="flex flex-col gap-2 text-xs font-bold text-text-2">
                 <span>Gênero</span>
                 <select
                   v-model="form.gen"
-                  class="h-12 rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
+                  class="h-12 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
                 >
                   <option>Não informar</option>
                   <option>Masculino</option>
@@ -185,14 +185,14 @@ async function saveProfile() {
               </label>
             </div>
 
-            <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]">
+            <label class="flex flex-col gap-2 text-xs font-bold text-text-2">
               <span>Bio</span>
               <textarea
                 v-model="form.bio"
                 rows="7"
                 maxlength="280"
                 placeholder="Conte um pouco sobre você, suas metas, hobbies e o que você busca na comunidade..."
-                class="min-h-[160px] resize-none rounded-xl border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 py-3 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.08)]"
+                class="min-h-[160px] resize-none rounded-xl border border-traceline bg-co-white px-3.5 py-3 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
               />
             </label>
 
@@ -200,7 +200,7 @@ async function saveProfile() {
               
               <button
                 type="submit"
-                class="inline-flex h-12 items-center justify-center rounded-xl bg-[#253b73] px-6 text-sm font-bold text-white transition hover:bg-[#1d2f61] disabled:cursor-not-allowed disabled:opacity-70"
+                class="inline-flex h-12 items-center justify-center rounded-xl bg-co-blue px-6 text-sm font-bold text-co-white transition hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-70"
                 :disabled="isSaving"
               >
                 {{ isSaving ? 'Salvando...' : 'Salvar perfil' }}

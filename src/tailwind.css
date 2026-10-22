@@ -1,1 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap');
 @import 'tailwindcss';
+
+/* Conecta Palette — mesmos nomes das variáveis do Figma */
+@theme {
+  --font-sans: 'Roboto', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+
+  --color-co-coral: #ec765d;
+  --color-co-blue: #263b73;
+  --color-co-white: #f8f7f4;
+  --color-tree-green: #58ab84;
+  --color-s-coral: #ffe7e0;
+  --color-s-blue: #a9b7e5;
+  --color-tree-bg: #dce2c9;
+  --color-s-green: #c4d5bf;
+  --color-traceline: #dfe2eb;
+  --color-text-1: #19253d;
+  --color-text-2: #667087;
+
+  /* Raio, espaçamento e largura — tokens do Figma */
+  --radius-button: 10px;
+  --radius-icon: 12px;
+  --radius-card: 16px;
+  --spacing-gutter: 20px;
+  --container-page: 1280px;
+
+  --text-h1: 72px;
+  --text-h1--line-height: 1;
+  --text-h1--font-weight: 600;
+  --text-h1--letter-spacing: -5px;
+
+  --text-h2: 24px;
+  --text-h2--line-height: 1;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: 0;
+
+  --text-h3: 20px;
+  --text-h3--line-height: 1;
+  --text-h3--font-weight: 600;
+  --text-h3--letter-spacing: 0;
+
+  --text-h4: 18px;
+  --text-h4--line-height: 1;
+  --text-h4--font-weight: 500;
+  --text-h4--letter-spacing: 0;
+
+  --text-h5: 16px;
+  --text-h5--line-height: 1;
+  --text-h5--font-weight: 500;
+  --text-h5--letter-spacing: 0;
+
+  --text-h6: 14px;
+  --text-h6--line-height: 1;
+  --text-h6--font-weight: 500;
+  --text-h6--letter-spacing: 0;
+}
+
+/*
+ * Base em @layer para que as utilities do Tailwind possam sobrescrever
+ * (regra sem layer sempre ganharia de @layer utilities).
+ */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  h1 {
+    font-size: var(--text-h1);
+    font-weight: var(--text-h1--font-weight);
+    letter-spacing: var(--text-h1--letter-spacing);
+  }
+
+  h2 {
+    font-size: var(--text-h2);
+    font-weight: var(--text-h2--font-weight);
+  }
+
+  h3 {
+    font-size: var(--text-h3);
+    font-weight: var(--text-h3--font-weight);
+  }
+
+  h4 {
+    font-size: var(--text-h4);
+    font-weight: var(--text-h4--font-weight);
+  }
+
+  h5 {
+    font-size: var(--text-h5);
+    font-weight: var(--text-h5--font-weight);
+  }
+
+  h6 {
+    font-size: var(--text-h6);
+    font-weight: var(--text-h6--font-weight);
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-co-white);
+    color: var(--color-text-1);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Classes de tipografia do design system (funcionam em qualquer tag) */
+@layer components {
+  .type-h1 {
+    @apply text-h1;
+  }
+
+  .type-h2 {
+    @apply text-h2;
+  }
+
+  .type-h3 {
+    @apply text-h3;
+  }
+
+  .type-h4 {
+    @apply text-h4;
+  }
+
+  .type-h5 {
+    @apply text-h5;
+  }
+
+  .type-h6 {
+    @apply text-h6;
+  }
+}

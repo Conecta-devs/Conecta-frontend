@@ -23,7 +23,7 @@ function handleProfileSave(payload: {
 
 <template>
   <div
-    class="dashboard-page flex min-h-screen bg-[#f8f7f4] font-['DM_Sans',sans-serif] text-[#172238]"
+    class="dashboard-page flex min-h-screen bg-co-white text-text-1"
   >
     <Sidebar @open-profile-config="profileSetupOpen = true" />
 
@@ -44,12 +44,7 @@ function handleProfileSave(payload: {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-
 :global(*) {
   box-sizing: border-box;
-}
-:global(body) {
-  margin: 0;
 }
 </style>

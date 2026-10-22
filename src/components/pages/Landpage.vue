@@ -69,33 +69,32 @@ const passos = [
 </script>
 
 <template>
-  <div class="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#19253d]">
+  <div class="min-h-screen overflow-hidden bg-co-white text-text-1">
     <header class="relative z-20 mx-auto flex min-w-6xl max-w-dvh items-center justify-between px-6 py-6 lg:px-10">
       <a href="#inicio" class="flex items-center gap-[11px]" aria-label="Conecta, início">
         <img
-          src="../../assets/Logo3.svg"
+          src="../../assets/logos/logo-3.svg"
           alt="Logo Conecta"
           class="h-10 w-auto"
         />
 
-        <span class="font-['Space_Grotesk',sans-serif] text-[21px] text-[#263B73] font-bold tracking-[-.7px]">
-          conecta<span class="text-[#ec765d]">.</span>
+        <span class="text-[21px] text-co-blue font-bold tracking-[-.7px]">
+          conecta<span class="text-co-coral">.</span>
         </span>
       </a>
 
-      <nav class="hidden items-center gap-8 text-sm font-medium text-[#667087] md:flex"
+      <nav class="hidden items-center gap-8 text-sm font-medium text-text-2 md:flex"
         aria-label="Navegação principal">
-        <a class="transition-colors hover:text-[#263b73]" href="#por-que">
+        <a class="transition-colors hover:text-co-blue" href="#por-que">
           Por que usar o Conecta
         </a>
 
-        <a class="transition-colors hover:text-[#263b73]" href="#como-funciona"> Como funciona </a>
-
-        <a class="transition-colors hover:text-[#263b73]" href="#seguranca"> Segurança </a>
+        <a class="transition-colors hover:text-co-blue" href="#como-funciona"> Como funciona </a>
+        <a class="transition-colors hover:text-co-blue" href="#seguranca"> Segurança </a>
       </nav>
 
 
-      <button class="rounded-xl p-2 text-[#263b73] md:hidden" :aria-expanded="menuAberto" aria-label="Abrir menu"
+      <button class="rounded-xl p-2 text-co-blue md:hidden" :aria-expanded="menuAberto" aria-label="Abrir menu"
         @click="menuAberto = !menuAberto">
         <font-awesome-icon v-if="menuAberto" :icon="faXmark" />
       
@@ -106,8 +105,8 @@ const passos = [
     <!-- Separação do header -->
     <!--Main Mexer com cuidade-->
     <div v-if="menuAberto"
-      class="relative z-20 mx-6 rounded-2xl border border-[#dfe2eb] bg-white p-4 shadow-xl md:hidden">
-      <nav class="flex flex-col gap-4 text-sm font-medium text-[#667087]">
+      class="relative z-20 mx-6 rounded-2xl border border-traceline bg-co-white p-4 shadow-xl md:hidden">
+      <nav class="flex flex-col gap-4 text-sm font-medium text-text-2">
         <a href="#por-que" @click="menuAberto = false"> Por que usar o Conecta </a>
 
         <a href="#como-funciona" @click="menuAberto = false"> Como funciona </a>
@@ -123,24 +122,24 @@ const passos = [
         class="relative mx-auto grid max-w-7xl items-center gap-16 px-6 pb-24 pt-12 lg:grid-cols-[1.02fr_.98fr] lg:px-10 lg:pb-32 lg:pt-20">
         <div class="relative z-10">
           <div
-            class="mb-7 inline-flex items-center gap-2 rounded-full border border-[#dfe2eb] bg-white/70 px-3 py-2 text-xs font-semibold text-[#667087] shadow-sm">
-            <font-awesome-icon :icon="faWandSparkles" class="text-[#ec765d]" />
+            class="mb-7 inline-flex items-center gap-2 rounded-full border border-traceline bg-co-white/70 px-3 py-2 text-xs font-semibold text-text-2 shadow-sm">
+            <font-awesome-icon :icon="faWandSparkles" class="text-co-coral" />
 
             Feito pensando na vida de quem está na faculdade
           </div>
 
-          <h1 class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
+          <h1 class="type-h1 select-none max-w-3xl text-co-blue">
             <BlurReveal as="span" text="Um Lugar Amigável para Aprender." />
-            <BlurReveal as="span" class="text-[#ec765d]" text=" Conecte-se!" :delay="0.6" />
+            <BlurReveal as="span" class="text-co-coral" text=" Conecte-se!" :delay="0.6" />
           </h1>
 
-          <p class="mt-7 max-w-xl text-lg leading-8 text-[#667087] select-none">
+          <p class="mt-7 max-w-xl text-lg leading-8 text-text-2 select-none">
             Conheça sua comunidade, tire as dúvidas pertinentes e encontre ajuda nos seus estudos!
           </p>
 
           <div class="mt-9 flex flex-col gap-3 sm:flex-row">
             <button
-              class="group cursor-pointer inline-flex items-center justify-center gap-3 rounded-2xl bg-[#263b73] px-6 py-4 font-bold text-white shadow-xl shadow-[#263b73]/20 transition-all  hover:bg-[#1e315f]"
+              class="group cursor-pointer inline-flex items-center justify-center gap-3 rounded-2xl bg-co-blue px-6 py-4 font-bold text-co-white shadow-xl shadow-co-blue/20 transition-all hover:bg-co-blue/90"
               @click="abrirComunidade">
               Quero fazer parte
 
@@ -150,10 +149,10 @@ const passos = [
         </div>
 
         <div class="connection-tree relative mx-auto w-full max-w-[600px]" aria-hidden="true">
-          <img src="../../assets/AConexao.svg" alt="" class="h-auto w-full" />
+          <img src="../../assets/hero-tree.svg" alt="" class="h-auto w-full" />
 
           <div
-            class="select-none connection-tree-note absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full border border-[#dfe2eb] bg-white/90 px-4 py-2 text-xs font-semibold text-[#667087] shadow-lg shadow-[#263b73]/10">
+            class="select-none connection-tree-note absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full border border-traceline bg-co-white/90 px-4 py-2 text-xs font-semibold text-text-2 shadow-lg shadow-co-blue/10">
             Uma conversa Conecta a outra
           </div>
         </div>
@@ -161,34 +160,34 @@ const passos = [
 
       <!-- POR QUE SAboooor! -->
 
-      <section id="por-que" class="border-y border-[#dfe2eb] bg-[#eef1f7] px-6 py-20 lg:px-10 lg:py-28">
+      <section id="por-que" class="border-y border-traceline bg-s-blue/30 px-6 py-20 lg:px-10 lg:py-28">
         <div class="mx-auto max-w-7xl">
           <div class="max-w-2xl">
-            <p class="eyebrow text-2xl font-bold uppercase tracking-[0.16em] text-[#ec765d]">
+            <p class="eyebrow text-2xl font-bold uppercase tracking-[0.16em] text-co-coral">
               Por que usar o Conecta?
             </p>
 
-            <h2 class="section-title mt-4 text-[1.25rem] font-semibold text-[#19253d]">
+            <h2 class="type-h2 section-title mt-4 text-text-1">
               A vida universitária fica mais leve quando se é compartilhada
             </h2>
 
-            <p class="mt-5 max-w-xl text-lg leading-8 text-[#667087]">
+            <p class="mt-5 max-w-xl text-lg leading-8 text-text-2">
               Encontre pessoas que entendem sua rotina, seus desafios e as pequenas dúvidas do dia a dia na universidade
             </p>
           </div>
 
           <div class="mt-12 grid gap-5 select-none md:grid-cols-3">
             <article v-for="beneficio in beneficios" :key="beneficio.title"
-              class="cursor-pointer rounded-2xl border border-[#dfe2eb] bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#ec765d] hover:shadow-lg hover:shadow-[#263b73]/10">
-              <div class="mb-10 grid h-11 w-11 place-items-center rounded-xl bg-[#fff0ec] text-[#ec765d]">
+              class="cursor-pointer rounded-2xl border border-traceline bg-co-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-co-coral hover:shadow-lg hover:shadow-co-blue/10">
+              <div class="mb-10 grid h-11 w-11 place-items-center rounded-xl bg-s-coral text-co-coral">
                 <font-awesome-icon :icon="beneficio.icon" />
               </div>
 
-              <h3 class="text-xl font-bold text-[#19253d]">
+              <h3 class="type-h3 text-text-1">
                 {{ beneficio.title }}
               </h3>
 
-              <p class="mt-3 leading-7 text-[#667087]">
+              <p class="mt-3 leading-7 text-text-2">
                 {{ beneficio.text }}
               </p>
             </article>
@@ -203,15 +202,15 @@ const passos = [
           <div>
             <p class="eyebrow select-none">Como funciona</p>
 
-            <h2 class="section-title mt-4 select-none">Você usa o Conecta do seu jeito.</h2>
+            <h2 class="type-h2 section-title mt-4 select-none">Você usa o Conecta do seu jeito.</h2>
 
-            <p class="mt-6 leading-7 text-[#667087] select-none">
+            <p class="mt-6 leading-7 text-text-2 select-none">
               Você escolhe quando participar, com quem conversar e quais assuntos fazem sentido para
               você.
             </p>
 
             <a href="#comunidade"
-              class="mt-8 inline-flex items-center gap-2 font-bold text-[#263b73] select-none hover:text-[#ec765d]">
+              class="mt-8 inline-flex items-center gap-2 font-bold text-co-blue select-none hover:text-co-coral">
               Começar agora
 
               <font-awesome-icon :icon="faArrowRight" />
@@ -219,17 +218,17 @@ const passos = [
           </div>
 
           <div class="space-y-9">
-            <div v-for="passo in passos" :key="passo.number" class="flex gap-6 border-b border-[#e5e6eb] pb-9">
-              <span class="font-mono text-sm font-bold text-[#ec765d]">
+            <div v-for="passo in passos" :key="passo.number" class="flex gap-6 border-b border-traceline pb-9">
+              <span class="font-sans text-sm font-bold text-co-coral">
                 {{ passo.number }}
               </span>
 
               <div>
-                <h3 class="text-xl font-bold">
+                <h3 class="type-h3">
                   {{ passo.title }}
                 </h3>
 
-                <p class="mt-2 leading-7 text-[#667087]">
+                <p class="mt-2 leading-7 text-text-2">
                   {{ passo.text }}
                 </p>
               </div>
@@ -242,19 +241,19 @@ const passos = [
 
       <section id="comunidade" class="px-6 pb-20 lg:px-10 lg:pb-28 p-8">
         <div
-          class="mx-auto max-w-7xl overflow-hidden rounded-[1rem] bg-[#263b73] px-8 py-14 text-center text-white sm:px-12 lg:py-20">
-          <p class="font-mono select-none text-sm uppercase tracking-[.2em] text-[#bfc9e7]">
+          class="mx-auto max-w-7xl overflow-hidden rounded-[1rem] bg-co-blue px-8 py-14 text-center text-co-white sm:px-12 lg:py-20">
+          <p class="font-sans select-none text-sm uppercase tracking-[.2em] text-s-blue">
             Conheça o Conecta
           </p>
 
-          <h2 class="mx-auto select-none mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-            <span class="Texto-col text-[#ec765d]">
+          <h2 class="type-h2 mx-auto select-none mt-5 max-w-2xl">
+            <span class="Texto-col text-co-coral">
               Estude,
             </span>
-             <span class="Texto-col text-[#]">
+             <span class="Texto-col text-s-blue">
              converse 
             </span>
-             <span class="Texto-col text-[#cfdbfa]">
+             <span class="Texto-col text-s-blue">
              e compartilhe
             </span>
              
@@ -262,7 +261,7 @@ const passos = [
           </h2>
 
           <button
-            class="mt-9 cursor-pointer inline-flex items-center gap-3 rounded-2xl bg-[#ec765d] px-7 py-4 font-bold text-white transition-colors hover:bg-[#f1421f]"
+            class="mt-9 cursor-pointer inline-flex items-center gap-3 rounded-2xl bg-co-coral px-7 py-4 font-bold text-co-white transition-colors hover:bg-co-coral/90"
             @click="abrirComunidade">
             Quero fazer parte
 
@@ -275,9 +274,9 @@ const passos = [
     <!-- FOOTER -->
 
     <footer
-      class="mx-auto flex max-w-7xl flex-col gap-4 px-6 pb-10 text-sm text-[#98a0b3] sm:flex-row sm:items-center sm:justify-between lg:px-10">
-      <span class="font-['Space_Grotesk',sans-serif] text-[21px] font-bold tracking-[-.7px] text-[#263b73]">
-        conecta<span class="text-[#ec765d]">.</span>
+      class="mx-auto flex max-w-7xl flex-col gap-4 px-6 pb-10 text-sm text-text-2 sm:flex-row sm:items-center sm:justify-between lg:px-10">
+      <span class="text-[21px] font-bold tracking-[-.7px] text-co-blue">
+        conecta<span class="text-co-coral">.</span>
       </span>
 
       <span> Feito por estudantes, para estudantes. </span>
@@ -288,12 +287,12 @@ const passos = [
     <!-- AVISO -->
     <!-- Lembrando tudo que for mexer avise -->
     <div v-if="aviso"
-      class="fixed bottom-6 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-4 rounded-2xl bg-[#19253d] px-5 py-4 text-sm text-white shadow-2xl">
+      class="fixed bottom-6 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-4 rounded-2xl bg-text-1 px-5 py-4 text-sm text-co-white shadow-2xl">
       <span>
         {{ aviso }}
       </span>
 
-      <button class="text-[#bfc9e7] hover:text-white" aria-label="Fechar aviso" @click="fecharAviso">
+      <button class="text-s-blue hover:text-co-white" aria-label="Fechar aviso" @click="fecharAviso">
         <font-awesome-icon :icon="faXmark" />
       </button>
     </div>
