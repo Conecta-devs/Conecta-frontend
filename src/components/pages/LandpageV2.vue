@@ -7,6 +7,7 @@ import AppButton from '../ui/AppButton.vue'
 import AppCartaz from '../ui/AppCartaz.vue'
 import AppLink from '../ui/AppLink.vue'
 import AppLogo from '../ui/AppLogo.vue'
+import BlurReveal from '../ui/BlurReveal.vue'
 import heroTree from '../../assets/hero-tree.svg'
 
 /**
@@ -59,6 +60,9 @@ const passos = [
 ]
 
 const secaoAtiva = ref<string | null>(null)
+
+// Muda a cada retorno ao topo para remontar o título e reiniciar o BlurReveal.
+const heroRevealKey = ref(0)
 
 const router = useRouter()
 
@@ -116,6 +120,7 @@ function rolarPara(id: string) {
 
 let observer: IntersectionObserver | null = null
 let scrollHandler: (() => void) | null = null
+let saiuDoTopo = false
 
 onMounted(() => {
   const html = document.documentElement
@@ -179,6 +184,15 @@ onMounted(() => {
     const currentScroll = wrap ? wrap.scrollTop : window.scrollY
     if (currentScroll < 50) {
       secaoAtiva.value = null
+    }
+
+    // Remonta o título (e reinicia o BlurReveal) quando o usuário volta ao topo.
+    // A histerese evita reinícios repetidos com o scroll parado perto do limite.
+    if (currentScroll > 80) {
+      saiuDoTopo = true
+    } else if (currentScroll < 20 && saiuDoTopo) {
+      saiuDoTopo = false
+      heroRevealKey.value += 1
     }
   }
   ;(wrap || window).addEventListener('scroll', scrollHandler, { passive: true })
@@ -284,8 +298,10 @@ onUnmounted(() => {
         class="absolute top-[180px] left-[190px] flex h-[550px] w-[1540px] items-center justify-between px-[110px]"
       >
         <div class="flex h-[550px] shrink-0 flex-col items-start justify-center gap-[30px]">
-          <h1 class="text-h1 leading-[normal] text-co-blue">
-            Um Lugar Amigável<br />para Aprender<span class="text-co-coral">.</span>
+          <h1 :key="heroRevealKey" class="text-h1 leading-[normal] text-co-blue select-none">
+            <BlurReveal as="span" text="Um Lugar Amigável" />
+            <br />
+            <BlurReveal as="span" class="hero-title-tail" text="para Aprender." :delay="0.5" />
           </h1>
           <p class="w-[551px] text-h4 leading-[normal] text-text-2">
             Conheça seus veteranos, tire dúvidas pertinentes e encontre ajuda<br />no início da sua
@@ -388,3 +404,10 @@ onUnmounted(() => {
     </main>
   </div>
 </template>
+
+<style scoped>
+/* O ponto final continua coral mesmo dentro do BlurReveal (último caractere). */
+.hero-title-tail :deep(.blur-reveal-word:last-child .blur-reveal-char:last-child) {
+  color: var(--color-co-coral);
+}
+</style>
