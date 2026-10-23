@@ -4,6 +4,12 @@
 
 Conecta é uma iniciativa dos estudantes da PUC-Campinas do curso de Engenharia da Computação. O projeto se trata numa plataforma estudantil que facilita a integração e colaboração entre alunos universitários a grupos de estudo, mentorias com veteranos e entre outras funcionalidades de forma centralizada.
 
+## 🎨 Protótipo no Figma
+
+[Acessar o protótipo do Conecta](https://www.figma.com/proto/j1htYumH1zO0BRIc78refj/Conecta?node-id=310-2&t=E3oaqARwVfQCzYsY-1&scaling=contain&content-scaling=responsive&page-id=0%3A1&starting-point-node-id=310%3A2)
+
+> A visualização pode exigir login em uma conta Figma.
+
 ## Tecnologias
 
 - **CSS** - 1%
