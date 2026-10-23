@@ -20,8 +20,10 @@ import orbitInner from '../../assets/decoration/orbit.svg'
  * aqui tudo é um único componente com estados:
  *
  *   - modo:      'login' | 'register'
- *   - erro:      mensagem global (frame 506:1917 → "Email ou senha incorretos.")
- *   - erroSenha: erro inline no confirmar senha (frame 506:1651)
+ *   - erro:      erro da API, exibido dentro do frame do campo
+ *                (login 506:1939 → "Email ou senha incorretos.";
+ *                 register 506:1693 → "As senhas devem coincidir entre si.")
+ *   - erroSenha: erro inline no confirmar senha (frame 506:1693)
  *   - criado:    frame 506:1739 → tela "Conta criada com sucesso!"
  *
  * Tokens do Figma: gap 32 no form, 5 no label→input, inputs 50px raio 10,
@@ -151,8 +153,11 @@ async function enviar() {
       router.push('/dashboard')
     }
   } catch {
-    // A mensagem combina com o frame de erro do Figma (login e cadastro).
-    erro.value = 'Email ou senha incorretos.'
+    // Cada modo tem o seu frame de erro no Figma (506:1939 e 506:1693).
+    erro.value =
+      modo.value === 'register'
+        ? 'As senhas devem coincidir entre si.'
+        : 'Email ou senha incorretos.'
   } finally {
     enviando.value = false
   }
@@ -176,7 +181,7 @@ function voltarAoInicio() {
 
 /** Classes compartilhadas dos campos (frame: label 14, input 50px raio 10). */
 const inputBase =
-  'flex h-[50px] w-full items-center rounded-[10px] border border-[rgba(0,0,0,0.16)] bg-[rgba(255,255,255,0.8)] px-3 text-[14px] text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral'
+  'flex h-[50px] w-full items-center rounded-[10px] border border-[rgba(0,0,0,0.16)] bg-[rgba(255,255,255,0.8)] px-3 text-h6 text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral'
 </script>
 
 <template>
@@ -319,33 +324,36 @@ const inputBase =
 
       <!--
       Orbitais — camadas casadas do Smart Animate.
-      Par esquerdo (446:230/454:98 & 468:204/468:205 & 506:1803/506:1804):
-      presente em todos os frames, mesmo centro (597, 836), não se move.
+      Os SVGs têm 40px de padding interno (canvas 590/670 para anéis de 510/590),
+      então posicionamos o canvas 40px antes do frame do Figma:
+        - anel interno 510 (468:204) → canvas 590 em (302, 541)
+        - anel externo 590 (468:205) → canvas 670 em (262, 501)
+      Par esquerdo presente em todos os frames, mesmo centro (597, 836).
       Par direito (506:1846/506:1847): existe só no sucesso — entra com fade.
     -->
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute left-[302px] top-[541px] h-[590px] w-[590px] transition-opacity duration-300 ease-out"
+        class="pointer-events-none absolute top-[541px] left-[302px] h-[590px] w-[590px] transition-opacity duration-300 ease-out"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute left-[342px] top-[581px] h-[510px] w-[510px] transition-opacity duration-300 ease-out"
+        class="pointer-events-none absolute top-[501px] left-[262px] h-[670px] w-[670px] transition-opacity duration-300 ease-out"
         draggable="false"
       />
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute left-[1548px] top-[-155px] h-[590px] w-[590px] transition-opacity duration-300 ease-out"
+        class="pointer-events-none absolute top-[-155px] left-[1548px] h-[590px] w-[590px] transition-opacity duration-300 ease-out"
         :class="criado ? 'opacity-100' : 'opacity-0'"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute left-[1588px] top-[-115px] h-[510px] w-[510px] transition-opacity duration-300 ease-out"
+        class="pointer-events-none absolute top-[-195px] left-[1508px] h-[670px] w-[670px] transition-opacity duration-300 ease-out"
         :class="criado ? 'opacity-100' : 'opacity-0'"
         draggable="false"
       />
@@ -358,17 +366,21 @@ const inputBase =
       >
         <button
           type="button"
-          class="shrink-0 cursor-pointer border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2"
+          class="group inline-flex shrink-0 cursor-pointer items-center gap-[3px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
           @click="voltarAoInicio"
         >
-          ← Voltar para o início
+          <span
+            class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
+            >←</span
+          >
+          Voltar para o início
         </button>
 
         <p class="text-h6 leading-[normal] whitespace-nowrap text-co-coral">
           BEM-VINDO AO <span class="text-co-blue">CONECTA.</span>
         </p>
 
-        <p class="text-[32px] leading-[normal] font-semibold whitespace-nowrap text-text-1">
+        <p class="text-title whitespace-nowrap text-text-1">
           {{ titulo }}
         </p>
 
@@ -435,6 +447,12 @@ const inputBase =
               {{ mostrarSenha ? 'ocultar' : 'ver' }}
             </button>
           </span>
+          <p
+            v-if="modo === 'login' && erro"
+            class="text-h6 leading-[normal] whitespace-nowrap text-[rgba(255,0,4,0.65)]"
+          >
+            {{ erro }}
+          </p>
         </label>
 
         <label
@@ -453,12 +471,13 @@ const inputBase =
             minlength="8"
             required
           />
-          <p v-if="erroSenha" class="text-[rgba(255,0,4,0.65)]">{{ erroSenha }}</p>
+          <p
+            v-if="erroSenha || erro"
+            class="text-h6 leading-[normal] whitespace-nowrap text-[rgba(255,0,4,0.65)]"
+          >
+            {{ erroSenha || erro }}
+          </p>
         </label>
-
-        <p v-if="erro" class="text-h6 leading-[normal] whitespace-nowrap text-[rgba(255,0,4,0.65)]">
-          {{ erro }}
-        </p>
 
         <!-- "Esqueci minha senha" só existe no Login (468:97); o Register não tem. -->
         <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
@@ -475,7 +494,6 @@ const inputBase =
             :padding-left="40"
             :gap="15"
             :gap-hover="23"
-            :label-size="16"
           >
             {{
               enviando
@@ -486,7 +504,10 @@ const inputBase =
             }}
           </AppButton>
 
-          <div class="flex items-center justify-center gap-[3px] text-h6 leading-[normal]">
+          <div
+            v-if="modo === 'login' || (!erro && !erroSenha)"
+            class="flex items-center justify-center gap-[3px] text-h6 leading-[normal]"
+          >
             <p class="whitespace-nowrap text-text-2">
               {{ modo === 'register' ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
             </p>

@@ -49,8 +49,11 @@ function select(tab: AuthMode) {
   <div class="relative flex h-4 w-[710px] items-center">
     <button
       type="button"
-      class="flex h-4 w-1/2 items-center justify-center border-0 bg-transparent p-0 text-center text-h6 leading-[16px] transition-colors duration-150 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
-      :class="[shown === 'login' ? 'text-co-blue' : 'text-text-2', mode === 'login' ? 'cursor-default' : 'cursor-pointer']"
+      class="flex h-4 w-1/2 items-center justify-center border-0 bg-transparent p-0 text-center text-h6 transition-colors duration-150 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
+      :class="[
+        shown === 'login' ? 'text-co-blue' : 'text-text-2',
+        mode === 'login' ? 'cursor-default' : 'cursor-pointer',
+      ]"
       :aria-pressed="mode === 'login'"
       @mouseenter="enter('login')"
       @mouseleave="leave"
@@ -61,8 +64,11 @@ function select(tab: AuthMode) {
 
     <button
       type="button"
-      class="flex h-4 w-1/2 items-center justify-center border-0 bg-transparent p-0 text-center text-h6 leading-[16px] transition-colors duration-150 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
-      :class="[shown === 'register' ? 'text-co-blue' : 'text-text-2', mode === 'register' ? 'cursor-default' : 'cursor-pointer']"
+      class="flex h-4 w-1/2 items-center justify-center border-0 bg-transparent p-0 text-center text-h6 transition-colors duration-150 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
+      :class="[
+        shown === 'register' ? 'text-co-blue' : 'text-text-2',
+        mode === 'register' ? 'cursor-default' : 'cursor-pointer',
+      ]"
       :aria-pressed="mode === 'register'"
       @mouseenter="enter('register')"
       @mouseleave="leave"

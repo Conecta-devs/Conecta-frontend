@@ -1,10 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&family=Roboto:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap');
+/* O subset "latin" padrão do DM Sans não inclui o glifo "←" (U+2190).
+   Este subset extra entrega apenas a seta, para ela renderizar em DM Sans. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&text=%E2%86%90&display=swap');
 @import 'tailwindcss';
 
 /* Conecta Palette — mesmos nomes das variáveis do Figma */
 @theme {
   --font-sans: 'Roboto', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
+  /* Seta "←" do link "Voltar para o início" (Figma: DM Sans Bold 13). */
+  --font-arrow: 'DM Sans', sans-serif;
 
   --color-co-coral: #ec765d;
   --color-co-blue: #263b73;
@@ -54,6 +59,18 @@
   --text-h6--line-height: 1;
   --text-h6--font-weight: 500;
   --text-h6--letter-spacing: 0;
+
+  /* Título de autenticação (Login/Register): 32 SemiBold */
+  --text-title: 32px;
+  --text-title--line-height: 1;
+  --text-title--font-weight: 600;
+  --text-title--letter-spacing: 0;
+
+  /* Seta "←" do link "Voltar para o início": 13 Bold (DM Sans) */
+  --text-arrow: 13px;
+  --text-arrow--line-height: normal;
+  --text-arrow--font-weight: 700;
+  --text-arrow--letter-spacing: 0;
 }
 
 /*
@@ -135,5 +152,9 @@
 
   .type-h6 {
     @apply text-h6;
+  }
+
+  .type-title {
+    @apply text-title;
   }
 }

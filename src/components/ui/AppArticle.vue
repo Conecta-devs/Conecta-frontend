@@ -38,11 +38,11 @@ withDefaults(
       <AppIcon :variant="icon" />
     </div>
 
-    <h3 class="w-full font-sans text-[20px] leading-[normal] font-semibold text-text-1">
+    <h3 class="w-full text-h3 text-text-1">
       {{ title }}
     </h3>
 
-    <p class="w-full font-sans text-[16px] leading-[normal] font-medium text-text-2">
+    <p class="w-full text-h5 text-text-2">
       {{ text }}
     </p>
   </article>

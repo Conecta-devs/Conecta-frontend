@@ -31,13 +31,14 @@ const props = withDefaults(
     gap?: number
     /** Espaçamento entre label e seta no hover (px). Padrão: 23. */
     gapHover?: number
-    /** Tamanho da fonte do label (px). Padrão: 16. */
-    labelSize?: number
+    /** Variante tipográfica do label (tokens text-h* do Tailwind). Padrão: h5 (16px). */
+    labelVariant?: 'h3' | 'h4' | 'h5' | 'h6'
   }>(),
   {
     variant: 'coral',
     size: 'md',
     type: 'button',
+    labelVariant: 'h5',
   },
 )
 
@@ -72,13 +73,11 @@ const surfaces: Record<ButtonVariant, { base: string; hover: string }> = {
   },
   'coral-outline': {
     base: 'border-co-coral bg-[rgba(236,118,93,0.01)] shadow-none',
-    hover:
-      'border-transparent bg-co-coral shadow-[0px_20px_25px_-5px_rgba(236,118,93,0.2)]',
+    hover: 'border-transparent bg-co-coral shadow-[0px_20px_25px_-5px_rgba(236,118,93,0.2)]',
   },
   'blue-outline': {
     base: 'border-co-blue bg-[rgba(38,59,115,0.01)] shadow-none',
-    hover:
-      'border-transparent bg-co-blue shadow-[0px_20px_25px_-5px_rgba(38,59,115,0.2)]',
+    hover: 'border-transparent bg-co-blue shadow-[0px_20px_25px_-5px_rgba(38,59,115,0.2)]',
   },
 }
 
@@ -95,6 +94,14 @@ const surfaceClasses = computed(() =>
 const contentClasses = computed(() =>
   active.value ? contents[props.variant].hover : contents[props.variant].base,
 )
+
+/** Tamanhos do label vêm exclusivamente dos tokens de tipografia do Tailwind. */
+const labelClasses: Record<NonNullable<typeof props.labelVariant>, string> = {
+  h3: 'text-h3',
+  h4: 'text-h4',
+  h5: 'text-h5',
+  h6: 'text-h6',
+}
 </script>
 
 <template>
@@ -124,11 +131,7 @@ const contentClasses = computed(() =>
         gap: `${active ? (gapHover ?? 23) : (gap ?? 15)}px`,
       }"
     >
-      <span
-        class="leading-[normal] whitespace-nowrap"
-        :class="labelSize ? 'font-sans font-medium' : 'text-h5'"
-        :style="labelSize ? { fontSize: `${labelSize}px` } : undefined"
-      ><slot>Text</slot></span>
+      <span class="whitespace-nowrap" :class="labelClasses[labelVariant]"><slot>Text</slot></span>
 
       <svg
         class="h-[12.005px] w-[15.999px] shrink-0"

@@ -297,7 +297,7 @@ onUnmounted(() => {
             :padding-left="13"
             :gap="13"
             :gap-hover="21"
-            :label-size="20"
+            label-variant="h3"
             @click="irParaAuth('login')"
             >Conecte-se</AppButton
           >
