@@ -1,11 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isAuthenticated } from '../services/session'
+import { isAuthenticated } from '../shared/services/session'
 
 const publicRoutes = [
   '/',
   '/landpage',
   '/catalog',
-  '/landpage-2',
   '/landpage-v2',
   '/login',
   '/login-v2',
@@ -19,45 +18,41 @@ const router = createRouter({
       path: '/',
       alias: '/landpage',
       name: 'Landpage',
-      component: () => import('../components/pages/Landpage.vue'),
+      component: () => import('../features/landpage/legacy/Landpage.vue'),
     },
     {
       path: '/catalog',
       name: 'Catalog',
-      component: () => import('../components/pages/Catalog.vue'),
-    },
-    {
-      path: '/landpage-2',
-      redirect: '/catalog',
+      component: () => import('../features/catalog/Catalog.vue'),
     },
     {
       path: '/landpage-v2',
       name: 'LandpageV2',
-      component: () => import('../components/pages/LandpageV2.vue'),
+      component: () => import('../features/landpage/pages/LandpageV2.vue'),
     },
     {
       path: '/login-v2',
       name: 'LoginV2',
-      component: () => import('../components/pages/LoginV2.vue'),
+      component: () => import('../features/auth/pages/LoginV2.vue'),
     },
     {
       path: '/conta-criada',
       name: 'ContaCriada',
-      component: () => import('../components/pages/LoginV2.vue'),
+      component: () => import('../features/auth/pages/LoginV2.vue'),
       props: { estadoInicial: 'criado' },
     },
     {
       path: '/dashboard',
-      component: () => import('../components/pages/Base.vue'),
+      component: () => import('../layouts/DashboardLayout.vue'),
       children: [
         {
           path: '',
           name: 'Dashboard',
-          component: () => import('../components/pages/Dashboard.vue'),
+          component: () => import('../features/dashboard/pages/Dashboard.vue'),
         },
         {
           path: 'chat',
-          component: () => import('../components/pages/chat.vue'),
+          component: () => import('../features/dashboard/pages/Chat.vue'),
           meta: { hideHeader: true },
         },
       ],
@@ -65,7 +60,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'Login',
-      component: () => import('../components/pages/Login.vue'),
+      component: () => import('../features/auth/legacy/Login.vue'),
     },
     {
       path: '/:pathMatch(.*)*',

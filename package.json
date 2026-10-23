@@ -14,7 +14,6 @@
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/vue-fontawesome": "^3.3.3",
-    "@lucide/vue": "^1.33.0",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0"
   },
@@ -24,7 +23,6 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
     "prettier": "^3.9.6",
-    "sass": "^1.103.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
