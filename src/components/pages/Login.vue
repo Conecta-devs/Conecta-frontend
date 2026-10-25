@@ -38,6 +38,12 @@ async function enviarFormulario() {
         password: senha.value,
       })
 
+      const loginResponse = await LoginUser({
+        email: email.value,
+        password: senha.value,
+      })
+      saveSession(loginResponse.user, loginResponse.accessToken)
+
       conta.value = 'conta criada com sucesso!'
       perfilCriado.value = true
       modalPerfilAberto.value = true
@@ -51,9 +57,7 @@ async function enviarFormulario() {
         password: senha.value,
       })
 
-      const token = loginResponse.accessToken ?? loginResponse.token ?? null
-
-      saveSession(loginResponse.user, token ?? undefined)
+      saveSession(loginResponse.user, loginResponse.accessToken)
       router.push('/dashboard')
     }
   } catch (error) {
@@ -226,8 +230,12 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
               </button></div
           ></label>
           <div v-if="!modoCadastro" class="-mt-2 flex justify-end">
-            <a class="text-xs font-bold text-[#536bad] no-underline hover:text-[#253b73]" href="#"
-              >Esqueci minha senha</a
+            <RouterLink
+              class="text-xs font-bold text-[#536bad] no-underline hover:text-[#253b73] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
+              to="/forgot-password"
+            >
+              Esqueci minha senha
+            </RouterLink>
             >
           </div>
           <button

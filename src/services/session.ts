@@ -19,22 +19,8 @@ function loadSession(): AuthUser | null {
   }
 }
 
-function readCookie(name: string): string | null {
-  const value = `; ${document.cookie}`
-  const parts = value.split(`; ${name}=`)
-  if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() ?? null
-  }
-  return null
-}
-
 export function getStoredAccessToken(): string | null {
-  const localToken = localStorage.getItem(TOKEN_KEY)
-  if (localToken) {
-    return localToken
-  }
-
-  return readCookie('accessToken') ?? readCookie('token') ?? readCookie('jwt')
+  return localStorage.getItem(TOKEN_KEY)
 }
 
 export const currentUser = reactive<{ user: AuthUser | null }>({
@@ -69,7 +55,4 @@ export function clearSession() {
   localStorage.removeItem('userEmail')
   localStorage.removeItem('userImage')
   localStorage.removeItem(TOKEN_KEY)
-  document.cookie = 'token=; Max-Age=0; path=/; SameSite=Lax'
-  document.cookie = 'jwt=; Max-Age=0; path=/; SameSite=Lax'
-  document.cookie = 'accessToken=; Max-Age=0; path=/; SameSite=Lax'
 }
