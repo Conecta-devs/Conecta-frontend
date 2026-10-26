@@ -100,27 +100,27 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
 
       <div class="relative z-10 max-w-[440px] py-8 lg:py-0">
         <p class="mb-4 text-[10px] font-bold uppercase tracking-[1.5px] text-[#b9c5e8]">
-          Um lugar para pertencer(text a decidir)
+          Um lugar para pertencer
         </p>
         <h1
           class="max-w-[430px] font-['Space_Grotesk',sans-serif] text-4xl font-semibold leading-[1.05] tracking-[-1.5px] sm:text-5xl"
         >
-          texto aleatorio sujeito a mudança apenas layout mesmo...
+          CONECTE-SE
         </h1>
         <p class="mt-5 max-w-[390px] text-sm leading-6 text-[#c7d0e9]">
           Conecte-se com estudantes, encontre seu grupo e construa novas histórias dentro e fora da
-          sala de aula.(texto aleatorio sujeito a mudança)
+          sala de aula.
         </p>
         <div class="mt-8 flex items-center gap-3 text-xs font-semibold text-[#dbe2f3]">
           <span class="grid size-8 place-items-center rounded-full bg-[#e8755f] text-white"
             ><font-awesome-icon :icon="faUser"
           /></span>
-          Comunidade feita para você(text a decidir)
+          Comunidade feita para você
         </div>
       </div>
 
       <p class="relative z-10 m-0 hidden text-[11px] text-[#aebadd] lg:block">
-        Conversa que aproxima. Conecta que transforma.(text a decidir)
+        Conversa que aproxima. Conecta que transforma.
       </p>
     </section>
 
@@ -139,15 +139,15 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
           <h2 class="font-['Space_Grotesk',sans-serif] text-3xl font-semibold tracking-[-1px]">
             {{
               modoCadastro
-                ? 'Crie sua conta. (text a decidir)'
-                : 'Que bom ter você aqui. (text a decidir)'
+                ? 'Crie sua conta. '
+                : 'Que bom ter você aqui. '
             }}
           </h2>
           <p class="mt-3 text-sm leading-6 text-[#7d8798]">
             {{
               modoCadastro
-                ? 'Preencha seus dados e comece a fazer novas conexões. (text a decidir)'
-                : 'Entre para continuar de onde parou. (text a decidir)'
+                ? 'Preencha seus dados e comece a fazer novas conexões.'
+                : 'Entre para continuar de onde parou.'
             }}
           </p>
         </div>
@@ -236,7 +236,6 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
             >
               Esqueci minha senha
             </RouterLink>
-            >
           </div>
           <button
             class="auth-submit cursor-pointer mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-lg border-0 bg-[#253b73] text-sm font-bold text-white transition-colors hover:bg-[#1d2f61]"
