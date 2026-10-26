@@ -178,15 +178,6 @@ const profile = {
             bottom: '12px',
             maxHeight: 'calc(100dvh - 24px)',
           }" @click.stop>
-          <!-- Cabeçalho do submenu -->
-          <div v-if="submenuAberto" class="flex items-center gap-2 border-b border-[#edf0f4] px-3 py-3">
-            <button type="button"
-              class="grid size-8 shrink-0 place-items-center rounded-lg text-[#53617a] hover:bg-[#f4f7fb]"
-              aria-label="Voltar ao menu principal" @click="submenuAberto = false">
-              ‹
-            </button>
-            <span class="text-sm font-bold text-[#253b73]">Opções</span>
-          </div>
 
           <!-- Menu principal -->
           <template v-if="!submenuAberto">
@@ -197,39 +188,12 @@ const profile = {
             </button>
 
             <button type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
-              @click="abrirOpcoes">
-              <span>Opções</span>
-              <span class="text-[11px] text-[#8b94a6]">›</span>
-            </button>
-
-            <button type="button"
               class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#e05d4d] transition-colors hover:bg-[#fff4f2]"
               @click="logout">
               <span>Sair</span>
             </button>
           </template>
 
-          <!-- Submenu de opções -->
-          <template v-else>
-            <button type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
-              @click="submenuAberto = false; menuAberto = false">
-              <span>Conta</span>
-            </button>
-
-            <button type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
-              @click="submenuAberto = false; menuAberto = false">
-              <span>Preferências</span>
-            </button>
-
-            <button type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#374151] transition-colors hover:bg-[#f4f7fb]"
-              @click="submenuAberto = false; menuAberto = false">
-              <span>Privacidade</span>
-            </button>
-          </template>
         </div>
       </div>
     </div>
