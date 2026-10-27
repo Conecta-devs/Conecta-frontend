@@ -1,7 +1,6 @@
 import { fetchProtected } from './auth'
-import { apiUrl } from './api'
 
-const API_URL = apiUrl('/agenda')
+const API_URL = '/api/agenda'
 
 export type AgendaKind = 'event' | 'conversation'
 export type AgendaFormat = 'online' | 'in_person'

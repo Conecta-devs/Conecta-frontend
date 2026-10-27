@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import type { Socket } from 'socket.io-client'
+import { computed, ref } from 'vue'
 import {
   faArrowLeft,
   faEllipsis,
@@ -9,229 +8,92 @@ import {
   faPaperPlane,
   faPhone,
   faSearch,
-  faUsers,
   faVideo,
 } from '@fortawesome/free-solid-svg-icons'
-import {
-  addChatMembers,
-  ChatApiError,
-  createChatGroup,
-  createOrGetDirectConversation,
-  getChatConversation,
-  leaveChatGroup,
-  listChatConversations,
-  listChatMessages,
-  markChatConversationRead,
-  normalizeChatMessage,
-  removeChatMember,
-  searchChatUsers,
-  type ChatConversation,
-  type ChatMember,
-  type ChatMessage,
-  type ChatUserSuggestion,
-} from '../../services/chat'
-import {
-  createChatSocket,
-  emitChatSocketAck,
-  ChatSocketError,
-  type ChatSocketStatus,
-} from '../../services/chatSocket'
-import { currentUser } from '../../services/session'
 
-type ChatSection = 'recent' | 'community' | 'friend' | 'people'
+interface Conversation {
+  id: number
+  name: string
+  preview: string
+  time: string
+  initials: string
+  color: 'coral' | 'blue' | 'green'
+  category: 'community' | 'friend'
+  online?: boolean
+}
 
-const conversations = ref<ChatConversation[]>([])
-const messages = ref<ChatMessage[]>([])
-const availableUsers = ref<ChatUserSuggestion[]>([])
-const selectedConversation = ref<ChatConversation | null>(null)
+type ChatSection = 'recent' | 'community' | 'friend'
+
+interface Message {
+  id: number
+  text: string
+  time: string
+  author: 'me' | 'them'
+}
+
+const conversations: Conversation[] = [
+  {
+    id: 1,
+    name: '{name_user}',
+    preview: '{last_message}',
+    time: '{last_time}',
+    initials: '{initials}',
+    color: 'coral',
+    category: 'friend',
+    online: true,
+  },
+  {
+    id: 2,
+    name: '{group_name}',
+    preview: '{last_message}',
+    time: '{last_time}',
+    initials: '{initials}',
+    color: 'blue',
+    category: 'community',
+  },
+  {
+    id: 3,
+    name: '{name_user}',
+    preview: '{last_message}',
+    time: '{last_time}',
+    initials: '{initials}',
+    color: 'green',
+    category: 'friend',
+  },
+]
+
+const messages = ref<Message[]>([
+  { id: 1, text: '{message}', time: '{message_time}', author: 'them' },
+  {
+    id: 2,
+    text: '{message}',
+    time: '{message_time}',
+    author: 'them',
+  },
+  { id: 3, text: '{message}', time: '{message_time}', author: 'me' },
+  {
+    id: 4,
+    text: '{message}',
+    time: '{message_time}',
+    author: 'me',
+  },
+])
+
+const selectedConversation = ref(conversations[0])
 const messageText = ref('')
 const searchText = ref('')
 const activeSection = ref<ChatSection>('recent')
-const conversationsLoading = ref(false)
-const conversationsError = ref('')
-const usersLoading = ref(false)
-const usersLoadingMore = ref(false)
-const usersError = ref('')
-const usersPage = ref(1)
-const usersHasMore = ref(false)
-const creatingConversationFor = ref<string | null>(null)
-const startConversationError = ref('')
-const groupDialogMode = ref<'create' | 'add' | null>(null)
-const groupDialogError = ref('')
-const groupDialogLoading = ref(false)
-const groupName = ref('')
-const groupSearch = ref('')
-const groupCandidates = ref<ChatUserSuggestion[]>([])
-const groupSelectedIds = ref<string[]>([])
-const groupCandidatesLoading = ref(false)
-const groupCandidatesHasMore = ref(false)
-const groupCandidatesPage = ref(0)
-const groupManagementError = ref('')
-const messagesLoading = ref(false)
-const messagesError = ref('')
-const nextCursor = ref<string | null>(null)
-const sendingMessage = ref(false)
-const sendError = ref('')
-const mobileConversationListVisible = ref(false)
-const chatSocketStatus = ref<ChatSocketStatus>('connecting')
-const chatSocketError = ref('')
-const chatNotice = ref('')
-const readCursors = ref<Record<string, number>>({})
-const pendingUnreadCounts = ref<Record<string, { count: number; revision: number }>>({})
-let unreadEventRevision = 0
-let conversationsRequestRevision = 0
-const groupManagementOpen = ref(false)
-const isCurrentUserAdmin = computed(() => selectedConversation.value?.currentUserRole === 'admin')
-const sectionUnreadCounts = computed<Record<ChatSection, number>>(() => ({
-  recent: conversations.value.reduce((sum, conversation) => sum + conversation.unreadCount, 0),
-  community: conversations.value
-    .filter((conversation) => conversation.category === 'community')
-    .reduce((sum, conversation) => sum + conversation.unreadCount, 0),
-  friend: conversations.value
-    .filter((conversation) => conversation.category === 'friend')
-    .reduce((sum, conversation) => sum + conversation.unreadCount, 0),
-  people: 0,
-}))
-
-let conversationsController: AbortController | null = null
-let messagesController: AbortController | null = null
-let usersController: AbortController | null = null
-let groupCandidatesController: AbortController | null = null
-let messagesRequestId = 0
-let usersRequestId = 0
-let usersSearchTimeout: ReturnType<typeof setTimeout> | null = null
-let groupSearchTimeout: ReturnType<typeof setTimeout> | null = null
-const failedMessageAttempts = new Map<
-  string,
-  { content: string; conversationId: string; createdAt: string }
->()
-const confirmedClientMessageIds = new Set<string>()
-const sendingClientMessageIds = new Set<string>()
-const joinedConversationIds = new Set<string>()
-const joiningConversationIds = new Set<string>()
-let chatSocket: Socket | null = null
-let disposeChatSocket: (() => void) | null = null
-let refreshChatSocketAuthentication: (() => Promise<void>) | null = null
-let sessionGeneration = 0
-
-function isConversationAccessError(error: unknown): error is ChatApiError | ChatSocketError {
-  return (
-    (error instanceof ChatApiError || error instanceof ChatSocketError) &&
-    (error.statusCode === 403 || error.statusCode === 404)
-  )
-}
-
-function clearOpenConversation(conversationId: string) {
-  conversations.value = conversations.value.filter((item) => item.id !== conversationId)
-  joinedConversationIds.delete(conversationId)
-  joiningConversationIds.delete(conversationId)
-  for (const [clientMessageId, attempt] of failedMessageAttempts) {
-    if (attempt.conversationId === conversationId) {
-      failedMessageAttempts.delete(clientMessageId)
-    }
-  }
-  void leaveConversationRoom(conversationId)
-  chatNotice.value = 'Você não tem mais acesso a essa conversa ou ela não existe. Atualize a lista.'
-  if (selectedConversation.value?.id !== conversationId) return
-
-  messagesController?.abort()
-  messagesRequestId += 1
-  selectedConversation.value = null
-  messages.value = []
-  nextCursor.value = null
-  messagesError.value = ''
-  sendError.value = ''
-  groupManagementOpen.value = false
-  groupDialogMode.value = null
-}
-
-function handleConversationAccessError(error: unknown, conversationId: string): boolean {
-  if (!isConversationAccessError(error)) return false
-  clearOpenConversation(conversationId)
-  return true
-}
-
-function handleSocketAuthenticationError(error: unknown): boolean {
-  if (!(error instanceof ChatSocketError) || error.statusCode !== 401) return false
-  void refreshChatSocketAuthentication?.()
-  return true
-}
-
-function refreshConversationList() {
-  chatNotice.value = ''
-  void loadConversationList()
-}
-
-function clearChatState() {
-  sessionGeneration += 1
-  conversationsController?.abort()
-  messagesController?.abort()
-  usersController?.abort()
-  groupCandidatesController?.abort()
-  if (usersSearchTimeout) clearTimeout(usersSearchTimeout)
-  if (groupSearchTimeout) clearTimeout(groupSearchTimeout)
-  usersSearchTimeout = null
-  groupSearchTimeout = null
-  messagesRequestId += 1
-  usersRequestId += 1
-  conversations.value = []
-  messages.value = []
-  availableUsers.value = []
-  selectedConversation.value = null
-  readCursors.value = {}
-  pendingUnreadCounts.value = {}
-  failedMessageAttempts.clear()
-  confirmedClientMessageIds.clear()
-  sendingClientMessageIds.clear()
-  joinedConversationIds.clear()
-  joiningConversationIds.clear()
-  nextCursor.value = null
-  conversationsError.value = ''
-  messagesError.value = ''
-  usersError.value = ''
-  groupDialogError.value = ''
-  groupManagementError.value = ''
-  conversationsLoading.value = false
-  messagesLoading.value = false
-  usersLoading.value = false
-  usersLoadingMore.value = false
-  sendingMessage.value = false
-  chatNotice.value = ''
-  chatSocketError.value = ''
-  groupDialogMode.value = null
-  groupDialogLoading.value = false
-  groupDialogError.value = ''
-  groupCandidates.value = []
-  groupCandidatesPage.value = 0
-  groupCandidatesHasMore.value = false
-  groupManagementError.value = ''
-  groupManagementOpen.value = false
-  creatingConversationFor.value = null
-  startConversationError.value = ''
-  activeSection.value = 'recent'
-  searchText.value = ''
-}
-
-function disposeCurrentChatSocket() {
-  disposeChatSocket?.()
-  disposeChatSocket = null
-  chatSocket = null
-  refreshChatSocketAuthentication = null
-  joinedConversationIds.clear()
-  joiningConversationIds.clear()
-}
 
 const sectionOptions: { label: string; value: ChatSection }[] = [
   { label: 'Recentes', value: 'recent' },
   { label: 'Comunidades', value: 'community' },
   { label: 'Amigos', value: 'friend' },
-  { label: 'Pessoas', value: 'people' },
 ]
 
 const visibleConversations = computed(() => {
   const search = searchText.value.toLowerCase().trim()
 
-  return conversations.value.filter((conversation) => {
+  return conversations.filter((conversation) => {
     const matchesSection =
       activeSection.value === 'recent' || conversation.category === activeSection.value
     const matchesSearch = conversation.name.toLowerCase().includes(search)
@@ -240,958 +102,28 @@ const visibleConversations = computed(() => {
   })
 })
 
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toUpperCase()
-}
-
-function formatTime(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? ''
-    : date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-}
-
-async function refreshConversationDetails(conversationId: string) {
-  const requestSessionGeneration = sessionGeneration
-  try {
-    const conversation = await getChatConversation(conversationId)
-    if (requestSessionGeneration !== sessionGeneration) return
-    if (selectedConversation.value?.id === conversationId) {
-      selectedConversation.value = conversation
-    }
-    conversations.value = mergeConversations(conversations.value, [conversation])
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    if (handleConversationAccessError(error, conversationId)) return
-    if (selectedConversation.value?.id === conversationId) {
-      groupManagementError.value =
-        error instanceof Error ? error.message : 'Não foi possível atualizar o grupo.'
-    }
-  }
-}
-
-function mergeMessages(existing: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
-  const unique = new Map(
-    existing.map((message) => [message.clientMessageId || message.id, message]),
-  )
-  for (const message of incoming) {
-    unique.set(message.clientMessageId || message.id, message)
-  }
-  return [...unique.values()].sort(
-    (first, second) =>
-      (first.sequence || Number.MAX_SAFE_INTEGER) - (second.sequence || Number.MAX_SAFE_INTEGER) ||
-      new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime(),
-  )
-}
-
-function mergeConversations(
-  existing: ChatConversation[],
-  incoming: ChatConversation[],
-): ChatConversation[] {
-  const unique = new Map(existing.map((conversation) => [conversation.id, conversation]))
-  for (const conversation of incoming) unique.set(conversation.id, conversation)
-  return [...unique.values()].sort(
-    (first, second) => new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime(),
-  )
-}
-
-function addOrReplaceMessage(message: ChatMessage) {
-  if (selectedConversation.value?.id !== message.conversationId) return
-  messages.value = mergeMessages(messages.value, [message])
-}
-
-function isMessageRead(message: ChatMessage): boolean {
-  const conversation = selectedConversation.value
-  if (!message.isMine || conversation?.category !== 'friend') return false
-  const otherMember = conversation.members.find((member) => member.userId !== currentUser.user?.sub)
-  if (!otherMember) return false
-  return (readCursors.value[`${conversation.id}:${otherMember.userId}`] ?? 0) >= message.sequence
-}
-
-function getMessageSenderName(message: ChatMessage): string {
-  if (message.isMine) return currentUser.user?.name?.trim() || 'Você'
-  return (
-    selectedConversation.value?.members
-      .find((member) => member.userId === message.senderId)
-      ?.name?.trim() || 'Usuário'
-  )
-}
-
-function updateConversationSummary(value: unknown) {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    !('id' in value) ||
-    typeof value.id !== 'string' ||
-    !('updatedAt' in value) ||
-    typeof value.updatedAt !== 'string'
-  ) {
-    return
-  }
-  const event = value as {
-    id: string
-    updatedAt: string
-    lastMessage?: {
-      content?: string | null
-      senderId?: string | null
-      sequence?: number
-      createdAt?: string
-    } | null
-  }
-  const conversation = conversations.value.find((item) => item.id === event.id)
-  if (!conversation) {
-    void loadConversationList(true)
-    return
-  }
-  const lastMessage = event.lastMessage
-  if (
-    lastMessage &&
-    typeof lastMessage.sequence === 'number' &&
-    lastMessage.sequence > (conversation.lastMessage?.sequence ?? 0)
-  ) {
-    const content = lastMessage.content ?? ''
-    const createdAt = lastMessage.createdAt ?? event.updatedAt
-    const senderId = lastMessage.senderId ?? null
-    conversations.value = mergeConversations(conversations.value, [
-      {
-        ...conversation,
-        updatedAt: event.updatedAt,
-        preview: content,
-        lastMessage: {
-          content,
-          senderId,
-          sequence: lastMessage.sequence,
-          createdAt,
-        },
-      },
-    ])
-  }
-}
-
-function applyUnreadUpdate(value: unknown) {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    !('conversationId' in value) ||
-    typeof value.conversationId !== 'string' ||
-    !('unreadCount' in value) ||
-    typeof value.unreadCount !== 'number' ||
-    !Number.isFinite(value.unreadCount)
-  ) {
-    return
-  }
-  applyUnreadCount(value.conversationId, value.unreadCount)
-}
-
-function handleSocketMessage(value: unknown) {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    !('conversationId' in value) ||
-    typeof value.conversationId !== 'string'
-  ) {
-    return
-  }
-
-  try {
-    const message = normalizeChatMessage(value, value.conversationId)
-    const failedAttempt = failedMessageAttempts.get(message.clientMessageId)
-    if (failedAttempt) {
-      failedMessageAttempts.delete(message.clientMessageId)
-      if (
-        message.conversationId === selectedConversation.value?.id &&
-        messageText.value.trim() === failedAttempt.content
-      ) {
-        messageText.value = ''
-      }
-    } else if (sendingClientMessageIds.has(message.clientMessageId)) {
-      confirmedClientMessageIds.add(message.clientMessageId)
-    }
-    addOrReplaceMessage(message)
-    updateConversationSummary({
-      id: message.conversationId,
-      updatedAt: message.createdAt,
-      lastMessage: {
-        content: message.content,
-        senderId: message.senderId,
-        sequence: message.sequence,
-        createdAt: message.createdAt,
-      },
-    })
-    if (message.conversationId === selectedConversation.value?.id && !message.isMine) {
-      void markCurrentConversationRead(message.conversationId)
-    }
-  } catch (error) {
-    chatSocketError.value =
-      error instanceof Error ? error.message : 'A mensagem recebida é inválida.'
-  }
-}
-
-async function joinConversationRoom(conversationId: string) {
-  if (
-    !chatSocket?.connected ||
-    joinedConversationIds.has(conversationId) ||
-    joiningConversationIds.has(conversationId)
-  ) {
-    return
-  }
-  joiningConversationIds.add(conversationId)
-  try {
-    await emitChatSocketAck(chatSocket, 'chat:conversation:join', { conversationId })
-    joinedConversationIds.add(conversationId)
-  } catch (error) {
-    if (handleSocketAuthenticationError(error)) return
-    if (handleConversationAccessError(error, conversationId)) return
-    chatSocketError.value =
-      error instanceof Error ? error.message : 'Não foi possível entrar na conversa.'
-  } finally {
-    joiningConversationIds.delete(conversationId)
-  }
-}
-
-async function leaveConversationRoom(conversationId: string) {
-  if (!chatSocket?.connected) return
-  try {
-    await emitChatSocketAck(chatSocket, 'chat:conversation:leave', { conversationId })
-    joinedConversationIds.delete(conversationId)
-  } catch {
-    // The server removes the socket from its rooms on disconnect.
-  }
-}
-
-async function markCurrentConversationRead(conversationId: string) {
-  const requestSessionGeneration = sessionGeneration
-  const applyRead = (result: {
-    conversationId: string
-    lastReadSequence: number
-    unreadCount: number
-  }) => {
-    readCursors.value = {
-      ...readCursors.value,
-      [`${result.conversationId}:${currentUser.user?.sub ?? ''}`]: result.lastReadSequence,
-    }
-    applyUnreadCount(result.conversationId, result.unreadCount)
-  }
-
-  try {
-    if (chatSocket?.connected) {
-      const result = await emitChatSocketAck<{
-        conversationId: string
-        lastReadSequence: number
-        unreadCount: number
-      }>(chatSocket, 'chat:message:read', { conversationId })
-      if (requestSessionGeneration === sessionGeneration) applyRead(result)
-    } else {
-      const result = await markChatConversationRead(conversationId)
-      if (requestSessionGeneration === sessionGeneration) applyRead(result)
-    }
-  } catch (error) {
-    if (handleSocketAuthenticationError(error)) return
-    try {
-      const result = await markChatConversationRead(conversationId)
-      if (requestSessionGeneration !== sessionGeneration) return
-      applyRead(result)
-    } catch (httpError) {
-      if (requestSessionGeneration !== sessionGeneration) return
-      if (handleConversationAccessError(httpError, conversationId)) return
-      chatSocketError.value =
-        httpError instanceof Error
-          ? httpError.message
-          : error instanceof Error
-            ? error.message
-            : 'Não foi possível atualizar a leitura.'
-    }
-  }
-}
-
-function applyUnreadCount(conversationId: string, unreadCount: number) {
-  const count = Math.max(0, Math.floor(unreadCount))
-  const revision = ++unreadEventRevision
-  pendingUnreadCounts.value = {
-    ...pendingUnreadCounts.value,
-    [conversationId]: { count, revision },
-  }
-  conversations.value = conversations.value.map((conversation) =>
-    conversation.id === conversationId ? { ...conversation, unreadCount: count } : conversation,
-  )
-}
-
-async function onSocketConnected() {
-  chatSocketError.value = ''
-  joinedConversationIds.clear()
-  joiningConversationIds.clear()
-  await loadConversationList(true)
-  if (selectedConversation.value) {
-    await joinConversationRoom(selectedConversation.value.id)
-    await loadMessages(selectedConversation.value.id)
-  }
-}
-
-function initializeChatSocket() {
-  if (chatSocket) return
-  if (!currentUser.user?.sub) {
-    chatSocketStatus.value = 'disconnected'
-    return
-  }
-  try {
-    const connection = createChatSocket(
-      (status) => {
-        chatSocketStatus.value = status
-        if (status === 'connected') void onSocketConnected()
-      },
-      (message) => {
-        chatSocketError.value = message
-      },
-    )
-    chatSocket = connection.socket
-    disposeChatSocket = connection.dispose
-    refreshChatSocketAuthentication = connection.refreshAuthentication
-    chatSocket.on('chat:message:new', handleSocketMessage)
-    chatSocket.on('chat:conversation:update', updateConversationSummary)
-    chatSocket.on('chat:unread:update', applyUnreadUpdate)
-    chatSocket.on('chat:message:read', (value: unknown) => {
-      if (
-        typeof value === 'object' &&
-        value !== null &&
-        'conversationId' in value &&
-        typeof value.conversationId === 'string' &&
-        'userId' in value &&
-        typeof value.userId === 'string' &&
-        'lastReadSequence' in value &&
-        typeof value.lastReadSequence === 'number'
-      ) {
-        readCursors.value = {
-          ...readCursors.value,
-          [`${value.conversationId}:${value.userId}`]: value.lastReadSequence,
-        }
-      }
-    })
-    chatSocket.on('chat:conversation:available', () => {
-      void loadConversationList(true)
-    })
-    chatSocket.on(
-      'chat:conversation:members',
-      (value: { conversationId?: string; memberIds?: string[] }) => {
-        if (!value.conversationId || !Array.isArray(value.memberIds)) return
-        if (selectedConversation.value?.id === value.conversationId) {
-          void refreshConversationDetails(value.conversationId)
-        }
-        void loadConversationList(true)
-      },
-    )
-    chatSocket.on('chat:conversation:removed', (value: { conversationId?: string }) => {
-      if (!value.conversationId) return
-      clearOpenConversation(value.conversationId)
-    })
-  } catch (error) {
-    chatSocketStatus.value = 'disconnected'
-    chatSocketError.value =
-      error instanceof Error ? error.message : 'Não foi possível iniciar o chat em tempo real.'
-  }
-}
-
-function retryChatSocket() {
-  if (chatSocket?.connected) return
-  disposeCurrentChatSocket()
-  initializeChatSocket()
-}
-
-function selectSection(section: ChatSection) {
-  activeSection.value = section
-  startConversationError.value = ''
-
-  if (section === 'people') {
-    searchText.value = ''
-    void loadPeople(true)
-    return
-  }
-
-  if (usersSearchTimeout) {
-    clearTimeout(usersSearchTimeout)
-    usersSearchTimeout = null
-  }
-  usersController?.abort()
-  usersController = null
-  usersLoading.value = false
-  usersLoadingMore.value = false
-}
-
-async function loadPeople(reset = true) {
-  if (reset) {
-    usersController?.abort()
-  } else if (usersLoading.value || usersLoadingMore.value || !usersHasMore.value) {
-    return
-  }
-
-  const controller = new AbortController()
-  usersController = controller
-  const requestId = ++usersRequestId
-  const page = reset ? 1 : usersPage.value + 1
-  usersError.value = ''
-  usersLoading.value = reset
-  usersLoadingMore.value = !reset
-
-  try {
-    const result = await searchChatUsers(searchText.value, page, 24, controller.signal)
-    if (
-      controller.signal.aborted ||
-      requestId !== usersRequestId ||
-      activeSection.value !== 'people'
-    ) {
-      return
-    }
-
-    availableUsers.value = reset
-      ? result.users
-      : [
-          ...availableUsers.value,
-          ...result.users.filter(
-            (user) => !availableUsers.value.some((existing) => existing.id === user.id),
-          ),
-        ]
-    usersPage.value = result.page
-    usersHasMore.value = result.hasMore
-  } catch (error) {
-    if (!controller.signal.aborted && requestId === usersRequestId) {
-      usersError.value =
-        error instanceof Error ? error.message : 'Não foi possível carregar as pessoas.'
-    }
-  } finally {
-    if (usersController === controller) {
-      usersLoading.value = false
-      usersLoadingMore.value = false
-      usersController = null
-    }
-  }
-}
-
-function handleSearchInput() {
-  if (activeSection.value !== 'people') return
-  if (usersSearchTimeout) clearTimeout(usersSearchTimeout)
-  usersController?.abort()
-  usersSearchTimeout = setTimeout(() => {
-    usersSearchTimeout = null
-    void loadPeople(true)
-  }, 300)
-}
-
-async function loadConversationList(preserveSelection = false) {
-  conversationsController?.abort()
-  const controller = new AbortController()
-  conversationsController = controller
-  const requestRevision = ++conversationsRequestRevision
-  const unreadRevisionAtRequestStart = unreadEventRevision
-  conversationsLoading.value = true
-  conversationsError.value = ''
-
-  try {
-    const result = await listChatConversations(controller.signal)
-    if (controller.signal.aborted) return
-
-    const pending = pendingUnreadCounts.value
-    conversations.value = result.map((conversation) => {
-      const unreadUpdate = pending[conversation.id]
-      return unreadUpdate && unreadUpdate.revision > unreadRevisionAtRequestStart
-        ? { ...conversation, unreadCount: unreadUpdate.count }
-        : conversation
-    })
-    if (requestRevision === conversationsRequestRevision) {
-      const nextPending = { ...pendingUnreadCounts.value }
-      for (const [conversationId, unreadUpdate] of Object.entries(nextPending)) {
-        if (unreadUpdate.revision <= unreadEventRevision) delete nextPending[conversationId]
-      }
-      pendingUnreadCounts.value = nextPending
-    }
-    if (chatSocket?.connected) {
-      for (const conversation of result) void joinConversationRoom(conversation.id)
-    }
-    if (
-      preserveSelection &&
-      selectedConversation.value &&
-      result.some((conversation) => conversation.id === selectedConversation.value?.id)
-    ) {
-      selectedConversation.value =
-        result.find((conversation) => conversation.id === selectedConversation.value?.id) ?? null
-    } else if (result.length > 0) {
-      selectConversation(result[0])
-    } else {
-      selectedConversation.value = null
-      messages.value = []
-    }
-  } catch (error) {
-    if (!controller.signal.aborted) {
-      if (error instanceof ChatApiError && (error.statusCode === 403 || error.statusCode === 404)) {
-        for (const conversation of conversations.value) {
-          void leaveConversationRoom(conversation.id)
-        }
-        conversations.value = []
-        selectedConversation.value = null
-        messages.value = []
-        nextCursor.value = null
-        messagesError.value = ''
-        groupManagementOpen.value = false
-        messagesController?.abort()
-      }
-      conversationsError.value =
-        error instanceof Error ? error.message : 'Não foi possível carregar as conversas.'
-    }
-  } finally {
-    if (conversationsController === controller) {
-      conversationsLoading.value = false
-      conversationsController = null
-    }
-  }
-}
-
-async function loadMessages(conversationId: string, loadOlder = false) {
-  if (loadOlder && !nextCursor.value) return
-
-  messagesController?.abort()
-  const controller = new AbortController()
-  messagesController = controller
-  const requestId = ++messagesRequestId
-  messagesLoading.value = true
-  messagesError.value = ''
-
-  try {
-    const page = await listChatMessages(conversationId, {
-      cursor: loadOlder ? (nextCursor.value ?? undefined) : undefined,
-      signal: controller.signal,
-    })
-    if (
-      controller.signal.aborted ||
-      requestId !== messagesRequestId ||
-      selectedConversation.value?.id !== conversationId
-    ) {
-      return
-    }
-
-    messages.value = mergeMessages(messages.value, page.messages)
-    nextCursor.value = page.nextCursor
-    if (!loadOlder) void markCurrentConversationRead(conversationId)
-  } catch (error) {
-    if (!controller.signal.aborted && requestId === messagesRequestId) {
-      if (handleConversationAccessError(error, conversationId)) return
-      messagesError.value =
-        error instanceof Error ? error.message : 'Não foi possível carregar as mensagens.'
-    }
-  } finally {
-    if (messagesController === controller) {
-      messagesLoading.value = false
-      messagesController = null
-    }
-  }
-}
-
-function selectConversation(conversation: ChatConversation) {
-  const previousConversationId = selectedConversation.value?.id
-  if (previousConversationId && previousConversationId !== conversation.id) {
-    void leaveConversationRoom(previousConversationId)
-  }
+function selectConversation(conversation: Conversation) {
   selectedConversation.value = conversation
-  messages.value = []
-  nextCursor.value = null
-  messagesError.value = ''
-  sendError.value = ''
-  groupManagementOpen.value = false
-  groupManagementError.value = ''
-  chatNotice.value = ''
-  mobileConversationListVisible.value = false
-  for (const [clientMessageId, attempt] of failedMessageAttempts) {
-    if (attempt.conversationId !== conversation.id) continue
-    messages.value = mergeMessages(messages.value, [
-      {
-        id: clientMessageId,
-        clientMessageId,
-        conversationId: conversation.id,
-        senderId: currentUser.user?.sub ?? '',
-        sequence: Number.MAX_SAFE_INTEGER,
-        content: attempt.content,
-        createdAt: attempt.createdAt,
-        isMine: true,
-        deliveryStatus: 'failed',
-      },
-    ])
-  }
-  void joinConversationRoom(conversation.id)
-  void refreshConversationDetails(conversation.id)
-  void loadMessages(conversation.id)
 }
 
-async function sendMessage(retryClientMessageId?: string) {
+function sendMessage() {
   const text = messageText.value.trim()
-  const conversation = selectedConversation.value
-  if (!text || !conversation || sendingMessage.value) return
+  if (!text) return
 
-  sendingMessage.value = true
-  sendError.value = ''
-  const requestSessionGeneration = sessionGeneration
-  const requestUserId = currentUser.user?.sub ?? ''
-  const existingFailedAttempt =
-    retryClientMessageId === undefined
-      ? [...failedMessageAttempts].find(
-          ([, attempt]) => attempt.conversationId === conversation.id && attempt.content === text,
-        )
-      : undefined
-  let clientMessageId: string
-  try {
-    clientMessageId = retryClientMessageId ?? existingFailedAttempt?.[0] ?? crypto.randomUUID()
-  } catch {
-    sendingMessage.value = false
-    sendError.value = 'Não foi possível gerar um identificador seguro para a mensagem.'
-    return
-  }
-  const optimisticMessage: ChatMessage = {
-    id: clientMessageId,
-    clientMessageId,
-    conversationId: conversation.id,
-    senderId: requestUserId,
-    sequence: Number.MAX_SAFE_INTEGER,
-    content: text,
-    createdAt: failedMessageAttempts.get(clientMessageId)?.createdAt ?? new Date().toISOString(),
-    isMine: true,
-    deliveryStatus: 'sending',
-  }
-  addOrReplaceMessage(optimisticMessage)
-  sendingClientMessageIds.add(clientMessageId)
-  try {
-    if (!chatSocket?.connected) {
-      throw new Error('Sem conexão com o chat. Tente novamente quando reconectar.')
-    }
-    const result = await emitChatSocketAck<unknown>(chatSocket, 'chat:message:send', {
-      conversationId: conversation.id,
-      clientMessageId,
-      content: text,
-    })
-    if (requestSessionGeneration !== sessionGeneration) return
-    const message = normalizeChatMessage(result, conversation.id)
-    failedMessageAttempts.delete(clientMessageId)
-    confirmedClientMessageIds.delete(clientMessageId)
-    addOrReplaceMessage(message)
-    updateConversationSummary({
-      id: conversation.id,
-      updatedAt: message.createdAt,
-      lastMessage: {
-        content: message.content,
-        senderId: message.senderId,
-        sequence: message.sequence,
-        createdAt: message.createdAt,
-      },
-    })
-    if (selectedConversation.value?.id === conversation.id && messageText.value.trim() === text) {
-      messageText.value = ''
-    }
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    handleSocketAuthenticationError(error)
-    if (confirmedClientMessageIds.delete(clientMessageId)) {
-      failedMessageAttempts.delete(clientMessageId)
-      if (selectedConversation.value?.id === conversation.id && messageText.value.trim() === text) {
-        messageText.value = ''
-      }
-      return
-    }
-    const confirmedMessage = messages.value.find(
-      (message) => message.clientMessageId === clientMessageId,
-    )
-    if (
-      confirmedMessage &&
-      confirmedMessage.id !== clientMessageId &&
-      confirmedMessage.sequence < Number.MAX_SAFE_INTEGER
-    ) {
-      failedMessageAttempts.delete(clientMessageId)
-      if (selectedConversation.value?.id === conversation.id && messageText.value.trim() === text) {
-        messageText.value = ''
-      }
-      return
-    }
-    if (handleConversationAccessError(error, conversation.id)) {
-      messages.value = messages.value.filter(
-        (message) => message.clientMessageId !== clientMessageId,
-      )
-      return
-    }
-    failedMessageAttempts.set(clientMessageId, {
-      content: text,
-      conversationId: conversation.id,
-      createdAt: optimisticMessage.createdAt,
-    })
-    messages.value = messages.value.map((message) =>
-      message.clientMessageId === clientMessageId
-        ? { ...message, deliveryStatus: 'failed' }
-        : message,
-    )
-    sendError.value = error instanceof Error ? error.message : 'Não foi possível enviar a mensagem.'
-  } finally {
-    sendingClientMessageIds.delete(clientMessageId)
-    if (requestSessionGeneration === sessionGeneration) {
-      sendingMessage.value = false
-    }
-  }
+  messages.value.push({
+    id: Date.now(),
+    text,
+    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    author: 'me',
+  })
+  messageText.value = ''
 }
-
-function retryMessage(message: ChatMessage) {
-  const attempt = failedMessageAttempts.get(message.clientMessageId)
-  if (
-    !attempt ||
-    attempt.conversationId !== selectedConversation.value?.id ||
-    sendingMessage.value
-  ) {
-    return
-  }
-  messageText.value = attempt.content
-  void sendMessage(message.clientMessageId)
-}
-
-async function startDirectConversation(user: ChatUserSuggestion) {
-  if (creatingConversationFor.value) return
-
-  const existingConversation = conversations.value.find(
-    (conversation) => conversation.otherUserId === user.id,
-  )
-  if (existingConversation) {
-    activeSection.value = 'recent'
-    searchText.value = ''
-    selectConversation(existingConversation)
-    return
-  }
-
-  creatingConversationFor.value = user.id
-  startConversationError.value = ''
-  const requestSessionGeneration = sessionGeneration
-  try {
-    const conversation = await createOrGetDirectConversation(user.id)
-    if (requestSessionGeneration !== sessionGeneration) return
-    conversations.value = mergeConversations(conversations.value, [conversation])
-    activeSection.value = 'recent'
-    searchText.value = ''
-    selectConversation(conversation)
-    if (chatSocket?.connected) {
-      await joinConversationRoom(conversation.id)
-    }
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    startConversationError.value =
-      error instanceof Error ? error.message : 'Não foi possível iniciar a conversa.'
-  } finally {
-    if (requestSessionGeneration === sessionGeneration) {
-      creatingConversationFor.value = null
-    }
-  }
-}
-
-function openGroupDialog(mode: 'create' | 'add') {
-  if (
-    mode === 'add' &&
-    (selectedConversation.value?.category !== 'community' || !isCurrentUserAdmin.value)
-  ) {
-    return
-  }
-  groupDialogMode.value = mode
-  groupDialogError.value = ''
-  groupName.value = ''
-  groupSearch.value = ''
-  groupSelectedIds.value = []
-  void loadGroupCandidates(true)
-}
-
-function closeGroupDialog() {
-  groupDialogMode.value = null
-  groupCandidatesController?.abort()
-}
-
-async function loadGroupCandidates(reset = true) {
-  if (!reset && (groupCandidatesLoading.value || !groupCandidatesHasMore.value)) return
-  groupCandidatesController?.abort()
-  if (reset) groupCandidates.value = []
-  const controller = new AbortController()
-  groupCandidatesController = controller
-  const page = reset ? 1 : groupCandidatesPage.value + 1
-  groupCandidatesLoading.value = true
-  groupDialogError.value = ''
-  try {
-    const result = await searchChatUsers(groupSearch.value, page, 24, controller.signal)
-    if (controller.signal.aborted || groupDialogMode.value === null) return
-    const excludedIds = new Set(
-      groupDialogMode.value === 'add'
-        ? (selectedConversation.value?.members.map((member) => member.userId) ?? [])
-        : [],
-    )
-    const users = result.users.filter((user) => !excludedIds.has(user.id))
-    groupCandidates.value = reset
-      ? users
-      : [
-          ...groupCandidates.value,
-          ...users.filter(
-            (user) => !groupCandidates.value.some((existing) => existing.id === user.id),
-          ),
-        ]
-    groupCandidatesPage.value = result.page
-    groupCandidatesHasMore.value = result.hasMore
-  } catch (error) {
-    if (!controller.signal.aborted) {
-      groupDialogError.value =
-        error instanceof Error ? error.message : 'Não foi possível carregar as pessoas.'
-    }
-  } finally {
-    if (groupCandidatesController === controller) {
-      groupCandidatesController = null
-      groupCandidatesLoading.value = false
-    }
-  }
-}
-
-function handleGroupSearchInput() {
-  if (groupSearchTimeout) clearTimeout(groupSearchTimeout)
-  groupCandidatesController?.abort()
-  groupSearchTimeout = setTimeout(() => {
-    groupSearchTimeout = null
-    void loadGroupCandidates(true)
-  }, 300)
-}
-
-async function submitGroupDialog() {
-  if (!groupDialogMode.value || groupDialogLoading.value) return
-  if (groupDialogMode.value === 'create' && !groupName.value.trim()) {
-    groupDialogError.value = 'Informe o nome do grupo.'
-    return
-  }
-  if (groupSelectedIds.value.length === 0) {
-    groupDialogError.value = 'Selecione pelo menos uma pessoa.'
-    return
-  }
-  if (groupDialogMode.value === 'create' && groupSelectedIds.value.length > 49) {
-    groupDialogError.value = 'Um grupo pode ter no máximo 49 pessoas além de você.'
-    return
-  }
-
-  groupDialogLoading.value = true
-  groupDialogError.value = ''
-  const requestSessionGeneration = sessionGeneration
-  const affectedConversationId =
-    groupDialogMode.value === 'add' ? selectedConversation.value?.id : undefined
-  try {
-    if (groupDialogMode.value === 'create') {
-      const conversation = await createChatGroup(groupName.value.trim(), groupSelectedIds.value)
-      if (requestSessionGeneration !== sessionGeneration) return
-      conversations.value = mergeConversations(conversations.value, [conversation])
-      activeSection.value = 'recent'
-      closeGroupDialog()
-      selectConversation(conversation)
-    } else if (selectedConversation.value) {
-      const conversationId = selectedConversation.value.id
-      await addChatMembers(conversationId, groupSelectedIds.value)
-      if (requestSessionGeneration !== sessionGeneration) return
-      await refreshConversationDetails(conversationId)
-      await loadConversationList(true)
-      closeGroupDialog()
-    }
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    if (affectedConversationId && error instanceof ChatApiError && error.statusCode === 404) {
-      await refreshConversationDetails(affectedConversationId)
-      if (selectedConversation.value?.id !== affectedConversationId) return
-    }
-    groupDialogError.value =
-      error instanceof Error ? error.message : 'Não foi possível salvar o grupo.'
-  } finally {
-    if (requestSessionGeneration === sessionGeneration) {
-      groupDialogLoading.value = false
-    }
-  }
-}
-
-async function removeGroupMember(member: ChatMember) {
-  const conversation = selectedConversation.value
-  if (!conversation || !isCurrentUserAdmin.value || member.userId === currentUser.user?.sub) {
-    return
-  }
-  groupManagementError.value = ''
-  const requestSessionGeneration = sessionGeneration
-  try {
-    await removeChatMember(conversation.id, member.userId)
-    if (requestSessionGeneration !== sessionGeneration) return
-    await refreshConversationDetails(conversation.id)
-    await loadConversationList(true)
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    if (error instanceof ChatApiError && error.statusCode === 404) {
-      await refreshConversationDetails(conversation.id)
-      if (selectedConversation.value?.id !== conversation.id) return
-    }
-    groupManagementError.value =
-      error instanceof Error ? error.message : 'Não foi possível remover esse participante.'
-  }
-}
-
-async function leaveCurrentGroup() {
-  const conversation = selectedConversation.value
-  if (!conversation || conversation.category !== 'community') return
-  groupManagementError.value = ''
-  const requestSessionGeneration = sessionGeneration
-  try {
-    await leaveChatGroup(conversation.id)
-    if (requestSessionGeneration !== sessionGeneration) return
-    await leaveConversationRoom(conversation.id)
-    conversations.value = conversations.value.filter((item) => item.id !== conversation.id)
-    selectedConversation.value = null
-    messages.value = []
-    groupManagementOpen.value = false
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    if (error instanceof ChatApiError && error.statusCode === 404) {
-      await refreshConversationDetails(conversation.id)
-      if (selectedConversation.value?.id !== conversation.id) return
-    }
-    groupManagementError.value =
-      error instanceof Error ? error.message : 'Não foi possível sair do grupo.'
-  }
-}
-
-watch(
-  () => currentUser.user?.sub ?? null,
-  (userId, previousUserId) => {
-    if (userId === previousUserId) return
-    clearChatState()
-    disposeCurrentChatSocket()
-    if (userId) {
-      chatSocketStatus.value = 'connecting'
-      void loadConversationList()
-      initializeChatSocket()
-    } else {
-      chatSocketStatus.value = 'disconnected'
-    }
-  },
-  { flush: 'post' },
-)
-
-onMounted(() => {
-  void loadConversationList()
-  initializeChatSocket()
-})
-
-onUnmounted(() => {
-  conversationsController?.abort()
-  messagesController?.abort()
-  usersController?.abort()
-  groupCandidatesController?.abort()
-  if (usersSearchTimeout) clearTimeout(usersSearchTimeout)
-  if (groupSearchTimeout) clearTimeout(groupSearchTimeout)
-  disposeCurrentChatSocket()
-})
 </script>
 
 <template>
-  <section class="chat-page relative mx-auto flex h-screen max-w-full min-h-[560px] bg-white">
+  <section class="chat-page mx-auto flex h-screen max-w-full min-h-[560px] bg-white">
     <aside
-      class="chat-list flex w-[330px] shrink-0 flex-col border-r border-[#e8ebf0] bg-[#fbfcfd] max-[850px]:w-[285px]"
-      :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
+      class="chat-list flex w-[330px] shrink-0 flex-col border-r border-[#e8ebf0] bg-[#fbfcfd] max-[850px]:w-[285px] max-[620px]:hidden"
     >
       <div class="border-b border-[#e8ebf0] px-6 py-5">
         <div class="mb-4 flex items-center justify-between">
@@ -1205,39 +137,21 @@ onUnmounted(() => {
               {{ sectionOptions.find((section) => section.value === activeSection)?.label }}
             </h1>
           </div>
-          <button
-            class="grid size-9 shrink-0 place-items-center rounded-lg border-0 bg-[#e9eefb] text-[#253b73] transition-colors hover:bg-[#dfe6f8]"
-            type="button"
-            aria-label="Criar grupo"
-            title="Criar grupo"
-            @click="openGroupDialog('create')"
-          >
-            <font-awesome-icon :icon="faUsers" class="text-xs" />
-          </button>
         </div>
-        <div class="mb-4 grid grid-cols-4 gap-1 rounded-lg bg-[#f0f2f6] p-1">
+        <div class="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-[#f0f2f6] p-1">
           <button
             v-for="section in sectionOptions"
             :key="section.value"
-            class="rounded-md border-0 px-1 py-2 text-[9px] font-bold text-[#8b94a6] transition-colors"
+            class="rounded-md border-0 px-1 py-2 text-[10px] font-bold text-[#8b94a6] transition-colors"
             :class="
               activeSection === section.value
                 ? 'bg-white text-[#253b73] shadow-sm'
                 : 'bg-transparent'
             "
             type="button"
-            @click="selectSection(section.value)"
+            @click="activeSection = section.value"
           >
             {{ section.label }}
-            <span
-              v-if="sectionUnreadCounts[section.value] > 0"
-              class="ml-1 inline-grid min-w-4 place-items-center rounded-full bg-[#253b73] px-1 text-[8px] leading-4 text-white"
-              :aria-label="`${sectionUnreadCounts[section.value]} mensagens não lidas`"
-            >
-              {{
-                sectionUnreadCounts[section.value] > 99 ? '99+' : sectionUnreadCounts[section.value]
-              }}
-            </span>
           </button>
         </div>
         <label
@@ -1248,182 +162,56 @@ onUnmounted(() => {
             v-model="searchText"
             class="w-full border-0 bg-transparent text-xs text-[#172238] outline-none placeholder:text-[#a3aab6]"
             type="search"
-            :placeholder="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
-            :aria-label="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
-            @input="handleSearchInput"
+            placeholder="Buscar conversa"
           />
         </label>
       </div>
 
-      <div v-if="activeSection === 'people'" class="flex-1 overflow-y-auto p-3">
-        <p v-if="usersLoading" class="px-3 py-8 text-center text-xs text-[#929aaa]">
-          Carregando pessoas...
-        </p>
-        <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-xs text-red-600">
-          {{ usersError }}
-          <button class="ml-1 underline" type="button" @click="loadPeople(true)">
-            Tentar novamente
-          </button>
-        </p>
-        <template v-else>
-          <button
-            v-for="user in availableUsers"
-            :key="user.id"
-            class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-[#f0f3fa] disabled:cursor-wait disabled:opacity-60"
-            type="button"
-            :disabled="creatingConversationFor !== null"
-            @click="startDirectConversation(user)"
-          >
-            <span
-              class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
-            >
-              <img
-                v-if="user.image"
-                :src="user.image"
-                :alt="`Foto de ${user.name}`"
-                class="size-full object-cover"
-              />
-              <span v-else>{{ getInitials(user.name) }}</span>
-            </span>
-            <span class="min-w-0 flex-1">
-              <strong class="block truncate text-xs text-[#172238]">{{ user.name }}</strong>
-              <span class="mt-1 block truncate text-[10px] text-[#8c96a7]">
-                {{
-                  creatingConversationFor === user.id ? 'Abrindo conversa...' : 'Iniciar conversa'
-                }}
-              </span>
-            </span>
-          </button>
-          <p
-            v-if="availableUsers.length === 0"
-            class="px-3 py-8 text-center text-xs text-[#929aaa]"
-          >
-            {{
-              searchText.trim()
-                ? 'Nenhuma pessoa encontrada para essa pesquisa.'
-                : 'Não há outras pessoas disponíveis para conversar.'
-            }}
-          </p>
-          <button
-            v-if="usersHasMore"
-            class="mx-auto mt-2 block rounded-full border-0 bg-white px-3 py-2 text-[10px] text-[#53617a] disabled:opacity-50"
-            type="button"
-            :disabled="usersLoadingMore"
-            @click="loadPeople(false)"
-          >
-            {{ usersLoadingMore ? 'Carregando...' : 'Carregar mais pessoas' }}
-          </button>
-        </template>
-        <p v-if="startConversationError" role="alert" class="px-3 py-3 text-xs text-red-600">
-          {{ startConversationError }}
-        </p>
-      </div>
-
-      <div v-else class="flex-1 overflow-y-auto p-3">
-        <p v-if="conversationsLoading" class="px-3 py-8 text-center text-xs text-[#929aaa]">
-          Carregando conversas...
-        </p>
-        <p
-          v-else-if="conversationsError"
-          role="alert"
-          class="px-3 py-8 text-center text-xs text-red-600"
-        >
-          {{ conversationsError }}
-          <button class="ml-1 underline" type="button" @click="loadConversationList()">
-            Tentar novamente
-          </button>
-        </p>
+      <div class="flex-1 overflow-y-auto p-3">
         <button
-          v-else
           v-for="conversation in visibleConversations"
           :key="conversation.id"
           class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-[#f0f3fa]"
-          :class="selectedConversation?.id === conversation.id ? 'bg-[#e9eefb]' : ''"
+          :class="selectedConversation.id === conversation.id ? 'bg-[#e9eefb]' : ''"
           type="button"
           @click="selectConversation(conversation)"
         >
           <span
             class="relative grid size-10 shrink-0 place-items-center rounded-full text-[10px] font-bold"
             :class="
-              conversation.category === 'community'
-                ? 'bg-[#e9eefb] text-[#536bad]'
-                : 'bg-[#ffe9e2] text-[#db6d57]'
+              conversation.color === 'coral'
+                ? 'bg-[#ffe9e2] text-[#db6d57]'
+                : conversation.color === 'blue'
+                  ? 'bg-[#e9eefb] text-[#536bad]'
+                  : 'bg-[#e4f3eb] text-[#4f9273]'
             "
           >
-            {{ getInitials(conversation.name) }}
+            {{ conversation.initials }}
+            <span
+              v-if="conversation.online"
+              class="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-white bg-[#5bb58a]"
+            ></span>
           </span>
           <span class="min-w-0 flex-1">
             <span class="flex items-center justify-between gap-2">
               <strong class="truncate text-xs text-[#172238]">{{ conversation.name }}</strong>
-              <time class="shrink-0 text-[9px] text-[#9aa3b2]">{{
-                formatTime(conversation.lastMessage?.createdAt ?? conversation.updatedAt)
-              }}</time>
+              <time class="shrink-0 text-[9px] text-[#9aa3b2]">{{ conversation.time }}</time>
             </span>
-            <span class="mt-1 flex min-w-0 items-center justify-between gap-2">
-              <span class="block truncate text-[10px] text-[#8c96a7]">{{
-                conversation.preview
-              }}</span>
-              <span
-                v-if="conversation.unreadCount > 0"
-                class="grid min-w-4 place-items-center rounded-full bg-[#253b73] px-1 text-[9px] font-bold text-white"
-                >{{ conversation.unreadCount }}</span
-              >
-            </span>
+            <span class="mt-1 block truncate text-[10px] text-[#8c96a7]">{{
+              conversation.preview
+            }}</span>
           </span>
         </button>
         <p
-          v-if="!conversationsLoading && !conversationsError && visibleConversations.length === 0"
+          v-if="visibleConversations.length === 0"
           class="px-3 py-8 text-center text-xs text-[#929aaa]"
         >
-          {{
-            conversations.length ? 'Nenhum resultado encontrado.' : 'Você ainda não tem conversas.'
-          }}
+          Nenhum resultado encontrado.
         </p>
       </div>
     </aside>
 
-    <main
-      class="flex min-w-0 flex-1 flex-col bg-white"
-      :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
-    >
-      <div
-        v-if="chatNotice"
-        class="flex items-center justify-between gap-3 border-b border-[#e8ebf0] bg-[#fff4f1] px-5 py-2 text-[10px] text-[#a44234]"
-        role="alert"
-      >
-        <span>{{ chatNotice }}</span>
-        <button
-          class="shrink-0 border-0 bg-transparent underline"
-          type="button"
-          @click="refreshConversationList"
-        >
-          Atualizar lista
-        </button>
-      </div>
-      <div
-        v-if="chatSocketStatus !== 'connected' || chatSocketError"
-        class="flex items-center justify-between gap-3 border-b border-[#e8ebf0] bg-[#fff9eb] px-5 py-2 text-[10px] text-[#8b6820]"
-        role="status"
-      >
-        <span>
-          {{
-            chatSocketStatus === 'connecting'
-              ? 'Conectando ao chat...'
-              : chatSocketStatus === 'reconnecting'
-                ? 'Reconectando ao chat. As mensagens serão sincronizadas ao reconectar.'
-                : 'Conexão em tempo real indisponível.'
-          }}
-          <span v-if="chatSocketError" class="ml-1">{{ chatSocketError }}</span>
-        </span>
-        <button
-          v-if="chatSocketStatus === 'disconnected'"
-          class="shrink-0 border-0 bg-transparent underline"
-          type="button"
-          @click="retryChatSocket"
-        >
-          Tentar novamente
-        </button>
-      </div>
+    <main class="flex min-w-0 flex-1 flex-col bg-white">
       <header
         class="flex min-h-[76px] items-center justify-between border-b border-[#e8ebf0] px-6 py-4 max-[620px]:px-4"
       >
@@ -1432,36 +220,23 @@ onUnmounted(() => {
             class="hidden size-8 place-items-center rounded-lg border-0 bg-[#f4f6fa] text-[#53617a] max-[620px]:grid"
             type="button"
             aria-label="Voltar para conversas"
-            @click="mobileConversationListVisible = true"
           >
             <font-awesome-icon :icon="faArrowLeft" />
           </button>
           <span
-            v-if="selectedConversation"
-            class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#ffe9e2] text-[10px] font-bold text-[#db6d57]"
+            class="grid size-10 shrink-0 place-items-center rounded-full bg-[#ffe9e2] text-[10px] font-bold text-[#db6d57]"
+            >{{ selectedConversation.initials }}</span
           >
-            <img
-              v-if="selectedConversation.image"
-              :src="selectedConversation.image"
-              :alt="`Foto de ${selectedConversation.name}`"
-              class="size-full object-cover"
-            />
-            <span v-else>{{ getInitials(selectedConversation.name) }}</span>
-          </span>
           <div class="min-w-0">
             <h2 class="truncate font-['Space_Grotesk',sans-serif] text-sm font-semibold">
-              {{ selectedConversation?.name ?? 'Conversas' }}
+              {{ selectedConversation.name }}
             </h2>
-            <p v-if="selectedConversation" class="m-0 mt-0.5 text-[10px] text-[#8c96a7]">
-              {{
-                selectedConversation.category === 'community'
-                  ? `Grupo · ${selectedConversation.members.length} participantes`
-                  : 'Conversa individual'
-              }}
+            <p class="m-0 mt-0.5 text-[10px] text-[#5bb58a]">
+              {{ selectedConversation.online ? 'Online agora' : 'Visto recentemente' }}
             </p>
           </div>
         </div>
-        <div v-if="selectedConversation" class="flex items-center gap-1 text-[#8c96a7]">
+        <div class="flex items-center gap-1 text-[#8c96a7]">
           <button
             class="grid size-8 place-items-center rounded-lg border-0 bg-transparent hover:bg-[#f4f6fa]"
             type="button"
@@ -1480,165 +255,43 @@ onUnmounted(() => {
             class="grid size-8 place-items-center rounded-lg border-0 bg-transparent hover:bg-[#f4f6fa]"
             type="button"
             aria-label="Mais opções"
-            :aria-expanded="groupManagementOpen"
-            @click="groupManagementOpen = !groupManagementOpen"
           >
             <font-awesome-icon :icon="faEllipsis" />
           </button>
         </div>
       </header>
 
-      <section
-        v-if="groupManagementOpen && selectedConversation?.category === 'community'"
-        class="max-h-56 overflow-y-auto border-b border-[#e8ebf0] bg-white px-5 py-3"
-        aria-label="Participantes do grupo"
-      >
-        <div class="mb-2 flex items-center justify-between gap-3">
-          <strong class="text-xs text-[#172238]">Participantes</strong>
-          <div class="flex items-center gap-2">
-            <button
-              v-if="isCurrentUserAdmin"
-              class="border-0 bg-transparent text-[10px] font-semibold text-[#253b73] underline"
-              type="button"
-              @click="openGroupDialog('add')"
-            >
-              Adicionar
-            </button>
-            <button
-              class="border-0 bg-transparent text-[10px] text-red-600 underline"
-              type="button"
-              @click="leaveCurrentGroup"
-            >
-              Sair do grupo
-            </button>
-          </div>
-        </div>
-        <p v-if="groupManagementError" role="alert" class="mb-2 text-[10px] text-red-600">
-          {{ groupManagementError }}
-        </p>
-        <div
-          v-for="member in selectedConversation.members"
-          :key="member.userId"
-          class="flex items-center justify-between gap-3 py-1.5"
-        >
-          <span class="truncate text-[10px] text-[#53617a]">
-            {{ member.name ?? 'Usuário' }}
-            <span v-if="member.role === 'admin'" class="ml-1 text-[#8c96a7]">· admin</span>
-            <span v-if="member.userId === currentUser.user?.sub" class="ml-1 text-[#8c96a7]">
-              (você)
-            </span>
-          </span>
-          <button
-            v-if="isCurrentUserAdmin && member.userId !== currentUser.user?.sub"
-            class="shrink-0 border-0 bg-transparent text-[10px] text-red-600 underline"
-            type="button"
-            @click="removeGroupMember(member)"
-          >
-            Remover
-          </button>
-        </div>
-      </section>
-
-      <div
-        v-if="selectedConversation"
-        class="flex-1 space-y-4 overflow-y-auto bg-[#e9e8e7] px-[clamp(18px,5vw,70px)] py-6"
-      >
-        <button
-          v-if="nextCursor"
-          class="mx-auto block rounded-full border-0 bg-white px-3 py-2 text-[10px] text-[#53617a] disabled:opacity-50"
-          type="button"
-          :disabled="messagesLoading"
-          @click="loadMessages(selectedConversation.id, true)"
-        >
-          {{ messagesLoading ? 'Carregando...' : 'Carregar mensagens anteriores' }}
-        </button>
+      <div class="flex-1 space-y-4 overflow-y-auto bg-[#e9e8e7] px-[clamp(18px,5vw,70px)] py-6">
         <p
-          v-if="messagesLoading && messages.length === 0"
-          class="text-center text-xs text-[#53617a]"
+          class="mx-auto w-fit rounded-full bg-[#f0f2f5] px-3 py-1 text-[9px] font-bold uppercase tracking-[.8px] text-[#929aaa]"
         >
-          Carregando mensagens...
-        </p>
-        <p v-if="messagesError" role="alert" class="text-center text-xs text-red-700">
-          {{ messagesError }}
-          <button
-            class="ml-1 underline"
-            type="button"
-            @click="loadMessages(selectedConversation.id, messages.length > 0)"
-          >
-            Tentar novamente
-          </button>
-        </p>
-        <p
-          v-if="!messagesLoading && !messagesError && messages.length === 0"
-          class="text-center text-xs text-[#53617a]"
-        >
-          Nenhuma mensagem nesta conversa ainda.
+          Hoje
         </p>
         <div
           v-for="message in messages"
-          :key="message.clientMessageId"
+          :key="message.id"
           class="flex"
-          :class="message.isMine ? 'justify-end' : 'justify-start'"
+          :class="message.author === 'me' ? 'justify-end' : 'justify-start'"
         >
           <div
             class="max-w-[min(70%,480px)] rounded-2xl px-4 py-3 text-xs leading-relaxed"
             :class="
-              message.isMine
+              message.author === 'me'
                 ? 'rounded-br-sm bg-[#253b73] text-white'
                 : 'rounded-bl-sm border border-[#e8ebf0] bg-white text-[#53617a]'
             "
           >
-            <span
-              class="mb-1 block text-[10px] font-semibold"
-              :class="message.isMine ? 'text-[#d5def8]' : 'text-[#536bad]'"
-            >
-              {{ getMessageSenderName(message) }}
-            </span>
-            <p class="m-0">{{ message.content }}</p>
+            <p class="m-0">{{ message.text }}</p>
             <time
               class="mt-1 block text-right text-[9px]"
-              :class="message.isMine ? 'text-[#cbd5f3]' : 'text-[#a1a9b6]'"
-              >{{ formatTime(message.createdAt) }}</time
+              :class="message.author === 'me' ? 'text-[#cbd5f3]' : 'text-[#a1a9b6]'"
+              >{{ message.time }}</time
             >
-            <div
-              v-if="message.deliveryStatus || isMessageRead(message)"
-              class="mt-1 flex items-center justify-end gap-2 text-[9px]"
-              :class="message.isMine ? 'text-[#cbd5f3]' : 'text-[#a1a9b6]'"
-            >
-              <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
-              <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
-              <span v-else-if="isMessageRead(message)">Lida</span>
-              <button
-                v-if="message.deliveryStatus === 'failed'"
-                class="border-0 bg-transparent p-0 text-inherit underline"
-                type="button"
-                :disabled="sendingMessage"
-                @click="retryMessage(message)"
-              >
-                Tentar novamente
-              </button>
-            </div>
           </div>
         </div>
       </div>
-      <div
-        v-else
-        class="flex flex-1 items-center justify-center bg-[#e9e8e7] px-6 text-center text-xs text-[#53617a]"
-      >
-        Selecione uma conversa para visualizar as mensagens.
-      </div>
 
-      <form
-        v-if="selectedConversation"
-        class="border-t border-[#e8ebf0] bg-white p-4"
-        @submit.prevent="sendMessage()"
-      >
-        <p v-if="sendError" role="alert" class="mb-2 text-xs text-red-600">
-          {{ sendError }}
-        </p>
-        <p v-if="sendingMessage" aria-live="polite" class="mb-2 text-xs text-[#8c96a7]">
-          Enviando mensagem...
-        </p>
+      <form class="border-t border-[#e8ebf0] bg-white p-4" @submit.prevent="sendMessage">
         <div
           class="flex items-center gap-2 rounded-xl border border-[#e1e5ec] bg-[#fbfcfd] px-3 py-2"
         >
@@ -1655,8 +308,6 @@ onUnmounted(() => {
             type="text"
             placeholder="Escreva uma mensagem..."
             aria-label="Mensagem"
-            maxlength="4000"
-            :disabled="sendingMessage"
           />
           <button
             class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-[#8c96a7] hover:bg-[#eef1f9]"
@@ -1669,147 +320,12 @@ onUnmounted(() => {
             class="grid size-8 shrink-0 place-items-center rounded-lg bg-[#253b73] text-white transition-colors hover:bg-[#1e305e] disabled:cursor-not-allowed disabled:opacity-50"
             type="submit"
             aria-label="Enviar mensagem"
-            :disabled="!messageText.trim() || sendingMessage"
+            :disabled="!messageText.trim()"
           >
             <font-awesome-icon :icon="faPaperPlane" class="text-xs" />
           </button>
         </div>
       </form>
     </main>
-
-    <div
-      v-if="groupDialogMode"
-      class="absolute inset-0 z-20 flex items-center justify-center bg-[#172238]/35 p-4"
-      @click.self="closeGroupDialog"
-    >
-      <form
-        class="flex max-h-[min(90vh,620px)] w-full max-w-md flex-col rounded-2xl bg-white p-5 shadow-xl"
-        @submit.prevent="submitGroupDialog"
-      >
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 class="m-0 text-base font-semibold text-[#172238]">
-              {{ groupDialogMode === 'create' ? 'Criar grupo' : 'Adicionar participantes' }}
-            </h2>
-            <p class="mt-1 text-[10px] text-[#8c96a7]">
-              {{
-                groupDialogMode === 'create'
-                  ? 'Escolha um nome e as pessoas que farão parte do grupo.'
-                  : 'Selecione as pessoas que deseja adicionar.'
-              }}
-            </p>
-          </div>
-          <button
-            class="rounded-md border-0 bg-transparent px-2 py-1 text-xs text-[#53617a] hover:bg-[#f4f6fa]"
-            type="button"
-            aria-label="Fechar"
-            @click="closeGroupDialog"
-          >
-            Fechar
-          </button>
-        </div>
-        <label
-          v-if="groupDialogMode === 'create'"
-          class="mb-3 block text-[10px] font-semibold text-[#53617a]"
-        >
-          Nome do grupo
-          <input
-            v-model="groupName"
-            class="mt-1 w-full rounded-lg border border-[#e1e5ec] px-3 py-2 text-xs font-normal text-[#172238] outline-none focus:border-[#536bad]"
-            type="text"
-            maxlength="80"
-            required
-          />
-        </label>
-        <label
-          class="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-[#e7eaf0] bg-white px-3 text-[#929aaa]"
-        >
-          <font-awesome-icon :icon="faSearch" class="text-xs" />
-          <input
-            v-model="groupSearch"
-            class="w-full border-0 bg-transparent text-xs text-[#172238] outline-none placeholder:text-[#a3aab6]"
-            type="search"
-            placeholder="Buscar pessoas"
-            @input="handleGroupSearchInput"
-          />
-        </label>
-        <p v-if="groupDialogError" role="alert" class="my-2 text-xs text-red-600">
-          {{ groupDialogError }}
-        </p>
-        <div class="mt-2 min-h-0 flex-1 overflow-y-auto">
-          <p
-            v-if="groupCandidatesLoading && groupCandidates.length === 0"
-            class="py-6 text-center text-xs text-[#929aaa]"
-          >
-            Carregando pessoas...
-          </p>
-          <button
-            v-for="user in groupCandidates"
-            :key="user.id"
-            type="button"
-            :aria-pressed="groupSelectedIds.includes(user.id)"
-            :disabled="
-              !groupSelectedIds.includes(user.id) &&
-              groupSelectedIds.length >= (groupDialogMode === 'create' ? 49 : 50)
-            "
-            class="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-[#f0f3fa] disabled:cursor-not-allowed disabled:opacity-50"
-            @click="
-              groupSelectedIds = groupSelectedIds.includes(user.id)
-                ? groupSelectedIds.filter((id) => id !== user.id)
-                : [...groupSelectedIds, user.id]
-            "
-          >
-            <span
-              class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
-            >
-              <img
-                v-if="user.image"
-                :src="user.image"
-                :alt="`Foto de ${user.name}`"
-                class="size-full object-cover"
-              />
-              <span v-else>{{ getInitials(user.name) }}</span>
-            </span>
-            <span class="min-w-0 flex-1 truncate text-xs text-[#172238]">{{ user.name }}</span>
-            <span class="text-[10px] font-semibold text-[#536bad]">
-              {{ groupSelectedIds.includes(user.id) ? 'Selecionada' : 'Selecionar' }}
-            </span>
-          </button>
-          <p
-            v-if="!groupCandidatesLoading && !groupDialogError && groupCandidates.length === 0"
-            class="py-6 text-center text-xs text-[#929aaa]"
-          >
-            {{ groupSearch.trim() ? 'Nenhuma pessoa encontrada.' : 'Não há pessoas disponíveis.' }}
-          </p>
-          <button
-            v-if="groupCandidatesHasMore"
-            class="mx-auto my-2 block rounded-full border-0 bg-[#f4f6fa] px-3 py-2 text-[10px] text-[#53617a] disabled:opacity-50"
-            type="button"
-            :disabled="groupCandidatesLoading"
-            @click="loadGroupCandidates(false)"
-          >
-            {{ groupCandidatesLoading ? 'Carregando...' : 'Carregar mais pessoas' }}
-          </button>
-        </div>
-        <div class="mt-4 flex items-center justify-between gap-3 border-t border-[#e8ebf0] pt-3">
-          <span class="text-[10px] text-[#8c96a7]"
-            >{{ groupSelectedIds.length }} selecionada(s)</span
-          >
-          <button
-            class="rounded-lg border-0 bg-[#253b73] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e305e] disabled:cursor-not-allowed disabled:opacity-50"
-            type="submit"
-            :disabled="groupDialogLoading || groupCandidatesLoading"
-          >
-            {{
-              groupDialogLoading
-                ? 'Salvando...'
-                : groupDialogMode === 'create'
-                  ? 'Criar grupo'
-                  : 'Adicionar'
-            }}
-          </button>
-        </div>
-      </form>
-    </div>
   </section>
 </template>
