@@ -1,12 +1,112 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import {
   faArrowRight,
-  faBookOpen,
+  faCalendarDays,
   faChevronRight,
   faUsers,
+  faCheckCircle,
+  faHeart,
 } from '@fortawesome/free-solid-svg-icons'
+import {
+  getMyAgendaParticipation,
+  listAgendaItems,
+  type AgendaItem,
+} from '../../services/agenda'
+
+type AgendaSummaryItem = {
+  item: AgendaItem
+  interested: boolean
+  confirmed: boolean
+}
+
+const upcomingAgendaItems = ref<AgendaSummaryItem[]>([])
+const agendaSummaryLoading = ref(true)
+const agendaSummaryError = ref(false)
 
 
+
+
+onMounted(async () => {
+  try {
+    const now = Date.now()
+    const items = await listAgendaItems()
+
+    // Mantém somente eventos futuros que não foram cancelados.
+    const futureItems = items.filter((item) => {
+      const start = Date.parse(item.startsAt)
+
+      return (
+        item.cancelledAt == null &&
+        Number.isFinite(start) &&
+        start >= now
+      )
+    })
+
+    // Consulta a participação do usuário em cada evento.
+    const results = await Promise.allSettled(
+      futureItems.map(async (item) => ({
+        item,
+        participation: await getMyAgendaParticipation(item.id),
+      })),
+    )
+
+    const personalizedItems = results
+      .filter(
+        (
+          result,
+        ): result is PromiseFulfilledResult<{
+          item: AgendaItem
+          participation: Awaited<
+            ReturnType<typeof getMyAgendaParticipation>
+          >
+        }> => result.status === 'fulfilled',
+      )
+      .map((result) => result.value)
+      .filter(
+        ({ participation }) =>
+          participation.confirmed || participation.interested,
+      )
+      .sort((left, right) => {
+        const leftPriority = left.participation.confirmed ? 0 : 1
+        const rightPriority = right.participation.confirmed ? 0 : 1
+
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority
+        }
+
+        return (
+          Date.parse(left.item.startsAt) -
+          Date.parse(right.item.startsAt)
+        )
+      })
+
+    upcomingAgendaItems.value = personalizedItems
+      .slice(0, 3)
+      .map(({ item, participation }) => ({
+        item,
+        interested: participation.interested,
+        confirmed: participation.confirmed,
+      }))
+  } catch (error) {
+    console.error('Erro ao carregar resumo da Agenda:', error)
+    agendaSummaryError.value = true
+  } finally {
+    agendaSummaryLoading.value = false
+  }
+})
+
+
+
+function formatAgendaStart(value: string): string {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return 'Data indisponível'
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
 
 const communities = [
   { name: '{group_name}', members: '{members_counter}', color: '{color}' },
@@ -41,12 +141,12 @@ const conversations = [
 
 <template>
   <section
-    class="dashboard-content mx-auto max-w-[1240px] max-h-4 px-[clamp(24px,5vw,70px)] pb-[60px] pt-[38px] max-[620px]:px-[18px] max-[620px]:py-[25px]"
+    class="dashboard-content mx-auto w-full min-w-0 max-w-[1240px] px-[clamp(24px,5vw,70px)] pb-[60px] pt-[38px] max-[620px]:px-[18px] max-[620px]:py-[25px]"
   >
     <div
-      class="dashboard-grid mt-[37px] grid grid-cols-[1.1fr_.9fr] gap-[22px] max-[850px]:grid-cols-1"
+      class="dashboard-grid mt-[37px] grid min-w-0 grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)] gap-[22px] max-[960px]:grid-cols-1"
     >
-      <section class="dashboard-section community-section" id="comunidades">
+      <section class="dashboard-section community-section min-w-0" id="comunidades">
         <div class="section-heading mb-[17px] flex items-end justify-between gap-4">
           <div>
             <p
@@ -97,7 +197,7 @@ const conversations = [
           </article>
         </div>
       </section>
-      <section class="dashboard-section conversation-section">
+      <section class="dashboard-section conversation-section min-w-0">
         <div class="section-heading mb-[17px] flex items-end justify-between gap-4">
           <div>
             <p
@@ -159,41 +259,82 @@ const conversations = [
             Próximos encontros
           </h2>
         </div>
-        <a
+        <RouterLink
           class="section-link flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-[#6d7890] no-underline"
-          href="#agenda"
+          to="/dashboard/agenda"
           >Ver agenda <font-awesome-icon :icon="faChevronRight"
-        /></a>
+        /></RouterLink>
       </div>
-      <article
-        class="event-card flex items-center gap-[19px] rounded-xl border border-[#e9ecf1] bg-white p-[15px_18px] max-[620px]:flex-wrap max-[620px]:items-start"
-        id="agenda"
+      <div
+        v-if="agendaSummaryLoading"
+        class="rounded-xl border border-[#e9ecf1] bg-white p-5 text-sm text-[#6f7a8d]"
+        role="status"
       >
-        <div
-          class="event-date w-[47px] shrink-0 rounded-lg bg-[#fff0eb] py-1.5 text-center text-[#e8755f]"
+        Carregando próximos encontros...
+      </div>
+      <div
+        v-else-if="agendaSummaryError"
+        class="rounded-xl border border-[#e9ecf1] bg-white p-5 text-sm text-[#6f7a8d]"
+        role="status"
+      >
+        Não foi possível carregar a Agenda agora.
+      </div>
+      <div
+        v-else-if="upcomingAgendaItems.length === 0"
+        class="rounded-xl border border-dashed border-[#d6dce7] bg-white p-5 text-sm text-[#6f7a8d]"
+      >
+        Não há próximos encontros publicados.
+      </div>
+
+<div v-else class="space-y-2">
+  <article
+    v-for="entry in upcomingAgendaItems"
+    :key="entry.item.id"
+    class="flex min-w-0 items-start gap-3 rounded-xl border border-[#e9ecf1] bg-white p-4"
+  >
+    <div
+      class="grid size-10 shrink-0 place-items-center rounded-lg bg-[#fff0eb] text-[#e8755f]"
+    >
+      <font-awesome-icon :icon="faCalendarDays" />
+    </div>
+
+    <div class="min-w-0 flex-1">
+      <p class="text-[10px] font-semibold uppercase tracking-wide text-[#e8755f]">
+        {{ entry.item.kind === 'event' ? 'Evento' : 'Roda de conversa' }}
+        · {{ entry.item.format === 'online' ? 'Online' : 'Presencial' }}
+      </p>
+
+      <h3
+        class="mt-1 break-words font-['Space_Grotesk',sans-serif] text-sm font-semibold text-[#253b73]"
+      >
+        {{ entry.item.title }}
+      </h3>
+
+      <p class="mt-1 text-xs text-[#8a94a5]">
+        {{ formatAgendaStart(entry.item.startsAt) }}
+      </p>
+
+      <div class="mt-3 flex flex-wrap gap-2">
+        <span
+          v-if="entry.confirmed"
+          class="inline-flex items-center gap-1 rounded-full bg-[#e8f5ed] px-2.5 py-1 text-[11px] font-semibold text-[#347653]"
         >
-          <strong class="block font-['Space_Grotesk',sans-serif] text-xl font-bold"
-            >{data.day}</strong
-          ><span class="block text-[9px] font-bold">{data.month}</span>
-        </div>
-        <div class="event-copy min-w-0 flex-1">
-          <span class="event-type text-[9px] font-bold uppercase tracking-[.7px] text-[#e8755f]"
-            >Encontro online</span
-          >
-          <h3 class="my-1 font-['Space_Grotesk',sans-serif] text-[15px] font-semibold">
-            Editar e criar objeto depois
-          </h3>
-          <p class="m-0 flex items-center gap-1 text-[10px] text-[#8a94a5]">
-            <font-awesome-icon :icon="faBookOpen" /> {Placeholder_curso}
-            <span>•</span> {placeholder_horario}
-          </p>
-        </div>
-        <button
-          class="cursor-pointer hover:bg-[#e4e0ff] transition-colors outline-button inline-flex items-center gap-2 rounded-lg border border-[#e0e4eb] bg-white px-3.5 py-2.5 text-[11px] font-bold text-[#53617a] max-[620px]:ml-[66px]"
+          <font-awesome-icon :icon="faCheckCircle" />
+          Presença confirmada
+        </span>
+
+        <span
+          v-if="entry.interested"
+          class="inline-flex items-center gap-1 rounded-full bg-[#fff0eb] px-2.5 py-1 text-[11px] font-semibold text-[#c45f4b]"
         >
-          Tenho interesse <font-awesome-icon :icon="faArrowRight" />
-        </button>
-      </article>
+          <font-awesome-icon :icon="faHeart" />
+          Tenho interesse
+        </span>
+      </div>
+    </div>
+  </article>
+</div>
+
     </section>
   </section>
 </template>

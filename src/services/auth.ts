@@ -8,6 +8,7 @@ export interface AuthUser {
   course?: string
   image?: string | null
   bio?: string
+  gen?: string
 }
 
 export interface LoginPayload {
@@ -60,6 +61,7 @@ function normalizeUser(value: unknown): AuthUser | null {
     ...(typeof value.course === 'string' ? { course: value.course } : {}),
     ...(typeof value.image === 'string' || value.image === null ? { image: value.image } : {}),
     ...(typeof value.bio === 'string' ? { bio: value.bio } : {}),
+    ...(typeof value.gen === 'string' ? { gen: value.gen } : {}),
   }
 }
 
@@ -195,7 +197,11 @@ export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
   const response = await fetchApi(apiUrl('/auth/login'), {
     method: 'POST',
     credentials: 'include',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-Protection': '1',
+    },
     body: JSON.stringify(payload),
   })
 
@@ -205,17 +211,26 @@ export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
 
   const data: unknown = await response.json().catch(() => null)
   const user = isRecord(data) ? normalizeUser(data.user) : null
-  if (!user || !isRecord(data) || typeof data.accessToken !== 'string') {
+  if (
+    !user ||
+    !isRecord(data) ||
+    typeof data.accessToken !== 'string' ||
+    !data.accessToken.trim()
+  ) {
     throw new Error('A resposta de autenticação é inválida.')
   }
-  return { user, accessToken: data.accessToken }
+  return { user, accessToken: data.accessToken.trim() }
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<void> {
   const response = await fetchApi(apiUrl('/auth/register'), {
     method: 'POST',
     credentials: 'include',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-Protection': '1',
+    },
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
@@ -303,6 +318,7 @@ export async function updateUserProfile(payload: Partial<UserProfile>): Promise<
       ? { image: payload.image }
       : {}),
     ...(typeof payload.bio === 'string' ? { bio: payload.bio } : {}),
+    ...(typeof payload.gen === 'string' ? { gen: payload.gen } : {}),
   })
   let response = await fetchProtected(apiUrl('/auth/edit'), {
     method: 'PUT',

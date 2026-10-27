@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import BlurReveal from '../ui/BlurReveal.vue'
+
 import {
   faArrowRight,
   faBars,
@@ -89,7 +91,6 @@ const passos = [
 
         <a class="transition-colors hover:text-[#263b73]" href="#como-funciona"> Como funciona </a>
 
-        <a class="transition-colors hover:text-[#263b73]" href="#seguranca"> Segurança </a>
       </nav>
 
 
@@ -110,7 +111,6 @@ const passos = [
 
         <a href="#como-funciona" @click="menuAberto = false"> Como funciona </a>
 
-        <a href="#seguranca" @click="menuAberto = false"> Segurança </a>
       </nav>
     </div>
 
@@ -127,12 +127,9 @@ const passos = [
             Feito pensando na vida de quem está na faculdade
           </div>
 
-          <h1
-            class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
-            Um Lugar Amigável para Aprender.
-            <span class="text-[#ec765d]"> Conecte-se!</span>
-
-
+          <h1 class="select-none max-w-3xl font-sans text-5xl font-semibold leading-[1.03] tracking-[-0.06em] text-[#263B73] sm:text-6xl lg:text-7xl">
+            <BlurReveal as="span" text="Um Lugar Amigável para Aprender." />
+            <BlurReveal as="span" class="text-[#ec765d]" text=" Conecte-se!" :delay="0.6" />
           </h1>
 
           <p class="mt-7 max-w-xl text-lg leading-8 text-[#667087] select-none">

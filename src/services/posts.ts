@@ -115,10 +115,7 @@ export async function getPost(postId: string): Promise<Post> {
   return data
 }
 
-export async function updatePost(
-  postId: string,
-  input: UpdatePostInput,
-): Promise<Post> {
+export async function updatePost(postId: string, input: UpdatePostInput): Promise<Post> {
   const response = await fetchProtected(
     `${API_URL}/${encodeURIComponent(postId)}`,
     postRequest('PATCH', input),
@@ -142,11 +139,7 @@ export async function deletePost(postId: string): Promise<DeletePostResponse> {
   await ensureSuccessfulResponse(response)
 
   const data = await readJsonResponse(response)
-  if (
-    !isRecord(data) ||
-    typeof data.message !== 'string' ||
-    typeof data.id !== 'string'
-  ) {
+  if (!isRecord(data) || typeof data.message !== 'string' || typeof data.id !== 'string') {
     throw new Error('A resposta da exclusão da publicação é inválida.')
   }
 
