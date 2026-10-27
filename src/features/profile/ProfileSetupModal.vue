@@ -39,6 +39,19 @@ function normalizeGenderValue(value?: string | null): GenderValue {
   }
 }
 
+/** Diferencia "sem informação" de uma preferência realmente gravada. */
+function temGeneroInformado(value?: string | null): boolean {
+  const normalizado = value?.trim().toLocaleLowerCase('pt-BR')
+
+  return Boolean(
+    normalizado &&
+    normalizado !== 'não informar' &&
+    normalizado !== 'nao informar' &&
+    normalizado !== 'prefiro não informar' &&
+    normalizado !== 'prefiro nao informar',
+  )
+}
+
 const emptyForm = (): ProfileForm => ({
   name: '',
   image: '',
@@ -48,6 +61,11 @@ const emptyForm = (): ProfileForm => ({
 
 const form = ref<ProfileForm>(emptyForm())
 const isSaving = ref(false)
+const erroSalvar = ref('')
+/** `GET /auth/profile` ainda devolve só sub/email/name (sem bio/gen/image). */
+const genDisponivel = ref(false)
+/** O usuário escolheu um gênero nesta sessão (deve ser enviado mesmo sem base). */
+const genAlterado = ref(false)
 let previousBodyOverflow: string | null = null
 let previousDocumentOverflow: string | null = null
 
@@ -63,12 +81,17 @@ watch(
       previousDocumentOverflow = document.documentElement.style.overflow
       document.body.style.overflow = 'hidden'
       document.documentElement.style.overflow = 'hidden'
+      erroSalvar.value = ''
+      genAlterado.value = false
       await loadProfile()
       return
     }
 
     restoreBodyOverflow()
     form.value = emptyForm()
+    erroSalvar.value = ''
+    genDisponivel.value = false
+    genAlterado.value = false
   },
 )
 
@@ -86,15 +109,26 @@ onBeforeUnmount(restoreBodyOverflow)
 async function loadProfile() {
   try {
     const profile = await getUserProfile()
+    genDisponivel.value =
+      temGeneroInformado(profile.gen) || temGeneroInformado(currentUser.user?.gen)
 
     form.value = {
-      name: profile.name || '',
-      image: profile.image || '',
-      gen: normalizeGenderValue(profile.gen),
-      bio: profile.bio || '',
+      name: profile.name || currentUser.user?.name || '',
+      image: profile.image || currentUser.user?.image || '',
+      gen: normalizeGenderValue(profile.gen?.trim() || currentUser.user?.gen),
+      bio: profile.bio || currentUser.user?.bio || '',
     }
   } catch {
-    form.value = emptyForm()
+    // Sem resposta da API, mantém o que já está na sessão em vez de zerar tudo.
+    const user = currentUser.user
+    genDisponivel.value = temGeneroInformado(user?.gen)
+
+    form.value = {
+      name: user?.name ?? '',
+      image: user?.image ?? '',
+      gen: normalizeGenderValue(user?.gen),
+      bio: user?.bio ?? '',
+    }
   }
 }
 
@@ -104,25 +138,35 @@ function close() {
 
 async function saveProfile() {
   isSaving.value = true
+  erroSalvar.value = ''
+
+  // Só envia `gen` quando existe valor real (API/sessão) ou o usuário escolheu.
+  // Caso contrário o default "prefiro nao informar" sobrescreveria o banco.
+  const enviarGen = genDisponivel.value || genAlterado.value
 
   try {
     const updated = await updateUserProfile({
       name: form.value.name,
       bio: form.value.bio,
-      gen: normalizeGenderValue(form.value.gen),
       image: form.value.image,
+      ...(enviarGen ? { gen: normalizeGenderValue(form.value.gen) } : {}),
     })
 
     saveSession({
       name: updated.name || form.value.name,
       email: updated.email || currentUser.user?.email || '',
       bio: updated.bio || form.value.bio,
-      gen: updated.gen || form.value.gen,
       image: updated.image || form.value.image,
+      gen: updated.gen || currentUser.user?.gen || '',
     })
 
     emit('save', { ...form.value })
     close()
+  } catch (error) {
+    erroSalvar.value =
+      error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : 'Não foi possível salvar o perfil. Tente novamente.'
   } finally {
     isSaving.value = false
   }
@@ -142,14 +186,14 @@ async function saveProfile() {
         aria-labelledby="profile-setup-title"
         class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-xl border border-traceline bg-co-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]"
       >
-        <div class="flex items-center justify-between gap-3 border-b border-traceline px-4 py-4 sm:px-8 sm:py-5">
+        <div
+          class="flex items-center justify-between gap-3 border-b border-traceline px-4 py-4 sm:px-8 sm:py-5"
+        >
           <div>
             <p class="mb-1 text-[10px] font-bold uppercase tracking-[1.6px] text-co-coral">
               Perfil de usuário
             </p>
-            <h2 id="profile-setup-title" class="text-h2 text-text-1">
-              Personalize sua presença
-            </h2>
+            <h2 id="profile-setup-title" class="text-h2 text-text-1">Personalize sua presença</h2>
           </div>
           <button
             type="button"
@@ -161,7 +205,9 @@ async function saveProfile() {
           </button>
         </div>
 
-        <div class="grid min-w-0 gap-6 px-4 py-5 sm:gap-8 sm:px-8 sm:py-6 lg:grid-cols-[230px_minmax(0,1fr)]">
+        <div
+          class="grid min-w-0 gap-6 px-4 py-5 sm:gap-8 sm:px-8 sm:py-6 lg:grid-cols-[230px_minmax(0,1fr)]"
+        >
           <aside class="min-w-0 rounded-2xl bg-s-blue/30 p-4 sm:p-5">
             <div
               class="mb-4 mx-auto flex h-[170px] w-[170px] items-center justify-center overflow-hidden rounded-full border-4 border-co-white bg-s-blue shadow-lg shadow-co-blue/10"
@@ -210,6 +256,7 @@ async function saveProfile() {
                 <select
                   v-model="form.gen"
                   class="h-12 w-full min-w-0 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
+                  @change="genAlterado = true"
                 >
                   <option value="prefiro nao informar">Prefiro não informar</option>
                   <option value="masculino">Masculino</option>
@@ -230,8 +277,15 @@ async function saveProfile() {
               />
             </label>
 
+            <p
+              v-if="erroSalvar"
+              class="text-sm font-semibold text-[rgba(255,0,4,0.75)]"
+              role="alert"
+            >
+              {{ erroSalvar }}
+            </p>
+
             <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
-              
               <button
                 type="submit"
                 class="inline-flex h-12 items-center justify-center rounded-xl bg-co-blue px-6 text-sm font-bold text-co-white transition hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-70"

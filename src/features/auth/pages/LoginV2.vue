@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { LoginUser, registerUser } from '../services/auth'
-import { isAuthenticated, saveSession } from '../../../shared/services/session'
+import { saveSession } from '../../../shared/services/session'
 import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
-import ProfileSetupModal from '../../profile/ProfileSetupModal.vue'
 import coletiveIcon from '../../../assets/icons/coletive-white.svg'
 import orbitOuter from '../../../assets/decorations/orbit2.svg'
 import orbitInner from '../../../assets/decorations/orbit.svg'
@@ -62,9 +61,6 @@ const erroSenha = ref('')
 const enviando = ref(false)
 const criado = ref(props.estadoInicial === 'criado')
 
-/** Usuário já autenticado (cadastro faz login automático). */
-const sessaoAtiva = ref(isAuthenticated())
-
 /**
  * Transição formulário → "Conta criada com sucesso!".
  *
@@ -75,24 +71,40 @@ const sessaoAtiva = ref(isAuthenticated())
  */
 const transicionando = ref(false)
 
-/** Modal de perfil aberto após o cadastro (mesmo fluxo da tela legada). */
-const modalPerfilAberto = ref(false)
-
 let timerTransicao: number | undefined
-let timerModal: number | undefined
 
 onBeforeUnmount(() => {
   window.clearTimeout(timerTransicao)
-  window.clearTimeout(timerModal)
 })
 
 /** A Landpage manda `?modo=register` (Inscreva-se / Quero participar / Começar agora). */
+function modoDaQuery(valor: unknown): Modo | null {
+  if (valor === 'register' || valor === 'cadastro') return 'register'
+  if (valor === 'login' || valor === 'entrar') return 'login'
+  return null
+}
+
+function aplicarModoDaQuery(valor: unknown) {
+  const pedido = modoDaQuery(valor)
+  if (!pedido || pedido === modo.value) return
+
+  modo.value = pedido
+  erro.value = ''
+  erroSenha.value = ''
+}
+
 onMounted(() => {
-  const pedido = route.query.modo
-  if (pedido === 'register' || pedido === 'login') {
-    modo.value = pedido
-  }
+  aplicarModoDaQuery(route.query.modo)
 })
+
+/** Mantém a tela sincronizada quando o `?modo` muda (link, voltar/avançar). */
+watch(
+  () => route.query.modo,
+  (valor) => {
+    if (criado.value) return
+    aplicarModoDaQuery(valor)
+  },
+)
 
 const titulo = computed(() =>
   modo.value === 'register' ? 'Que bom ter você aqui.' : 'Que bom ter você aqui de volta!',
@@ -107,6 +119,11 @@ function trocarModo(novo: Modo) {
   modo.value = novo
   erro.value = ''
   erroSenha.value = ''
+
+  // Reflete a aba na URL para o link/voltar-avançar continuarem coerentes.
+  if (route.path === '/login' && route.query.modo !== novo) {
+    void router.replace({ path: '/login', query: { ...route.query, modo: novo } })
+  }
 }
 
 async function enviar() {
@@ -128,26 +145,13 @@ async function enviar() {
         password: senha.value,
       })
 
-      // O cadastro autentica na sequência para o usuário já sair com sessão.
-      const loginResponse = await LoginUser({
-        email: email.value.trim(),
-        password: senha.value,
-      })
-      saveSession(loginResponse.user, loginResponse.accessToken)
-      sessaoAtiva.value = true
-
       // Smart Animate: "Mudar para" a tela de sucesso (ease out, 300ms).
       transicionando.value = true
       criado.value = true
       window.clearTimeout(timerTransicao)
-      window.clearTimeout(timerModal)
       timerTransicao = window.setTimeout(() => {
         transicionando.value = false
       }, 320)
-      // O modal de perfil só abre depois do Smart Animate aparecer.
-      timerModal = window.setTimeout(() => {
-        modalPerfilAberto.value = true
-      }, 800)
     } else {
       const resposta = await LoginUser({ email: email.value.trim(), password: senha.value })
       saveSession(resposta.user, resposta.accessToken)
@@ -166,42 +170,19 @@ async function enviar() {
   }
 }
 
+/** Volta para o formulário de login (o e-mail do cadastro fica preenchido). */
 function irParaLogin() {
   window.clearTimeout(timerTransicao)
-  window.clearTimeout(timerModal)
-  modalPerfilAberto.value = false
   criado.value = false
   transicionando.value = false
   modo.value = 'login'
-  nome.value = ''
-  email.value = ''
   senha.value = ''
   confirmarSenha.value = ''
   erro.value = ''
   erroSenha.value = ''
-}
-
-function irParaDashboard() {
-  router.push('/dashboard')
-}
-
-/** CTA do estado de sucesso: quem já tem sessão vai direto para o dashboard. */
-function acaoSucesso() {
-  if (sessaoAtiva.value) {
-    irParaDashboard()
-    return
+  if (route.path !== '/login' || route.query.modo !== 'login') {
+    void router.replace({ path: '/login', query: { modo: 'login' } })
   }
-
-  irParaLogin()
-}
-
-const rotuloSucesso = computed(() =>
-  sessaoAtiva.value ? 'Ir para o dashboard' : 'Entrar na minha conta',
-)
-
-function finalizarPerfil() {
-  modalPerfilAberto.value = false
-  irParaDashboard()
 }
 
 function voltarAoInicio() {
@@ -224,9 +205,11 @@ const inputBase =
   >
     <!-- ========== Painel (468:187 azul 750x910 → 506:1739 verde 1920x910) ==========
          Camada persistente do Smart Animate: largura 750 → 100% e cor azul →
-         verde; logo, intro, rodapé e orbitais interpolam no lugar. -->
+         verde; logo, intro, rodapé e orbitais interpolam no lugar.
+         Padding horizontal/vertical segue a Navigation da Landpage (40/30 no
+         lg, 90/22 no xl) para o logo cair no mesmo ponto das duas telas. -->
     <section
-      class="auth-panel flex shrink-0 flex-col justify-between overflow-hidden px-5 pt-4 pb-6 text-co-white transition-none sm:px-8 sm:pt-6 sm:pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:right-auto lg:z-10 lg:pl-[clamp(40px,7vw,91px)] lg:pr-0 lg:pt-[22px] lg:pb-[18px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none"
+      class="auth-panel flex shrink-0 flex-col justify-between overflow-hidden px-5 pt-4 pb-6 text-co-white transition-none sm:px-8 sm:pt-6 sm:pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:right-auto lg:z-10 lg:pl-10 lg:pr-0 lg:pt-[30px] lg:pb-[18px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none xl:pl-[90px] xl:pt-[22px]"
       :class="
         criado
           ? 'fixed inset-0 z-40 w-auto bg-tree-green lg:w-full'
@@ -268,7 +251,8 @@ const inputBase =
       />
 
       <!-- Logo (100x55 em (91,22) no desktop; 72x40 abaixo de xl como na
-           Navigation) — camada casada: fica no lugar, troca a cor. -->
+           Navigation) — camada casada: fica no lugar, troca a cor. O padding
+           do painel acima garante a mesma posição do logo na Landpage. -->
       <button
         type="button"
         class="relative z-10 h-10 w-[72px] shrink-0 cursor-pointer border-0 bg-transparent p-0 xl:h-[55px] xl:w-[100px]"
@@ -381,9 +365,9 @@ const inputBase =
             :width="260"
             :padding-left="40"
             class="lg:mr-[230px]"
-            @click="acaoSucesso"
+            @click="irParaLogin"
           >
-            {{ rotuloSucesso }}
+            Entrar na minha conta
           </AppButton>
         </div>
       </div>
@@ -506,11 +490,11 @@ const inputBase =
             required
           />
           <p
-            v-if="erroSenha || erro"
+            v-if="erroSenha"
             class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
             role="alert"
           >
-            {{ erroSenha || erro }}
+            {{ erroSenha }}
           </p>
         </label>
 
@@ -518,6 +502,15 @@ const inputBase =
         <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
           <AppLink href="/forgot-password" size="h5" :arrow="false">Esqueci minha senha</AppLink>
         </div>
+
+        <!-- Erro geral do cadastro (API: e-mail já cadastrado, validação etc.). -->
+        <p
+          v-if="modo === 'register' && erro"
+          class="w-full text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
+          role="alert"
+        >
+          {{ erro }}
+        </p>
 
         <!-- Botão principal + link alternativo -->
         <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
@@ -559,9 +552,6 @@ const inputBase =
         </div>
       </form>
     </section>
-
-    <!-- Perfil pós-cadastro (mesmo fluxo da tela legada) -->
-    <ProfileSetupModal v-model="modalPerfilAberto" @save="finalizarPerfil" />
   </div>
 </template>
 

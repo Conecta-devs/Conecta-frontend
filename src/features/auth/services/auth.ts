@@ -49,7 +49,9 @@ function normalizeUserProfile(profile: Partial<UserProfile>): UserProfile {
     name: profile.name ?? '',
     email: profile.email ?? '',
     bio: profile.bio ?? '',
-    gen: profile.gen ?? 'Não informar',
+    // Não inventa um gênero padrão: ausência precisa continuar ausente para o
+    // modal não sobrescrever o valor real do banco ao salvar.
+    gen: profile.gen ?? '',
     image: profile.image ?? '',
   }
 }
@@ -64,7 +66,7 @@ function sanitizeProfilePayload(payload: Partial<UserProfile>) {
   if (bio) next.bio = bio
 
   const gen = payload.gen?.trim()
-  if (gen && gen !== 'Não informar') next.gen = gen
+  if (gen && !/^(prefiro\s+)?n[ãa]o\s+informar$/i.test(gen)) next.gen = gen
 
   const image = payload.image?.trim()
   if (image) next.image = image
@@ -135,10 +137,7 @@ function refreshAccessToken(expectedAccessToken: string): Promise<string> {
       typeof data.accessToken !== 'string' ||
       !data.accessToken.trim()
     ) {
-      throw new RefreshFailure(
-        'invalid-response',
-        'A resposta de renovação da sessão é inválida.',
-      )
+      throw new RefreshFailure('invalid-response', 'A resposta de renovação da sessão é inválida.')
     }
 
     const latestAccessToken = getStoredAccessToken()
@@ -236,19 +235,85 @@ export async function fetchProtected(
   return retriedResponse
 }
 
+const NETWORK_ERROR_MESSAGE = 'Não foi possível conectar. Verifique sua internet e tente novamente.'
+
+/** Mensagem da API: string simples ou lista de erros de validação do NestJS. */
+function readApiMessage(body: unknown): string {
+  if (!body || typeof body !== 'object' || !('message' in body)) return ''
+
+  const { message } = body as { message?: unknown }
+
+  if (typeof message === 'string') return message.trim()
+
+  if (Array.isArray(message)) {
+    return message
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return ''
+}
+
+/**
+ * O class-validator responde em inglês ("password must be longer than or equal
+ * to 8 characters"). Traduzimos pelo campo citado em vez de exibir o texto cru.
+ */
+function describeValidationError(body: unknown): string {
+  const raw = readApiMessage(body)
+
+  if (/password/i.test(raw)) return 'A senha precisa ter pelo menos 8 caracteres.'
+  if (/email/i.test(raw)) return 'Informe um e-mail válido.'
+  if (/name/i.test(raw)) return 'Informe um nome com pelo menos 2 caracteres.'
+
+  return 'Confira os dados informados e tente novamente.'
+}
+
+/** Converte a resposta de erro do backend na mensagem exibida no formulário. */
+async function describeAuthError(
+  response: Response,
+  fallback: string,
+  unauthorizedMessage = 'E-mail ou senha inválidos.',
+): Promise<string> {
+  const body: unknown = await response.json().catch(() => null)
+
+  switch (response.status) {
+    case 400:
+      return describeValidationError(body)
+    case 401:
+      return unauthorizedMessage
+    case 403:
+      return 'Não foi possível validar a solicitação. Recarregue a página e tente novamente.'
+    case 409:
+      return 'Este e-mail já está cadastrado.'
+    case 429:
+      return 'Muitas tentativas. Aguarde um pouco antes de tentar novamente.'
+    default:
+      return response.status >= 500
+        ? 'O servidor está indisponível agora. Tente novamente em instantes.'
+        : readApiMessage(body) || fallback
+  }
+}
+
 export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-Protection': '1',
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Protection': '1',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch {
+    throw new Error(NETWORK_ERROR_MESSAGE)
+  }
 
   if (!response.ok) {
-    throw new Error('Não foi possível fazer login na sua conta.')
+    throw new Error(await describeAuthError(response, 'Não foi possível fazer login na sua conta.'))
   }
 
   const data: unknown = await response.json().catch(() => null)
@@ -276,18 +341,23 @@ export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<void> {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-Protection': '1',
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Protection': '1',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch {
+    throw new Error(NETWORK_ERROR_MESSAGE)
+  }
 
   if (!response.ok) {
-    throw new Error('Não foi possível criar sua conta.')
+    throw new Error(await describeAuthError(response, 'Não foi possível criar sua conta.'))
   }
 }
 
@@ -325,10 +395,7 @@ export async function requestPasswordReset(email: string): Promise<string> {
     throw new Error('Não foi possível solicitar a redefinição agora. Tente novamente.')
   }
 
-  return readRecoveryMessage(
-    response,
-    'Não foi possível confirmar a solicitação. Tente novamente.',
-  )
+  return readRecoveryMessage(response, 'Não foi possível confirmar a solicitação. Tente novamente.')
 }
 
 export async function resetPassword(token: string, password: string): Promise<string> {
@@ -397,7 +464,13 @@ export async function updateUserProfile(payload: Partial<UserProfile>): Promise<
   }
 
   if (!response.ok) {
-    throw new Error('Não foi possível atualizar o perfil do usuário.')
+    throw new Error(
+      await describeAuthError(
+        response,
+        'Não foi possível atualizar o perfil do usuário.',
+        'Sua sessão expirou. Entre novamente.',
+      ),
+    )
   }
 
   const data = (await response.json().catch(() => ({}))) as Partial<UserProfile>
