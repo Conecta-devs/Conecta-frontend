@@ -1,6 +1,7 @@
 import { fetchProtected } from './auth'
+import { apiUrl } from './api'
 
-const API_URL = '/api/posts'
+const API_URL = apiUrl('/posts')
 
 export interface Post {
   id: string

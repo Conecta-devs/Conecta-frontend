@@ -36,6 +36,15 @@ npm install
 
 ## 🚀 Iniciando o Projeto
 
+Copie `.env.example` para `.env.local` e ajuste as URLs conforme o ambiente:
+
+```env
+VITE_API_BASE_URL=/api
+API_PROXY_TARGET=http://localhost:3000
+```
+
+`VITE_API_BASE_URL` é pública e incluída no bundle; informe somente a URL base da API. O valor padrão usa o proxy local do Vite. `API_PROXY_TARGET` configura apenas o destino desse proxy e não é exposta ao navegador. Tokens privados, credenciais do MongoDB e chaves administrativas devem permanecer no back-end.
+
 Para iniciar o ambiente de desenvolvimento web, utilize:
 
 ```bash
@@ -202,6 +211,25 @@ src/
 ├── style.scss      # Estilos Sass
 └── tailwind.css    # Importação do Tailwind CSS
 ```
+
+## 💬 Integração do chat
+
+O front-end reutiliza o access token e o fluxo de refresh já existentes. HTTP envia `Authorization: Bearer <accessToken>`; Socket.IO usa o namespace padrão e `auth: { token }` (o token nunca é enviado em query string). A URL HTTP é definida por `VITE_API_BASE_URL` (padrão `/api`); em desenvolvimento, `API_PROXY_TARGET` encaminha HTTP e `/socket.io` ao backend.
+
+Endpoints autenticados utilizados:
+
+- `GET /chat/users?search=<prefixo>&page=1&limit=24` — descobre usuários; a resposta inclui `users` com `id`, `name` e `image`, além de `page`, `limit` e `hasMore`. A busca é pelo prefixo do nome (o modelo não possui `username`), exclui o usuário atual e suporta paginação.
+- `GET /chat/conversations` — lista conversas, membros, última mensagem e contagem de não lidas.
+- `POST /chat/conversations/direct` com `{ "participantId": "<userId>" }` — cria ou recupera a conversa individual idempotente.
+- `POST /chat/conversations/groups` com `{ "name": "...", "memberIds": ["<userId>"] }` — cria um grupo; o backend inclui o criador e aceita até 49 outros participantes.
+- `GET /chat/conversations/:id` — carrega detalhes e membros; `GET /chat/conversations/:id/messages?limit=50&before=<sequence>` carrega histórico ordenado por `sequence`. `nextCursor` é exclusivo e deve ser enviado como `before` para carregar mensagens anteriores.
+- `POST /chat/conversations/:id/read`, `POST /chat/conversations/:id/members`, `DELETE /chat/conversations/:id/members/:memberId` e `POST /chat/conversations/:id/leave` — leitura e administração de grupos, conforme as permissões verificadas pelo servidor.
+
+As mensagens são enviadas por `chat:message:send` com `conversationId`, UUID v4 `clientMessageId` e `content`. A interface mantém o mesmo UUID ao tentar novamente após falha/timeout e reconcilia a mensagem otimista pelo UUID tanto no acknowledgement `ok: true` quanto no evento `chat:message:new`. O status de leitura usa `chat:message:read` e o cursor do servidor; envio não é tratado como entrega ou leitura.
+
+O cliente participa das salas autorizadas com `chat:conversation:join` e acompanha `chat:message:new`, `chat:conversation:update`, `chat:unread:update`, `chat:message:read`, `chat:conversation:available`, `chat:conversation:members` e `chat:conversation:removed`. Ao reconectar, atualiza a lista e recarrega o histórico aberto via HTTP. A descoberta retorna somente dados públicos (`id`, `name`, `image`); a autenticação e as permissões permanecem sob responsabilidade do backend. Antes de validar persistência real, confirme com o time do backend que as migrações necessárias já foram aplicadas ao ambiente; o front-end não acessa MongoDB.
+
+Erros HTTP preservam o status e o formato NestJS (`statusCode`, `message`, `error`). Respostas `401` seguem o refresh/login já existente; respostas `403` ou `404` para a conversa aberta removem essa conversa da lista local e limpam seu histórico, oferecendo uma atualização da lista. O socket é encerrado e seus listeners são removidos quando a sessão autenticada muda ou a tela é desmontada.
 
 ---
 

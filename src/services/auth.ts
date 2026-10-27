@@ -4,8 +4,7 @@ import {
   getStoredAccessToken,
   saveSession,
 } from './session'
-
-const API_URL = '/api'
+import { apiUrl, fetchApi } from './api'
 
 let refreshPromise: Promise<string> | null = null
 let loginRedirectPromise: Promise<void> | null = null
@@ -93,7 +92,7 @@ function fetchWithAccessToken(
   const headers = new Headers(init.headers)
   headers.set('Authorization', `Bearer ${accessToken}`)
 
-  return fetch(input, { ...init, headers })
+  return fetchApi(input, { ...init, headers })
 }
 
 function refreshAccessToken(expectedAccessToken: string): Promise<string> {
@@ -114,7 +113,7 @@ function refreshAccessToken(expectedAccessToken: string): Promise<string> {
   const pendingRefresh = (async () => {
     let response: Response
     try {
-      response = await fetch(`${API_URL}/auth/refresh`, {
+      response = await fetchApi(apiUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -245,7 +244,7 @@ export async function fetchProtected(
 }
 
 export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await fetchApi(apiUrl('/auth/login'), {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -284,7 +283,7 @@ export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<void> {
-  const response = await fetch(`${API_URL}/auth/register`, {
+  const response = await fetchApi(apiUrl('/auth/register'), {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -317,7 +316,7 @@ async function readRecoveryMessage(response: Response, fallbackMessage: string):
 export async function requestPasswordReset(email: string): Promise<string> {
   let response: Response
   try {
-    response = await fetch(`${API_URL}/auth/forgot-password`, {
+    response = await fetchApi(apiUrl('/auth/forgot-password'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim() }),
@@ -342,7 +341,7 @@ export async function requestPasswordReset(email: string): Promise<string> {
 export async function resetPassword(token: string, password: string): Promise<string> {
   let response: Response
   try {
-    response = await fetch(`${API_URL}/auth/reset-password`, {
+    response = await fetchApi(apiUrl('/auth/reset-password'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, password }),
@@ -365,7 +364,7 @@ export async function resetPassword(token: string, password: string): Promise<st
 }
 
 export async function getUserProfile(): Promise<UserProfile> {
-  const response = await fetchProtected(`${API_URL}/auth/profile`, {
+  const response = await fetchProtected(apiUrl('/auth/profile'), {
     method: 'GET',
     credentials: 'include',
     headers: { Accept: 'application/json' },
@@ -382,7 +381,7 @@ export async function getUserProfile(): Promise<UserProfile> {
 export async function updateUserProfile(payload: Partial<UserProfile>): Promise<UserProfile> {
   const body = JSON.stringify(sanitizeProfilePayload(payload))
 
-  let response = await fetchProtected(`${API_URL}/auth/edit`, {
+  let response = await fetchProtected(apiUrl('/auth/edit'), {
     method: 'PUT',
     credentials: 'include',
     headers: {
@@ -393,7 +392,7 @@ export async function updateUserProfile(payload: Partial<UserProfile>): Promise<
   })
 
   if (response.status === 404 || response.status === 405) {
-    response = await fetchProtected(`${API_URL}/auth/edit`, {
+    response = await fetchProtected(apiUrl('/auth/edit'), {
       method: 'PATCH',
       credentials: 'include',
       headers: {
