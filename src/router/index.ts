@@ -5,9 +5,7 @@ const publicRoutes = [
   '/',
   '/landpage',
   '/catalog',
-  '/landpage-v2',
   '/login',
-  '/login-v2',
   '/conta-criada',
   '/forgot-password',
   '/reset-password',
@@ -20,7 +18,7 @@ const router = createRouter({
       path: '/',
       alias: '/landpage',
       name: 'Landpage',
-      component: () => import('../features/landpage/pages/LandpageV2.vue'),
+      component: () => import('../features/landpage/pages/Landpage.vue'),
     },
     {
       path: '/catalog',
@@ -28,19 +26,14 @@ const router = createRouter({
       component: () => import('../features/catalog/Catalog.vue'),
     },
     {
-      path: '/landpage-v2',
-      redirect: '/',
-    },
-    {
       path: '/login',
-      alias: '/login-v2',
       name: 'Login',
-      component: () => import('../features/auth/pages/LoginV2.vue'),
+      component: () => import('../features/auth/pages/Login.vue'),
     },
     {
       path: '/conta-criada',
       name: 'ContaCriada',
-      component: () => import('../features/auth/pages/LoginV2.vue'),
+      component: () => import('../features/auth/pages/Login.vue'),
       props: { estadoInicial: 'criado' },
     },
     {
