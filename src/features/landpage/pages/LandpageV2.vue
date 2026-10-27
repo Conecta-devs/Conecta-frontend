@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 
 import AppArticle from '../../../shared/ui/AppArticle.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
@@ -8,21 +9,21 @@ import AppCartaz from '../../../shared/ui/AppCartaz.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
 import BlurReveal from '../../../shared/ui/BlurReveal.vue'
-import CanvasLayout from '../../../shared/ui/CanvasLayout.vue'
 import heroTree from '../../../assets/images/hero-tree.svg'
 
 /**
  * Figma — Landpage (310:2)
  *
- * Frame raiz: 1920x2415. Blocos, na ordem do Figma:
- *   Navigation      310:3   y=0    1920x100
- *   Hero            333:344 y=180  1540x550
- *   Por que Conecta 385:157 y=810  1920x600
- *   Como Funciona   385:199 y=1490 1215x375
- *   Cartaz          399:278 y=1945 1280x350
- *   Footer          402:291 y=2345 1450x70
+ * Blocos do Figma, agora em fluxo normal (e não mais em canvas fixo de 1920):
+ *   Navigation      310:3   header fixo
+ *   Hero            333:344 título + texto + CTA + árvore
+ *   Por que Conecta 385:157 faixa verde com 3 cards
+ *   Como Funciona   385:199 texto + 3 passos
+ *   Cartaz          399:278 bloco azul com CTA
+ *   Footer          402:291
  *
- * Este arquivo substituirá o Landpage quando estiver completo.
+ * O layout empilha no mobile e vira grid a partir de `lg`, mantendo as cores,
+ * tipografia e componentes do Figma (AppArticle, AppCartaz, AppButton, AppLink).
  */
 const beneficios = [
   {
@@ -60,12 +61,11 @@ const passos = [
   },
 ]
 
-const secaoAtiva = ref<string | null>(null)
-
-// Muda a cada retorno ao topo para remontar o título e reiniciar o BlurReveal.
-const heroRevealKey = ref(0)
-
 const router = useRouter()
+
+const menuAberto = ref(false)
+const secaoAtiva = ref<string | null>(null)
+const headerElevado = ref(false)
 
 /**
  * Os CTAs da Landpage levam ao fluxo de autenticação:
@@ -73,29 +73,16 @@ const router = useRouter()
  *   Inscreva-se / Quero participar / Começar    → modo cadastro
  */
 function irParaAuth(modo: 'login' | 'register') {
-  router.push({ path: '/login-v2', query: { modo } })
+  menuAberto.value = false
+  router.push({ path: '/login', query: { modo } })
 }
 
-const offsets: Record<string, number> = {
-  'por-que-conecta': 100,
-  'como-funciona': 115,
-  seguranca: 100,
-}
-
-/**
- * Rolagem suave até a âncora. No Figma a animação considera o header fixo
- * com offsets diferentes por seção:
- *   Por que Conecta: Y = -100
- *   Como funciona:   Y = -115
- */
+/** Rolagem suave até a âncora, descontando o header fixo via `scroll-mt`. */
 function rolarPara(id: string) {
+  menuAberto.value = false
+
   if (id === 'topo') {
-    const wrap = document.getElementById('landpage-scroll')
-    if (wrap) {
-      wrap.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     secaoAtiva.value = null
     return
   }
@@ -103,203 +90,202 @@ function rolarPara(id: string) {
   const el = document.getElementById(id)
   if (!el) return
 
-  const wrap = document.getElementById('landpage-scroll') as HTMLElement | null
-  if (!wrap) {
-    const offset = offsets[id] ?? 100
-    const top = el.getBoundingClientRect().top + window.scrollY - offset
-    window.scrollTo({ top, behavior: 'smooth' })
-    secaoAtiva.value = id
-    return
-  }
-
-  const offset = offsets[id] ?? 100
-  const top = el.getBoundingClientRect().top + wrap.scrollTop - offset
-  wrap.scrollTo({ top, behavior: 'smooth' })
-  // Atualiza o estado ativo imediatamente para manter a animação
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   secaoAtiva.value = id
 }
 
+const secoes = ['por-que-conecta', 'como-funciona']
+
 let observer: IntersectionObserver | null = null
-let scrollHandler: (() => void) | null = null
-let saiuDoTopo = false
+
+function aoRolar() {
+  headerElevado.value = window.scrollY > 8
+  if (window.scrollY < 80) secaoAtiva.value = null
+}
 
 onMounted(() => {
-  const wrap = document.getElementById('landpage-scroll') as HTMLElement | null
+  window.addEventListener('scroll', aoRolar, { passive: true })
+  aoRolar()
 
-  const secoes = ['por-que-conecta', 'como-funciona', 'seguranca']
-    .map((id) => document.getElementById(id))
-    .filter(Boolean) as HTMLElement[]
-
+  // Mantém o item ativo do menu sincronizado com a seção visível.
   observer = new IntersectionObserver(
     (entries) => {
-      const rootEl = wrap || null
-      const currentScroll = rootEl ? rootEl.scrollTop : window.scrollY
-
-      // Se estamos no topo da página, nenhum item deve ficar ativo
-      if (currentScroll < 50) {
-        secaoAtiva.value = null
-        return
-      }
-
-      // Pega a seção mais próxima do topo, considerando o header fixo
       const visiveis = entries
-        .filter((e) => e.isIntersecting)
+        .filter((entry) => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
 
       if (visiveis.length) {
         secaoAtiva.value = visiveis[0].target.id
-        return
-      }
-
-      // Se nenhuma está visível, vê qual passou pelo topo
-      const posicoes = secoes
-        .map((s) => ({ id: s.id, top: s.getBoundingClientRect().top }))
-        .filter((s) => s.top < 200)
-        .sort((a, b) => b.top - a.top)
-
-      if (posicoes.length) {
-        secaoAtiva.value = posicoes[0].id
-      } else if (currentScroll < 50) {
-        secaoAtiva.value = null
       }
     },
-    {
-      root: wrap,
-      rootMargin: '-100px 0px -60% 0px',
-      threshold: [0.1, 0.3, 0.6],
-    },
+    { rootMargin: '-96px 0px -55% 0px', threshold: 0 },
   )
 
-  secoes.forEach((s) => observer?.observe(s))
-
-  // Também escuta o scroll para garantir que ao voltar ao topo limpe o estado
-  scrollHandler = () => {
-    const currentScroll = wrap ? wrap.scrollTop : window.scrollY
-    if (currentScroll < 50) {
-      secaoAtiva.value = null
-    }
-
-    // Remonta o título (e reinicia o BlurReveal) quando o usuário volta ao topo.
-    // A histerese evita reinícios repetidos com o scroll parado perto do limite.
-    if (currentScroll > 80) {
-      saiuDoTopo = true
-    } else if (currentScroll < 20 && saiuDoTopo) {
-      saiuDoTopo = false
-      heroRevealKey.value += 1
-    }
-  }
-  ;(wrap || window).addEventListener('scroll', scrollHandler, { passive: true })
+  secoes.forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) observer?.observe(el)
+  })
 })
 
 onUnmounted(() => {
-  const wrap = document.getElementById('landpage-scroll') as HTMLElement | null
-  if (scrollHandler) {
-    ;(wrap || window).removeEventListener('scroll', scrollHandler)
-  }
+  window.removeEventListener('scroll', aoRolar)
   observer?.disconnect()
 })
 </script>
 
 <template>
-  <CanvasLayout id="landpage-scroll">
-    <main id="topo" class="relative h-[2415px]" aria-label="Landpage">
-      <!-- ========== Navigation (310:3) — fixa no topo ========== -->
-      <header
-        class="fixed inset-x-0 top-0 z-50 flex h-[100px] items-center justify-center gap-[750px] bg-[rgba(248,247,244,0.75)] px-[240px] shadow-[0_20px_25px_-5px_rgba(223,226,235,0.55),0_8px_10px_-6px_rgba(223,226,235,0.55)] backdrop-blur-[10px]"
+  <div class="min-h-dvh overflow-x-hidden bg-co-white text-text-1">
+    <!-- ========== Navigation (310:3) — fixa no topo ========== -->
+    <header
+      class="fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 motion-reduce:transition-none"
+      :class="
+        headerElevado
+          ? 'border-traceline bg-co-white/90 shadow-[0_10px_30px_-18px_rgba(25,37,61,0.45)] backdrop-blur-[10px]'
+          : 'border-transparent bg-co-white/75 backdrop-blur-[10px]'
+      "
+    >
+      <div
+        class="mx-auto flex h-[72px] w-full max-w-[1280px] items-center justify-between gap-4 px-5 sm:h-[88px] sm:px-8 lg:h-[100px] lg:px-10"
       >
         <button
           type="button"
-          class="flex shrink-0 cursor-pointer items-center justify-center gap-[5px]"
-          aria-label="Conecta"
+          class="flex shrink-0 cursor-pointer items-center gap-[5px] border-0 bg-transparent p-0"
+          aria-label="Conecta, ir para o topo"
           @click="rolarPara('topo')"
         >
-          <AppLogo variant="logo-3" :width="100" :height="55" alt="" />
-          <AppLogo variant="conecta" :font-size="24" alt="" />
+          <AppLogo variant="logo-3" :width="72" :height="40" alt="" />
+          <AppLogo variant="conecta" :font-size="20" alt="" class="sm:hidden" />
+          <AppLogo variant="conecta" :font-size="24" alt="" class="hidden sm:inline" />
         </button>
 
-        <div class="flex h-[100px] w-[780px] shrink-0 items-center justify-center">
-          <nav class="flex w-[400px] shrink-0 items-center justify-center gap-[30px]">
-            <button
-              type="button"
-              class="text-h4 cursor-pointer whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-              :class="
-                secaoAtiva === 'por-que-conecta'
-                  ? 'text-co-coral'
-                  : 'text-text-1 hover:text-co-coral'
-              "
-              @click="rolarPara('por-que-conecta')"
-            >
-              Por que Conecta
-            </button>
-            <button
-              type="button"
-              class="text-h4 cursor-pointer whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-              :class="
-                secaoAtiva === 'como-funciona' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
-              "
-              @click="rolarPara('como-funciona')"
-            >
-              Como funciona
-            </button>
-            <button
-              type="button"
-              class="text-h4 cursor-pointer whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-              :class="
-                secaoAtiva === 'seguranca' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
-              "
-              @click="rolarPara('seguranca')"
-            >
-              Segurança
-            </button>
-          </nav>
-
-          <div
-            class="flex h-[100px] w-[380px] shrink-0 items-center justify-center gap-5 px-[30px]"
+        <nav class="hidden items-center gap-8 lg:flex" aria-label="Navegação principal">
+          <button
+            type="button"
+            class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
+            :class="
+              secaoAtiva === 'por-que-conecta' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
+            "
+            @click="rolarPara('por-que-conecta')"
           >
-            <AppButton
-              variant="coral-outline"
-              :width="150"
-              :padding-left="40"
-              @click="irParaAuth('login')"
-              >Entrar</AppButton
-            >
-            <AppButton variant="blue" :padding-left="15" @click="irParaAuth('register')"
-              >Inscreva-se</AppButton
-            >
-          </div>
-        </div>
-      </header>
+            Por que Conecta
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
+            :class="
+              secaoAtiva === 'como-funciona' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
+            "
+            @click="rolarPara('como-funciona')"
+          >
+            Como funciona
+          </button>
+        </nav>
 
+        <div class="hidden shrink-0 items-center gap-3 lg:flex">
+          <AppButton
+            variant="coral-outline"
+            :width="140"
+            :padding-left="30"
+            @click="irParaAuth('login')"
+          >
+            Entrar
+          </AppButton>
+          <AppButton variant="blue" :width="150" :padding-left="30" @click="irParaAuth('register')">
+            Inscreva-se
+          </AppButton>
+        </div>
+
+        <button
+          type="button"
+          class="grid size-11 cursor-pointer place-items-center rounded-xl border-0 bg-transparent p-0 text-co-blue transition-colors hover:bg-s-blue/30 lg:hidden"
+          :aria-expanded="menuAberto"
+          aria-controls="menu-mobile"
+          :aria-label="menuAberto ? 'Fechar menu' : 'Abrir menu'"
+          @click="menuAberto = !menuAberto"
+        >
+          <font-awesome-icon :icon="menuAberto ? faXmark : faBars" class="size-5" />
+        </button>
+      </div>
+
+      <!-- Menu mobile -->
+      <div
+        v-if="menuAberto"
+        id="menu-mobile"
+        class="absolute inset-x-0 top-full border-b border-traceline bg-co-white px-5 pb-6 pt-2 shadow-[0_24px_40px_-24px_rgba(25,37,61,0.45)] sm:px-8 lg:hidden"
+      >
+        <nav class="flex flex-col" aria-label="Navegação principal (mobile)">
+          <button
+            type="button"
+            class="cursor-pointer border-0 border-b border-traceline bg-transparent px-0 py-4 text-left text-h4 text-text-1"
+            @click="rolarPara('por-que-conecta')"
+          >
+            Por que Conecta
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer border-0 border-b border-traceline bg-transparent px-0 py-4 text-left text-h4 text-text-1"
+            @click="rolarPara('como-funciona')"
+          >
+            Como funciona
+          </button>
+        </nav>
+
+        <div class="mt-5 flex flex-wrap items-center gap-3">
+          <AppButton
+            variant="coral-outline"
+            :width="140"
+            :padding-left="30"
+            @click="irParaAuth('login')"
+          >
+            Entrar
+          </AppButton>
+          <AppButton variant="blue" :width="150" :padding-left="30" @click="irParaAuth('register')">
+            Inscreva-se
+          </AppButton>
+        </div>
+      </div>
+    </header>
+
+    <main id="topo" class="pt-[72px] sm:pt-[88px] lg:pt-[100px]" aria-label="Landpage">
       <!-- ========== Hero (333:344) ========== -->
       <section
-        class="absolute top-[180px] left-[190px] flex h-[550px] w-[1540px] items-center justify-between px-[110px]"
+        class="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-5 pb-16 pt-10 sm:px-8 sm:pt-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8 lg:px-10 lg:pb-24 lg:pt-16"
       >
-        <div class="flex h-[550px] shrink-0 flex-col items-start justify-center gap-[30px]">
-          <h1 :key="heroRevealKey" class="text-h1 text-co-blue select-none">
+        <div class="flex flex-col items-start gap-6 sm:gap-7">
+          <p class="text-h6 leading-[normal] text-co-coral">
+            BEM-VINDO AO <span class="text-co-blue">CONECTA.</span>
+          </p>
+
+          <h1
+            class="text-[38px] leading-[0.98] tracking-[-2px] text-co-blue select-none sm:text-[52px] sm:tracking-[-3px] lg:text-h1"
+          >
             <BlurReveal as="span" text="Um Lugar Amigável" />
             <br />
             <BlurReveal as="span" class="hero-title-tail" text="para Aprender." :delay="0.5" />
           </h1>
-          <p class="w-[551px] text-h4 leading-[normal] text-text-2">
-            Conheça seus veteranos, tire dúvidas pertinentes e encontre ajuda<br />no início da sua
+
+          <p class="max-w-[551px] text-h5 leading-[1.5] text-text-2 sm:text-h4 sm:leading-[1.4]">
+            Conheça seus veteranos, tire dúvidas pertinentes e encontre ajuda no início da sua
             jornada de estudos!
           </p>
+
           <AppButton
             variant="coral"
-            :width="160"
-            :padding-left="13"
+            :width="170"
+            :padding-left="14"
             :gap="13"
             :gap-hover="21"
             label-variant="h3"
             @click="irParaAuth('login')"
-            >Conecte-se</AppButton
           >
+            Conecte-se
+          </AppButton>
         </div>
 
         <img
           :src="heroTree"
           alt=""
-          class="block h-[550px] w-[556px] shrink-0 max-w-none"
+          class="mx-auto block h-auto w-full max-w-[320px] shrink-0 sm:max-w-[420px] lg:max-w-[556px]"
           draggable="false"
         />
       </section>
@@ -307,75 +293,93 @@ onUnmounted(() => {
       <!-- ========== Por que Conecta (385:157) ========== -->
       <section
         id="por-que-conecta"
-        class="absolute top-[810px] left-0 flex h-[600px] w-[1920px] flex-col items-start gap-[90px] bg-tree-bg px-[300px] py-[50px]"
+        class="scroll-mt-[72px] border-y border-traceline bg-tree-bg px-5 py-16 sm:scroll-mt-[88px] sm:px-8 sm:py-20 lg:scroll-mt-[100px] lg:px-10 lg:py-24"
       >
-        <div class="flex w-[672px] shrink-0 flex-col items-start gap-5">
-          <p class="text-h2 text-co-coral">Por que usar o Conecta?</p>
-          <h2 class="text-h3 text-text-1">
-            A vida universitária fica mais leve quando se é compartilhada
-          </h2>
-          <p class="text-h4 text-text-2">
-            Encontre pessoas que entendem sua rotina, seus desafios e as pequenas<br />dúvidas do
-            dia a dia na universidade
-          </p>
-        </div>
+        <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-10 lg:gap-[70px]">
+          <div class="flex max-w-[672px] flex-col items-start gap-5">
+            <p class="text-h2 leading-[1.1] text-co-coral">Por que usar o Conecta?</p>
+            <h2
+              class="text-h2 leading-[1.2] tracking-[-0.2px] text-text-1 lg:text-h3 lg:leading-[1.15]"
+            >
+              A vida universitária fica mais leve quando se é compartilhada
+            </h2>
+            <p class="text-h5 leading-[1.5] text-text-2 lg:text-h4 lg:leading-[1.4]">
+              Encontre pessoas que entendem sua rotina, seus desafios e as pequenas dúvidas do dia a
+              dia na universidade.
+            </p>
+          </div>
 
-        <div class="flex w-full shrink-0 items-center justify-center gap-[30px]">
-          <AppArticle
-            v-for="item in beneficios"
-            :key="item.title"
-            :icon="item.icon"
-            :title="item.title"
-            :text="item.text"
-          />
+          <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[30px]">
+            <AppArticle
+              v-for="item in beneficios"
+              :key="item.title"
+              :icon="item.icon"
+              :title="item.title"
+              :text="item.text"
+            />
+          </div>
         </div>
       </section>
 
       <!-- ========== Como Funciona (385:199) ========== -->
       <section
         id="como-funciona"
-        class="absolute top-[1490px] left-[353px] grid h-[375px] w-[1215px] grid-cols-[minmax(0,0.80fr)_minmax(0,1.20fr)] gap-[96px]"
+        class="scroll-mt-[72px] px-5 py-16 sm:scroll-mt-[88px] sm:px-8 sm:py-20 lg:scroll-mt-[100px] lg:px-10 lg:py-24"
       >
-        <div class="flex shrink-0 flex-col items-start gap-4 self-start pb-[175px]">
-          <p class="text-h5 leading-[normal] text-text-1">Como funciona</p>
-          <p class="text-h5 leading-[normal] text-text-1">Você usa o Conecta do seu jeito.</p>
-          <p class="text-h5 leading-[normal] text-text-2">
-            Você escolhe quando participar, com quem conversar e quais<br />assuntos fazem sentido
-            para você.
-          </p>
-          <AppLink href="#seguranca" @click.prevent="irParaAuth('register')">Começar agora</AppLink>
-        </div>
+        <div
+          class="mx-auto grid w-full max-w-[1215px] gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24"
+        >
+          <div class="flex flex-col items-start gap-4">
+            <p class="text-h5 leading-[normal] text-text-1">Como funciona</p>
+            <h2 class="text-h2 leading-[1.2] text-text-1 sm:text-[28px]">
+              Você usa o Conecta do seu jeito.
+            </h2>
+            <p class="text-h5 leading-[1.5] text-text-2">
+              Você escolhe quando participar, com quem conversar e quais assuntos fazem sentido para
+              você.
+            </p>
+            <AppLink
+              href="/login?modo=register"
+              class="mt-2"
+              @click.prevent="irParaAuth('register')"
+            >
+              Começar agora
+            </AppLink>
+          </div>
 
-        <div class="flex w-full flex-col gap-9">
-          <div
-            v-for="passo in passos"
-            :key="passo.number"
-            class="flex w-full items-start gap-6 border-b border-traceline pb-9"
-          >
-            <span class="text-h6 text-co-coral">{{ passo.number }}</span>
-            <div class="flex flex-col items-start gap-2">
-              <p class="text-h3 text-text-1">{{ passo.title }}</p>
-              <p class="text-h5 text-text-2">{{ passo.text }}</p>
+          <div class="flex w-full flex-col gap-9">
+            <div
+              v-for="passo in passos"
+              :key="passo.number"
+              class="flex w-full items-start gap-5 border-b border-traceline pb-9 sm:gap-6"
+            >
+              <span class="text-h6 text-co-coral">{{ passo.number }}</span>
+              <div class="flex flex-col items-start gap-2">
+                <p class="text-h3 text-text-1">{{ passo.title }}</p>
+                <p class="text-h5 leading-[1.45] text-text-2">{{ passo.text }}</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- ========== Cartaz (399:278) ========== -->
-      <AppCartaz class="absolute top-[1945px] left-[320px]" @cta="irParaAuth('register')" />
+      <section class="px-5 pb-16 sm:px-8 lg:px-10 lg:pb-24">
+        <AppCartaz class="mx-auto" @cta="irParaAuth('register')" />
+      </section>
+    </main>
 
-      <!-- ========== Footer (402:291) ========== -->
-      <footer
-        class="absolute top-[2345px] left-1/2 flex h-[70px] w-[1450px] -translate-x-1/2 items-center justify-center gap-[390px] whitespace-nowrap px-[520px]"
+    <!-- ========== Footer (402:291) ========== -->
+    <footer class="border-t border-traceline">
+      <div
+        class="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-4 px-5 py-8 text-center text-h6 leading-[normal] text-text-2 sm:flex-row sm:justify-between sm:px-8 sm:text-left lg:px-10"
       >
         <AppLogo variant="conecta" :font-size="20" alt="" />
-        <p class="text-h6 leading-[normal] whitespace-nowrap text-text-2">
-          Feito por estudantes, para estudantes.
-        </p>
-        <p class="text-h6 leading-[normal] whitespace-nowrap text-text-2">© 2026 Conecta</p>
-      </footer>
-    </main>
-  </CanvasLayout>
+        <p>Feito por estudantes, para estudantes.</p>
+        <p>© 2026 Conecta</p>
+      </div>
+    </footer>
+  </div>
 </template>
 
 <style scoped>

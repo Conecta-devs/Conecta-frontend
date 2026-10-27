@@ -3,13 +3,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { LoginUser, registerUser } from '../services/auth'
-import { saveSession } from '../../../shared/services/session'
-import AppArrowIcon from '../../../shared/ui/AppArrowIcon.vue'
+import { isAuthenticated, saveSession } from '../../../shared/services/session'
 import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
-import CanvasLayout from '../../../shared/ui/CanvasLayout.vue'
+import ProfileSetupModal from '../../profile/ProfileSetupModal.vue'
 import coletiveIcon from '../../../assets/icons/coletive-white.svg'
 import orbitOuter from '../../../assets/decorations/orbit2.svg'
 import orbitInner from '../../../assets/decorations/orbit.svg'
@@ -18,8 +17,8 @@ import orbitInner from '../../../assets/decorations/orbit.svg'
  * Figma — Login / Register (446:109, 468:187, 506:1651, 506:1917, 506:1739)
  *
  * O fluxo do Figma vive em 5 frames, mas todos compartilham o mesmo layout
- * (painel azul 750x910 à esquerda + formulário 1170x910 à direita). Por isso
- * aqui tudo é um único componente com estados:
+ * (painel azul à esquerda + formulário à direita). Por isso aqui tudo é um
+ * único componente com estados:
  *
  *   - modo:      'login' | 'register'
  *   - erro:      erro da API, exibido dentro do frame do campo
@@ -27,6 +26,10 @@ import orbitInner from '../../../assets/decorations/orbit.svg'
  *                 register 506:1693 → "As senhas devem coincidir entre si.")
  *   - erroSenha: erro inline no confirmar senha (frame 506:1693)
  *   - criado:    frame 506:1739 → tela "Conta criada com sucesso!"
+ *
+ * O layout original era um canvas fixo de 1920x910. Aqui ele é responsivo:
+ * empilha no mobile (painel compacto no topo) e vira duas colunas a partir de
+ * `lg` (painel 750 / formulário 1170, como no Figma).
  *
  * Tokens do Figma: gap 32 no form, 5 no label→input, inputs 50px raio 10,
  * botão coral 50px raio 10 com seta 16x12 a 15px do label, aba ativa em co-blue
@@ -59,29 +62,21 @@ const erroSenha = ref('')
 const enviando = ref(false)
 const criado = ref(props.estadoInicial === 'criado')
 
+/** Usuário já autenticado (cadastro faz login automático). */
+const sessaoAtiva = ref(isAuthenticated())
+
 /**
  * Transição formulário → "Conta criada com sucesso!".
  *
- * O protótipo do Figma define, no botão `468:230`:
- *   Ação      → Mudar para (Change to)
- *   Animação  → Animação inteligente (Smart Animate)
- *   Suavização→ Desaceleração (Ease out)
- *   Duração   → 300 ms
- *
- * O Smart Animate casa as camadas de mesmo nome e interpola posição, tamanho,
- * cor e opacidade. Do frame Register (468:187) para o sucesso (506:1739) as
- * camadas casadas são:
- *
- *   Painel   azul 750x910  →  verde 1920x910   (largura + cor)
- *   Logo     100x55 (91,22) → 100x55 (91,22)    (fica no lugar, troca a cor)
- *   Orbitais esquerdo (597,836) → igual        (ficam no lugar)
- *   Orbitais direito  ausente   → (1843,140)    (entram)
- *   Textos   intro do form   →  intro do sucesso (cross-fade)
- *
- * Por isso as camadas casadas vivem numa única "shell" e animam via CSS; só os
- * blocos de texto/formulário fazem cross-fade em vez de trocar de árvore.
+ * No Figma o botão `468:230` usa: Ação "Mudar para", Animação "Animação
+ * inteligente", Suavização "Desaceleração", 300 ms. Aqui o sucesso entra como
+ * um painel verde de tela cheia com fade/scale de 300ms ease-out, mantendo o
+ * ritmo e as camadas (logo, orbitais, textos) da animação original.
  */
 const transicionando = ref(false)
+
+/** Modal de perfil aberto após o cadastro (mesmo fluxo da tela legada). */
+const modalPerfilAberto = ref(false)
 
 /** A Landpage manda `?modo=register` (Inscreva-se / Quero participar / Começar agora). */
 onMounted(() => {
@@ -119,26 +114,40 @@ async function enviar() {
 
   try {
     if (modo.value === 'register') {
-      await registerUser({ name: nome.value, email: email.value, password: senha.value })
+      await registerUser({
+        name: nome.value.trim(),
+        email: email.value.trim(),
+        password: senha.value,
+      })
+
+      // O cadastro autentica na sequência para o usuário já sair com sessão.
+      const loginResponse = await LoginUser({
+        email: email.value.trim(),
+        password: senha.value,
+      })
+      saveSession(loginResponse.user, loginResponse.accessToken)
+      sessaoAtiva.value = true
+
       // Smart Animate: "Mudar para" a tela de sucesso (ease out, 300ms).
-      // `criado` dispara a interpolação das camadas casadas (painel, logo,
-      // orbitais); `transicionando` só marca o bloqueio de input.
       transicionando.value = true
       criado.value = true
+      modalPerfilAberto.value = true
       window.setTimeout(() => {
         transicionando.value = false
       }, 320)
     } else {
-      const resposta = await LoginUser({ email: email.value, password: senha.value })
+      const resposta = await LoginUser({ email: email.value.trim(), password: senha.value })
       saveSession(resposta.user, resposta.accessToken)
       router.push('/dashboard')
     }
-  } catch {
-    // Cada modo tem o seu frame de erro no Figma (506:1939 e 506:1693).
+  } catch (error) {
+    // Mostra a mensagem da API quando existir; senão, o texto do frame de erro.
+    const mensagem = error instanceof Error ? error.message.trim() : ''
     erro.value =
-      modo.value === 'register'
-        ? 'As senhas devem coincidir entre si.'
-        : 'Email ou senha incorretos.'
+      mensagem ||
+      (modo.value === 'register'
+        ? 'Não foi possível criar sua conta. Tente novamente.'
+        : 'Email ou senha incorretos.')
   } finally {
     enviando.value = false
   }
@@ -156,8 +165,31 @@ function irParaLogin() {
   erroSenha.value = ''
 }
 
+function irParaDashboard() {
+  router.push('/dashboard')
+}
+
+/** CTA do estado de sucesso: quem já tem sessão vai direto para o dashboard. */
+function acaoSucesso() {
+  if (sessaoAtiva.value) {
+    irParaDashboard()
+    return
+  }
+
+  irParaLogin()
+}
+
+const rotuloSucesso = computed(() =>
+  sessaoAtiva.value ? 'Ir para o dashboard' : 'Entrar na minha conta',
+)
+
+function finalizarPerfil() {
+  modalPerfilAberto.value = false
+  irParaDashboard()
+}
+
 function voltarAoInicio() {
-  router.push('/landpage-v2')
+  router.push('/')
 }
 
 /** Classes compartilhadas dos campos (frame: label 14, input 50px raio 10). */
@@ -166,168 +198,64 @@ const inputBase =
 </script>
 
 <template>
-  <CanvasLayout id="login-scroll" :centered="false">
-    <!--
-      Uma única "shell" persistente. O Figma faz Smart Animate ("Mudar para",
-      ease out, 300ms) entre o frame Register (468:187) e o sucesso (506:1739):
-      as camadas casadas (painel, logo, orbitais) interpolam no lugar, e apenas
-      os blocos de conteúdo (form × intro de sucesso) fazem cross-fade.
-    -->
-    <div
-      class="auth-shell relative h-screen overflow-hidden bg-co-white"
-      :class="{ 'auth-shell--criado': criado, 'auth-shell--saindo': transicionando }"
+  <div
+    class="auth-shell relative flex min-h-dvh flex-col bg-co-white lg:grid lg:grid-cols-[minmax(0,750px)_minmax(0,1fr)]"
+    :class="{ 'auth-shell--criado': criado, 'auth-shell--saindo': transicionando }"
+  >
+    <!-- ========== Painel (468:187 azul) ========== -->
+    <section
+      class="auth-panel relative flex shrink-0 flex-col justify-between overflow-hidden bg-co-blue px-6 py-6 text-co-white transition-colors duration-300 ease-out sm:px-12 sm:py-8 lg:min-h-dvh lg:px-[clamp(40px,7vw,91px)] lg:py-8"
     >
-      <!-- ========== Painel (468:187 azul 750x910 → 506:1739 verde 1920x910) ========== -->
-      <div
-        class="absolute top-0 left-0 flex h-screen flex-col items-start gap-[250px] overflow-hidden pt-[22px] pl-[91px]"
-        :class="criado ? 'w-[1920px] bg-tree-green' : 'w-[750px] bg-co-blue'"
+      <!-- Orbitais decorativos (468:204/468:205) — só a partir de sm -->
+      <img
+        :src="orbitInner"
+        alt=""
+        class="pointer-events-none absolute -bottom-40 -left-16 hidden size-[420px] opacity-80 sm:block lg:-bottom-32 lg:-left-10 lg:size-[590px]"
+        draggable="false"
+      />
+      <img
+        :src="orbitOuter"
+        alt=""
+        class="pointer-events-none absolute -bottom-48 -left-24 hidden size-[500px] opacity-60 sm:block lg:-bottom-40 lg:-left-20 lg:size-[670px]"
+        draggable="false"
+      />
+
+      <button
+        type="button"
+        class="relative z-10 flex w-fit cursor-pointer items-center gap-2.5 border-0 bg-transparent p-0 text-co-white"
+        aria-label="Voltar ao início"
+        @click="voltarAoInicio"
       >
-        <!-- Logo (100x55 em (91,22)) — camada casada: fica no lugar, troca a cor -->
-        <button
-          type="button"
-          class="relative h-[55px] w-[100px] shrink-0 cursor-pointer"
-          aria-label="Voltar ao início"
-          @click="voltarAoInicio"
+        <AppLogo variant="logo-2" :width="100" :height="55" alt="" />
+      </button>
+
+      <div class="relative z-10 flex flex-col items-start gap-4 py-6 sm:gap-5 sm:py-8 lg:py-0">
+        <p
+          class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
         >
-          <AppLogo
-            variant="logo-2"
-            :width="100"
-            :height="55"
-            alt=""
-            class="absolute inset-0 transition-opacity duration-300 ease-out"
-            :class="criado ? 'opacity-0' : 'opacity-100'"
-          />
-          <AppLogo
-            variant="logo-1"
-            :width="100"
-            :height="55"
-            alt=""
-            class="absolute inset-0 transition-opacity duration-300 ease-out"
-            :class="criado ? 'opacity-100' : 'opacity-0'"
-          />
-        </button>
-
-        <!--
-        Blocos de conteúdo do painel — cross-fade.
-        No sucesso o painel é a tela inteira (1920), então o texto ocupa
-        w-full; no formulário ele fica contido nos 750px.
-      -->
-        <div class="relative w-full shrink-0">
-          <!-- Intro do formulário (446:109 / 468:187) -->
-          <div
-            class="flex w-full flex-col items-start justify-center gap-5 overflow-hidden transition-all duration-[300ms] ease-out"
-            :class="
-              criado ? 'pointer-events-none absolute inset-x-0 top-0 opacity-0' : 'opacity-100'
-            "
-          >
-            <p class="text-h1 whitespace-nowrap text-co-white">
-              Conecte-se com<br />quem entende você.
-            </p>
-            <p class="text-h4 leading-[normal] whitespace-nowrap text-s-coral">
-              Conheça novos estudantes, encontre seu grupo<br />e construa novas histórias dentro e
-              fora da sala.
-            </p>
-            <div class="flex shrink-0 items-center justify-center gap-[10px] overflow-hidden">
-              <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
-              <p class="text-h6 leading-[normal] whitespace-nowrap text-s-blue">
-                Comunidade feita para você
-              </p>
-            </div>
-          </div>
-
-          <!-- Intro do sucesso (506:1794) -->
-          <div
-            class="flex w-full flex-col items-start justify-center gap-5 overflow-hidden transition-all duration-[300ms] ease-out"
-            :class="
-              criado ? 'opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'
-            "
-          >
-            <p class="text-h1 whitespace-nowrap text-co-white">
-              Conta criada com sucesso!
-            </p>
-            <p class="text-h4 leading-[normal] whitespace-nowrap text-s-coral">
-              Conheça novos estudantes, encontre seu grupo<br />e construa novas histórias dentro e
-              fora da sala.
-            </p>
-            <div class="flex shrink-0 items-center justify-center gap-[10px] overflow-hidden">
-              <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
-              <p class="text-h6 leading-[normal] whitespace-nowrap text-s-blue">
-                Comunidade feita para você
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rodapé do painel: frase (form) × botão (sucesso) -->
-        <div class="relative w-full shrink-0">
-          <p
-            class="text-h6 leading-[normal] whitespace-nowrap text-s-blue transition-opacity duration-300 ease-out"
-            :class="
-              criado ? 'pointer-events-none absolute inset-x-0 top-0 opacity-0' : 'opacity-100'
-            "
-          >
-            Conversa que aproxima. Conexão que transforma.
-          </p>
-          <div
-            class="flex shrink-0 items-center justify-end transition-opacity duration-300 ease-out"
-            :class="
-              criado
-                ? 'w-[1599px] opacity-100'
-                : 'pointer-events-none absolute inset-x-0 top-0 w-full opacity-0'
-            "
-          >
-            <button
-              type="button"
-              class="flex h-[50px] w-[260px] shrink-0 cursor-pointer items-center gap-[15px] rounded-[10px] bg-co-blue px-10 font-sans text-h5 leading-[normal] whitespace-nowrap text-co-white transition-colors hover:bg-co-blue/90"
-              @click="irParaLogin"
-            >
-              Entrar na minha conta
-              <AppArrowIcon />
-            </button>
-          </div>
+          Conecte-se com<br />quem entende você.
+        </p>
+        <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
+          Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
+          e construa novas histórias dentro e fora da sala.
+        </p>
+        <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
+          <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
+          <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
         </div>
       </div>
 
-      <!--
-      Orbitais — camadas casadas do Smart Animate.
-      Os SVGs têm 40px de padding interno (canvas 590/670 para anéis de 510/590),
-      então posicionamos o canvas 40px antes do frame do Figma:
-        - anel interno 510 (468:204) → canvas 590 em (302, 541)
-        - anel externo 590 (468:205) → canvas 670 em (262, 501)
-      Par esquerdo presente em todos os frames, mesmo centro (597, 836).
-      Par direito (506:1846/506:1847): existe só no sucesso — entra com fade.
-    -->
-      <img
-        :src="orbitInner"
-        alt=""
-        class="pointer-events-none absolute top-[541px] left-[302px] h-[590px] w-[590px] transition-opacity duration-300 ease-out"
-        draggable="false"
-      />
-      <img
-        :src="orbitOuter"
-        alt=""
-        class="pointer-events-none absolute top-[501px] left-[262px] h-[670px] w-[670px] transition-opacity duration-300 ease-out"
-        draggable="false"
-      />
-      <img
-        :src="orbitInner"
-        alt=""
-        class="pointer-events-none absolute top-[-155px] left-[1548px] h-[590px] w-[590px] transition-opacity duration-300 ease-out"
-        :class="criado ? 'opacity-100' : 'opacity-0'"
-        draggable="false"
-      />
-      <img
-        :src="orbitOuter"
-        alt=""
-        class="pointer-events-none absolute top-[-195px] left-[1508px] h-[670px] w-[670px] transition-opacity duration-300 ease-out"
-        :class="criado ? 'opacity-100' : 'opacity-0'"
-        draggable="false"
-      />
+      <p class="relative z-10 hidden text-h6 leading-[normal] text-s-blue lg:block">
+        Conversa que aproxima. Conexão que transforma.
+      </p>
+    </section>
 
-      <!-- ========== Formulário (454:99 / 468:206) — sai no Smart Animate ========== -->
+    <!-- ========== Formulário (454:99 / 468:206) ========== -->
+    <section
+      class="flex flex-1 items-center justify-center px-6 py-10 sm:px-10 lg:px-16 lg:py-[123px]"
+    >
       <form
-        class="absolute top-0 left-[750px] flex h-screen w-[1170px] flex-col items-start gap-8 px-[230px] py-[123px] transition-all duration-[300ms] ease-out"
-        :class="criado ? 'pointer-events-none translate-y-[-12px] opacity-0' : 'opacity-100'"
+        class="flex w-full max-w-[710px] flex-col items-start gap-6 lg:gap-8"
         @submit.prevent="enviar"
       >
         <button
@@ -342,15 +270,13 @@ const inputBase =
           Voltar para o início
         </button>
 
-        <p class="text-h6 leading-[normal] whitespace-nowrap text-co-coral">
+        <p class="text-h6 leading-[normal] text-co-coral">
           BEM-VINDO AO <span class="text-co-blue">CONECTA.</span>
         </p>
 
-        <p class="text-title whitespace-nowrap text-text-1">
-          {{ titulo }}
-        </p>
+        <p class="text-title text-text-1">{{ titulo }}</p>
 
-        <p class="text-h6 leading-[normal] whitespace-nowrap text-text-2">{{ subtitulo }}</p>
+        <p class="text-h6 leading-[normal] text-text-2">{{ subtitulo }}</p>
 
         <!-- Tabs Entrar / Criar conta (554:177) — componente compartilhado -->
         <AppAuthTabs :mode="modo" @select="trocarModo" />
@@ -415,7 +341,8 @@ const inputBase =
           </span>
           <p
             v-if="modo === 'login' && erro"
-            class="text-h6 leading-[normal] whitespace-nowrap text-[rgba(255,0,4,0.65)]"
+            class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
+            role="alert"
           >
             {{ erro }}
           </p>
@@ -439,7 +366,8 @@ const inputBase =
           />
           <p
             v-if="erroSenha || erro"
-            class="text-h6 leading-[normal] whitespace-nowrap text-[rgba(255,0,4,0.65)]"
+            class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
+            role="alert"
           >
             {{ erroSenha || erro }}
           </p>
@@ -447,7 +375,7 @@ const inputBase =
 
         <!-- "Esqueci minha senha" só existe no Login (468:97); o Register não tem. -->
         <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
-          <AppLink href="#" size="h5" :arrow="false" @click.prevent>Esqueci minha senha</AppLink>
+          <AppLink href="/forgot-password" size="h5" :arrow="false">Esqueci minha senha</AppLink>
         </div>
 
         <!-- Botão principal + link alternativo -->
@@ -472,9 +400,9 @@ const inputBase =
 
           <div
             v-if="modo === 'login' || (!erro && !erroSenha)"
-            class="flex items-center justify-center gap-[3px] text-h6 leading-[normal]"
+            class="flex flex-wrap items-center justify-center gap-[3px] text-h6 leading-[normal]"
           >
-            <p class="whitespace-nowrap text-text-2">
+            <p class="text-text-2">
               {{ modo === 'register' ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
             </p>
             <AppLink
@@ -489,44 +417,78 @@ const inputBase =
           </div>
         </div>
       </form>
+    </section>
+
+    <!-- ========== Sucesso (506:1739) — painel verde de tela cheia ========== -->
+    <div
+      v-if="criado"
+      class="auth-success fixed inset-0 z-50 flex flex-col justify-between overflow-hidden bg-tree-green px-7 py-8 text-co-white sm:px-12 lg:px-[91px]"
+      role="status"
+      aria-live="polite"
+    >
+      <img
+        :src="orbitInner"
+        alt=""
+        class="pointer-events-none absolute -right-24 -top-32 size-[420px] opacity-70 sm:size-[520px] lg:-right-16 lg:-top-24 lg:size-[590px]"
+        draggable="false"
+      />
+      <img
+        :src="orbitOuter"
+        alt=""
+        class="pointer-events-none absolute -right-32 -top-40 hidden size-[620px] opacity-50 sm:block lg:-right-24 lg:-top-32 lg:size-[670px]"
+        draggable="false"
+      />
+
+      <AppLogo variant="logo-1" :width="100" :height="55" alt="" class="relative z-10" />
+
+      <div class="relative z-10 flex flex-col items-start gap-4 sm:gap-5">
+        <p
+          class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
+        >
+          Conta criada com sucesso!
+        </p>
+        <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
+          Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
+          e construa novas histórias dentro e fora da sala.
+        </p>
+        <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
+          <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
+          <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
+        </div>
+      </div>
+
+      <div class="relative z-10 flex w-full justify-end">
+        <AppButton variant="blue" :width="260" :padding-left="40" @click="acaoSucesso">
+          {{ rotuloSucesso }}
+        </AppButton>
+      </div>
     </div>
-  </CanvasLayout>
+
+    <!-- Perfil pós-cadastro (mesmo fluxo da tela legada) -->
+    <ProfileSetupModal v-model="modalPerfilAberto" @save="finalizarPerfil" />
+  </div>
 </template>
 
 <style scoped>
-/*
- * Smart Animate do protótipo: "Mudar para" (Change to) + Animação inteligente,
- * Suavização Desaceleração (ease out), 300 ms.
- *
- * As camadas casadas (painel azul→verde, logo, orbitais do par esquerdo) ficam
- * no mesmo lugar e interpolam largura/cor/opacidade; os conteúdos (intro do
- * formulário × intro do sucesso, frase × botão) fazem cross-fade. Todas as
- * transições usam `ease-out` e 300ms, como no Figma.
- */
 .auth-shell {
   --smart-animate: 300ms;
   --smart-ease: ease-out;
-
-  /* Entrada da página: fade ao vir da LandpageV2 (roda uma vez no mount). */
-  animation: auth-entrar 380ms cubic-bezier(0, 0, 0.58, 1) both;
 }
 
-@keyframes auth-entrar {
+/* Sucesso entra como no Smart Animate do protótipo: 300ms, ease out. */
+.auth-success {
+  animation: auth-sucesso var(--smart-animate) var(--smart-ease) both;
+}
+
+@keyframes auth-sucesso {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: scale(1.02);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
-}
-
-/* O painel interpola largura (750 → 1920) e cor (azul → verde). */
-.auth-shell > div:first-of-type {
-  transition:
-    width var(--smart-animate) var(--smart-ease),
-    background-color var(--smart-animate) var(--smart-ease);
 }
 
 .auth-shell--saindo {
@@ -534,7 +496,7 @@ const inputBase =
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-shell {
+  .auth-success {
     animation: none;
   }
   .auth-shell,

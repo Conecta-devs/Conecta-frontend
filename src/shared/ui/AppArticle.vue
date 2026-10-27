@@ -30,7 +30,7 @@ withDefaults(
 
 <template>
   <article
-    class="flex h-[200px] w-[420px] flex-col items-start gap-3 rounded-[16px] border-2 border-traceline bg-co-white p-[28px] transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:border-[rgba(236,118,93,0.5)] hover:shadow-[0_20px_25px_0_rgba(0,0,0,0.05)] motion-reduce:transition-none"
+    class="flex min-h-[200px] w-full max-w-[420px] flex-col items-start gap-3 rounded-[16px] border-2 border-traceline bg-co-white p-6 transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:border-[rgba(236,118,93,0.5)] hover:shadow-[0_20px_25px_0_rgba(0,0,0,0.05)] motion-reduce:transition-none sm:p-[28px]"
   >
     <div
       class="flex size-[45px] shrink-0 items-center justify-center rounded-[12px] bg-s-coral p-[13px] text-co-coral"

@@ -41,11 +41,13 @@ const emit = defineEmits<{ cta: [] }>()
 
 <template>
   <section
-    class="flex w-full max-w-[1280px] flex-col items-center gap-5 overflow-hidden rounded-[16px] bg-co-blue px-12 py-20"
+    class="flex w-full max-w-[1280px] flex-col items-center gap-5 overflow-hidden rounded-[16px] bg-co-blue px-6 py-12 text-center sm:px-12 sm:py-20"
   >
     <p class="text-h6 leading-[normal] text-text-2">{{ eyebrow }}</p>
 
-    <h2 class="text-h1 text-center">
+    <h2
+      class="text-[36px] leading-[1.05] tracking-[-2px] text-center sm:text-[52px] sm:tracking-[-3px] lg:text-h1"
+    >
       <span class="text-co-coral">{{ titleStart }}</span>
       {{ ' ' }}
       <span class="text-co-white">{{ titleMiddle }}</span>
@@ -53,12 +55,7 @@ const emit = defineEmits<{ cta: [] }>()
       <span class="text-s-blue">{{ titleEnd }}</span>
     </h2>
 
-    <AppButton
-      size="lg"
-      variant="coral"
-      :padding-left="ctaPaddingLeft"
-      @click="emit('cta')"
-    >
+    <AppButton size="lg" variant="coral" :padding-left="ctaPaddingLeft" @click="emit('cta')">
       {{ cta }}
     </AppButton>
   </section>

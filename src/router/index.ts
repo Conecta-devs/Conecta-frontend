@@ -20,7 +20,7 @@ const router = createRouter({
       path: '/',
       alias: '/landpage',
       name: 'Landpage',
-      component: () => import('../features/landpage/legacy/Landpage.vue'),
+      component: () => import('../features/landpage/pages/LandpageV2.vue'),
     },
     {
       path: '/catalog',
@@ -29,12 +29,12 @@ const router = createRouter({
     },
     {
       path: '/landpage-v2',
-      name: 'LandpageV2',
-      component: () => import('../features/landpage/pages/LandpageV2.vue'),
+      redirect: '/',
     },
     {
-      path: '/login-v2',
-      name: 'LoginV2',
+      path: '/login',
+      alias: '/login-v2',
+      name: 'Login',
       component: () => import('../features/auth/pages/LoginV2.vue'),
     },
     {
@@ -75,11 +75,6 @@ const router = createRouter({
       ],
     },
     {
-      path: '/login',
-      name: 'Login',
-      component: () => import('../features/auth/legacy/Login.vue'),
-    },
-    {
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('../features/auth/pages/ForgotPassword.vue'),
@@ -100,14 +95,13 @@ router.beforeEach((to) => {
   const authenticated = isAuthenticated()
   const isPublicRoute = publicRoutes.includes(to.path)
   const isDashboardRoute = to.path === '/dashboard' || to.path.startsWith('/dashboard/')
-  const isPasswordRecoveryRoute =
-    to.path === '/forgot-password' || to.path === '/reset-password'
+  const isPasswordRecoveryRoute = to.path === '/forgot-password' || to.path === '/reset-password'
 
   if (isPasswordRecoveryRoute) {
     return true
   }
 
-  if (to.path === '/login' && authenticated) {
+  if (to.name === 'Login' && authenticated) {
     return '/dashboard'
   }
 
