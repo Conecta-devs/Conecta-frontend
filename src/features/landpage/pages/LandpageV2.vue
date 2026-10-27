@@ -146,7 +146,7 @@ onUnmounted(() => {
       "
     >
       <div
-        class="mx-auto flex h-[72px] w-full max-w-[1280px] items-center justify-between gap-4 px-5 sm:h-[88px] sm:px-8 lg:h-[100px] lg:px-10"
+        class="mx-auto flex h-[72px] w-full max-w-[1920px] items-center justify-between gap-4 px-5 sm:h-[88px] sm:px-8 lg:h-[100px] lg:px-10 xl:px-[90px]"
       >
         <button
           type="button"
@@ -154,63 +154,65 @@ onUnmounted(() => {
           aria-label="Conecta, ir para o topo"
           @click="rolarPara('topo')"
         >
-          <AppLogo variant="logo-3" :width="72" :height="40" alt="" />
+          <AppLogo variant="logo-3" :width="72" :height="40" alt="" class="xl:hidden" />
+          <AppLogo variant="logo-3" :width="100" :height="55" alt="" class="hidden xl:block" />
           <AppLogo variant="conecta" :font-size="20" alt="" class="sm:hidden" />
           <AppLogo variant="conecta" :font-size="24" alt="" class="hidden sm:inline" />
         </button>
 
-        <nav class="hidden items-center gap-6 lg:flex xl:gap-8" aria-label="Navegação principal">
-          <button
-            type="button"
-            class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-            :class="
-              secaoAtiva === 'por-que-conecta' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
-            "
-            @click="rolarPara('por-que-conecta')"
-          >
-            Por que Conecta
-          </button>
-          <button
-            type="button"
-            class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-            :class="
-              secaoAtiva === 'como-funciona' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
-            "
-            @click="rolarPara('como-funciona')"
-          >
-            Como funciona
-          </button>
-          <!-- Segurança ainda não tem seção própria: quando a tela chegar,
-               basta dar o id "seguranca" ao destino (ou trocar por router.push). -->
-          <button
-            type="button"
-            class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-            :class="
-              secaoAtiva === 'seguranca' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
-            "
-            @click="rolarPara('seguranca')"
-          >
-            Segurança
-          </button>
-        </nav>
+        <!-- Figma (310:3): o menu NÃO é centralizado. Logo à esquerda e o bloco
+             "Menu & Login" (780px) à direita — menu com gap de 30px e, entre o
+             último item e os botões, o padding-left de 30px do bloco de botões. -->
+        <div class="hidden items-center xl:flex">
+          <nav class="flex items-center gap-[30px]" aria-label="Navegação principal">
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
+              :class="
+                secaoAtiva === 'por-que-conecta'
+                  ? 'text-co-coral'
+                  : 'text-text-1 hover:text-co-coral'
+              "
+              @click="rolarPara('por-que-conecta')"
+            >
+              Por que Conecta
+            </button>
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
+              :class="
+                secaoAtiva === 'como-funciona' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
+              "
+              @click="rolarPara('como-funciona')"
+            >
+              Como funciona
+            </button>
+            <!-- Segurança ainda não tem seção própria: quando a tela chegar,
+                 basta dar o id "seguranca" ao destino (ou trocar por router.push). -->
+            <button
+              type="button"
+              class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
+              :class="
+                secaoAtiva === 'seguranca' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
+              "
+              @click="rolarPara('seguranca')"
+            >
+              Segurança
+            </button>
+          </nav>
 
-        <div class="hidden shrink-0 items-center gap-3 lg:flex">
-          <AppButton
-            variant="coral-outline"
-            :width="140"
-            :padding-left="30"
-            @click="irParaAuth('login')"
-          >
-            Entrar
-          </AppButton>
-          <AppButton variant="blue" :width="150" :padding-left="30" @click="irParaAuth('register')">
-            Inscreva-se
-          </AppButton>
+          <!-- 380px no Figma: 30px de padding em cada lado + 150 + 20 + 150. -->
+          <div class="flex shrink-0 items-center gap-5 px-[30px]">
+            <AppButton variant="coral-outline" @click="irParaAuth('login')">Entrar</AppButton>
+            <AppButton variant="blue" :padding-left="15" @click="irParaAuth('register')">
+              Inscreva-se
+            </AppButton>
+          </div>
         </div>
 
         <button
           type="button"
-          class="grid size-11 cursor-pointer place-items-center rounded-xl border-0 bg-transparent p-0 text-co-blue transition-colors hover:bg-s-blue/30 lg:hidden"
+          class="grid size-11 cursor-pointer place-items-center rounded-xl border-0 bg-transparent p-0 text-co-blue transition-colors hover:bg-s-blue/30 xl:hidden"
           :aria-expanded="menuAberto"
           aria-controls="menu-mobile"
           :aria-label="menuAberto ? 'Fechar menu' : 'Abrir menu'"
@@ -224,7 +226,7 @@ onUnmounted(() => {
       <div
         v-if="menuAberto"
         id="menu-mobile"
-        class="absolute inset-x-0 top-full border-b border-traceline bg-co-white px-5 pb-6 pt-2 shadow-[0_24px_40px_-24px_rgba(25,37,61,0.45)] sm:px-8 lg:hidden"
+        class="absolute inset-x-0 top-full border-b border-traceline bg-co-white px-5 pb-6 pt-2 shadow-[0_24px_40px_-24px_rgba(25,37,61,0.45)] sm:px-8 xl:hidden"
       >
         <nav class="flex flex-col" aria-label="Navegação principal (mobile)">
           <button
@@ -315,7 +317,7 @@ onUnmounted(() => {
         id="por-que-conecta"
         class="scroll-mt-[72px] border-y border-traceline bg-tree-bg px-5 py-16 sm:scroll-mt-[88px] sm:px-8 sm:py-20 lg:scroll-mt-[100px] lg:px-10 lg:py-24"
       >
-        <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-10 lg:gap-[70px]">
+        <div class="mx-auto flex w-full max-w-[1320px] flex-col gap-10 lg:gap-[90px]">
           <div class="flex max-w-[672px] flex-col items-start gap-5">
             <p class="text-h2 leading-[1.1] text-co-coral">Por que usar o Conecta?</p>
             <h2
