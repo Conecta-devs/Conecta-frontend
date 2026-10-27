@@ -489,12 +489,17 @@ const inputBase =
             minlength="8"
             required
           />
+          <!--
+            Erro no frame 506:1693 (5px abaixo do input): o de senhas e o erro
+            geral do cadastro (e-mail já cadastrado, validação etc.) dividem
+            este slot — nunca uma linha nova acima do botão.
+          -->
           <p
-            v-if="erroSenha"
+            v-if="erroSenha || erro"
             class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
             role="alert"
           >
-            {{ erroSenha }}
+            {{ erroSenha || erro }}
           </p>
         </label>
 
@@ -502,15 +507,6 @@ const inputBase =
         <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
           <AppLink href="/forgot-password" size="h5" :arrow="false">Esqueci minha senha</AppLink>
         </div>
-
-        <!-- Erro geral do cadastro (API: e-mail já cadastrado, validação etc.). -->
-        <p
-          v-if="modo === 'register' && erro"
-          class="w-full text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-          role="alert"
-        >
-          {{ erro }}
-        </p>
 
         <!-- Botão principal + link alternativo -->
         <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
