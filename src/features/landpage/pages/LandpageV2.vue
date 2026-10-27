@@ -331,13 +331,18 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[30px]">
+          <!-- Cards: centralizados abaixo de lg (o terceiro card ocupa as duas
+               colunas no tablet para não ficar sozinho à esquerda). -->
+          <div class="grid justify-items-center gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[30px]">
             <AppArticle
-              v-for="item in beneficios"
+              v-for="(item, index) in beneficios"
               :key="item.title"
               :icon="item.icon"
               :title="item.title"
               :text="item.text"
+              :class="
+                index === beneficios.length - 1 ? 'sm:col-span-2 sm:w-full lg:col-span-1' : ''
+              "
             />
           </div>
         </div>

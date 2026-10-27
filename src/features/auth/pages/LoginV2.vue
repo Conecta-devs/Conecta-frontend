@@ -226,7 +226,7 @@ const inputBase =
          Camada persistente do Smart Animate: largura 750 → 100% e cor azul →
          verde; logo, intro, rodapé e orbitais interpolam no lugar. -->
     <section
-      class="auth-panel flex shrink-0 flex-col justify-between overflow-hidden px-6 py-6 text-co-white transition-none sm:px-12 sm:py-8 lg:absolute lg:inset-y-0 lg:left-0 lg:right-auto lg:z-10 lg:pl-[clamp(40px,7vw,91px)] lg:pr-0 lg:pt-[22px] lg:pb-[18px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none"
+      class="auth-panel flex shrink-0 flex-col justify-between overflow-hidden px-5 pt-4 pb-6 text-co-white transition-none sm:px-8 sm:pt-6 sm:pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:right-auto lg:z-10 lg:pl-[clamp(40px,7vw,91px)] lg:pr-0 lg:pt-[22px] lg:pb-[18px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none"
       :class="
         criado
           ? 'fixed inset-0 z-40 w-auto bg-tree-green lg:w-full'
@@ -234,17 +234,19 @@ const inputBase =
       "
     >
       <!-- Par inferior (468:204/468:205) — camada casada: mesmo centro em
-           todos os frames, então fica ancorado à esquerda (302/262). -->
+           todos os frames. Abaixo de lg acompanha a proporção do painel
+           (79% da largura, centro a 20% da direita e 8% abaixo do rodapé);
+           no desktop usa as coordenadas do Figma (302/262). -->
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute -bottom-36 -right-24 hidden size-[420px] sm:block lg:right-auto lg:-bottom-[221px] lg:left-[302px] lg:size-[590px]"
+        class="pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(79vw,590px)] translate-x-1/2 translate-y-1/2 lg:right-auto lg:bottom-[-221px] lg:left-[302px] lg:size-[590px] lg:translate-x-0 lg:translate-y-0"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute -bottom-44 -right-32 hidden size-[500px] sm:block lg:right-auto lg:-bottom-[261px] lg:left-[262px] lg:size-[670px]"
+        class="pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(89.4vw,670px)] translate-x-1/2 translate-y-1/2 lg:right-auto lg:bottom-[-261px] lg:left-[262px] lg:size-[670px] lg:translate-x-0 lg:translate-y-0"
         draggable="false"
       />
 
@@ -253,31 +255,48 @@ const inputBase =
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute -right-24 -top-32 size-[420px] transition-opacity duration-300 ease-out motion-reduce:transition-none sm:size-[520px] lg:-right-[218px] lg:-top-[155px] lg:size-[590px]"
+        class="pointer-events-none absolute top-[10%] right-[10%] size-[min(79vw,590px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none lg:top-[-155px] lg:right-[-218px] lg:size-[590px] lg:translate-x-0 lg:translate-y-0"
         :class="criado ? 'opacity-100' : 'opacity-0'"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute -right-32 -top-40 hidden size-[620px] transition-opacity duration-300 ease-out motion-reduce:transition-none sm:block lg:-right-[258px] lg:-top-[195px] lg:size-[670px]"
+        class="pointer-events-none absolute top-[10%] right-[10%] size-[min(89.4vw,670px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none lg:top-[-195px] lg:right-[-258px] lg:size-[670px] lg:translate-x-0 lg:translate-y-0"
         :class="criado ? 'opacity-100' : 'opacity-0'"
         draggable="false"
       />
 
-      <!-- Logo (100x55 em (91,22)) — camada casada: fica no lugar, troca a cor. -->
+      <!-- Logo (100x55 em (91,22) no desktop; 72x40 abaixo de xl como na
+           Navigation) — camada casada: fica no lugar, troca a cor. -->
       <button
         type="button"
-        class="relative z-10 h-[55px] w-[100px] shrink-0 cursor-pointer border-0 bg-transparent p-0"
+        class="relative z-10 h-10 w-[72px] shrink-0 cursor-pointer border-0 bg-transparent p-0 xl:h-[55px] xl:w-[100px]"
         aria-label="Voltar ao início"
         @click="voltarAoInicio"
       >
         <AppLogo
           variant="logo-2"
+          :width="72"
+          :height="40"
+          alt=""
+          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none xl:hidden"
+          :class="criado ? 'opacity-0' : 'opacity-100'"
+        />
+        <AppLogo
+          variant="logo-1"
+          :width="72"
+          :height="40"
+          alt=""
+          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none xl:hidden"
+          :class="criado ? 'opacity-100' : 'opacity-0'"
+        />
+        <AppLogo
+          variant="logo-2"
           :width="100"
           :height="55"
           alt=""
-          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          class="absolute inset-0 hidden transition-opacity duration-300 ease-out motion-reduce:transition-none xl:block"
           :class="criado ? 'opacity-0' : 'opacity-100'"
         />
         <AppLogo
@@ -285,7 +304,7 @@ const inputBase =
           :width="100"
           :height="55"
           alt=""
-          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          class="absolute inset-0 hidden transition-opacity duration-300 ease-out motion-reduce:transition-none xl:block"
           :class="criado ? 'opacity-100' : 'opacity-0'"
         />
       </button>
