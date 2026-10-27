@@ -89,7 +89,6 @@ const passos = [
         </a>
 
         <a class="transition-colors hover:text-co-blue" href="#como-funciona"> Como funciona </a>
-        <a class="transition-colors hover:text-co-blue" href="#seguranca"> Segurança </a>
       </nav>
 
 
@@ -110,7 +109,6 @@ const passos = [
 
         <a href="#como-funciona" @click="menuAberto = false"> Como funciona </a>
 
-        <a href="#seguranca" @click="menuAberto = false"> Segurança </a>
       </nav>
     </div>
 

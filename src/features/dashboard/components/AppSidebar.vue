@@ -6,6 +6,8 @@ import {
   faTableColumns,
   faMessage,
   faUsers,
+  faXmark,
+  faNewspaper,
 } from '@fortawesome/free-solid-svg-icons'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -13,7 +15,14 @@ import { computed, ref } from 'vue'
 import { clearSession, currentUser } from '../../../shared/services/session'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
 
-const emit = defineEmits<{ (e: 'open-profile-config'): void }>()
+const props = defineProps<{
+  mobileOpen: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'open-profile-config'): void
+  (e: 'close-mobile'): void
+}>()
 
 const router = useRouter()
 const menuAberto = ref(false)
@@ -23,8 +32,9 @@ const course = computed(() => 'usuário')
 const menuItems = [
   { label: 'Visão geral', icon: faTableColumns, path: '/dashboard' },
   { label: 'Conversas', icon: faMessage, path: '/dashboard/chat', badge: '{notificações}' },
-  { label: 'Comunidades', icon: faUsers, path: '/dashboard#comunidades' },
-  { label: 'Agenda', icon: faCalendarDays, path: '/dashboard#agenda' },
+  { label: 'Comunidades', icon: faUsers, path: '/dashboard/communities' },
+  { label: 'Publicações', icon: faNewspaper, path: '/dashboard/posts' },
+  { label: 'Agenda', icon: faCalendarDays, path: '/dashboard/agenda' },
 ]
 
 const route = useRoute()
@@ -40,6 +50,9 @@ async function logout() {
     await fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
+      headers: {
+        'X-CSRF-Protection': '1',
+      },
     })
   } catch {
     // ignora falha do backend e continua limpando localmente
@@ -58,6 +71,7 @@ function abrirOpcoes() {
 function abrirConfiguracaoPerfil() {
   menuAberto.value = false
   submenuAberto.value = false
+  emit('close-mobile')
   emit('open-profile-config')
 }
 
@@ -70,9 +84,13 @@ const profile = computed(() => ({
 
 <template>
   <aside
+    id="dashboard-sidebar"
     class="dashboard-sidebar flex w-[260px] shrink-0 flex-col border-r border-traceline bg-co-white px-[18px] py-7 max-[850px]:w-[72px] max-[850px]:px-2.5 max-[620px]:hidden"
-  >
-    <div class="conecta-text flex gap-2 items-end select-none h-8">
+    :class="props.mobileOpen
+      ? 'max-[620px]:!fixed max-[620px]:!inset-y-0 max-[620px]:!left-0 max-[620px]:!z-[51] max-[620px]:!flex max-[620px]:!w-[82vw] max-[620px]:!max-w-[300px] max-[620px]:overflow-y-auto max-[620px]:shadow-2xl'
+      : ''
+      ">
+    <div class="conecta-text flex h-8 items-end justify-between gap-2 select-none">
       <span
         class="brand-icon grid size-9 place-items-center rounded-xl bg-co-blue text-lg font-bold text-co-white"
         >C</span
@@ -82,6 +100,15 @@ const profile = computed(() => ({
         :font-size="21"
         class="brand-name tracking-[-.7px] max-[850px]:hidden"
       />
+      <button
+        v-if="props.mobileOpen"
+        type="button"
+        class="grid size-9 shrink-0 place-items-center rounded-lg border border-traceline bg-co-white text-text-2 min-[621px]:hidden"
+        aria-label="Fechar navegação"
+        @click="emit('close-mobile')"
+      >
+        <font-awesome-icon :icon="faXmark" />
+      </button>
     </div>
 
     <nav class="sidebar-navigation mt-[66px] max-[850px]:mt-14" aria-label="Navegação do dashboard">
@@ -95,14 +122,29 @@ const profile = computed(() => ({
         v-for="item in menuItems"
         :key="item.label"
         :to="item.path"
+        :aria-label="item.label"
+        :title="item.label"
         class="navigation-item hover:bg-s-blue/30 transition-colors relative flex h-[46px] items-center gap-3 rounded-[11px] px-[13px] text-sm font-semibold text-text-2 no-underline [&+&]:mt-[5px] max-[850px]:justify-center max-[850px]:px-0"
         :class="isActive(item.path) ? 'navigation-item-active bg-s-blue text-co-blue' : ''"
+        @click="emit('close-mobile')"
       >
         <font-awesome-icon :icon="item.icon" />
-        <span class="max-[850px]:hidden">{{ item.label }}</span>
+        <span
+          class="max-[850px]:hidden"
+          :class="props.mobileOpen
+            ? 'max-[620px]:!flex max-[620px]:min-w-0 max-[620px]:flex-1 max-[620px]:truncate'
+            : ''
+            "
+        >
+          {{ item.label }}
+        </span>
         <span
           v-if="item.badge"
           class="navigation-badge ml-auto min-w-[22px] rounded-full bg-co-coral px-1.5 py-[3px] text-center text-[10px] text-co-white max-[850px]:absolute max-[850px]:-right-0.5 max-[850px]:-top-1 max-[850px]:min-w-[17px] max-[850px]:px-1 max-[850px]:py-0.5"
+          :class="props.mobileOpen
+            ? 'max-[620px]:!static max-[620px]:!h-auto max-[620px]:!max-w-[90px] max-[620px]:!min-w-[22px] max-[620px]:truncate'
+            : ''
+            "
           >{{ item.badge }}</span
         >
       </RouterLink>
@@ -124,7 +166,8 @@ const profile = computed(() => ({
       </p>
       <RouterLink
         class="flex items-center gap-1 text-[11px] font-bold text-co-coral no-underline"
-        to="/dashboard#comunidades"
+        to="/dashboard/communities"
+        @click="emit('close-mobile')"
         >Explorar comunidades <font-awesome-icon :icon="faArrowRight"
       /></RouterLink>
     </div>
@@ -148,71 +191,80 @@ const profile = computed(() => ({
         <strong class="block truncate text-xs">{{ profile.name }}</strong>
         <span class="mt-0.5 block truncate text-[10px] text-text-2">{{ profile.curso }}</span>
       </div>
+
+
       <div class="relative flex items-center justify-center">
         <button
-          class="icon-button border-0 hover:cursor-pointer transition-colors bg-transparent text-text-2 hover:text-co-blue max-[850px]:hidden"
+          type="button"
+          class="icon-button inline-flex cursor-pointer items-center justify-center border-0 bg-transparent text-text-2 transition-colors hover:text-co-blue max-[850px]:hidden"
+          :class="props.mobileOpen ? 'max-[620px]:!inline-flex' : ''"
           aria-label="Mais opções"
-          @click="menuAberto = !menuAberto"
+          :aria-expanded="menuAberto"
+          @click="menuAberto = !menuAberto; submenuAberto = false"
         >
           <font-awesome-icon :icon="faEllipsis" />
         </button>
 
         <div
           v-if="menuAberto"
-          class="absolute bottom-0 left-[calc(100%+10px)] z-20 w-[180px] overflow-hidden rounded-[16px] border border-traceline bg-co-white shadow-lg shadow-co-blue/10"
+          class="fixed z-[100] w-[min(220px,calc(100vw-24px))] overflow-hidden rounded-[16px] border border-traceline bg-co-white shadow-[0_12px_30px_rgba(17,24,39,0.12)]"
+          :style="{
+            right: '12px',
+            bottom: '12px',
+            maxHeight: 'calc(100dvh - 24px)',
+          }"
           @click.stop
         >
-          <button
-            type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-            @click="abrirConfiguracaoPerfil"
-          >
-            <span>Perfil</span>
-          </button>
+          <template v-if="!submenuAberto">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+              @click="abrirConfiguracaoPerfil"
+            >
+              <span>Perfil</span>
+            </button>
 
-          <button
-            type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-            @click="abrirOpcoes"
-          >
-            <span>Opções</span>
-            <span class="text-[11px] text-text-2">›</span>
-          </button>
+            <button
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+              @click="abrirOpcoes"
+            >
+              <span>Opções</span>
+              <span class="text-[11px] text-text-2">›</span>
+            </button>
 
-          <button
-            type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-co-coral transition-colors hover:bg-s-coral"
-            @click="logout"
-          >
-            <span>Sair</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-co-coral transition-colors hover:bg-s-coral"
+              @click="logout"
+            >
+              <span>Sair</span>
+            </button>
+          </template>
 
-        <div
-          v-if="submenuAberto && menuAberto"
-          class="absolute bottom-0 left-[calc(100%+10.4dvw)] z-30 w-[180px] overflow-hidden rounded-[16px] border border-traceline bg-co-white shadow-lg shadow-co-blue/10"
-        >
-          <button
-            type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-            @click="submenuAberto = false; menuAberto = false"
-          >
-            <span>Conta</span>
-          </button>
-          <button
-            type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-            @click="submenuAberto = false; menuAberto = false"
-          >
-            <span>Preferências</span>
-          </button>
-          <button
-            type="button"
-            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-            @click="submenuAberto = false; menuAberto = false"
-          >
-            <span>Privacidade</span>
-          </button>
+          <template v-else>
+            <button
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+              @click="submenuAberto = false; menuAberto = false"
+            >
+              <span>Conta</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+              @click="submenuAberto = false; menuAberto = false"
+            >
+              <span>Preferências</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+              @click="submenuAberto = false; menuAberto = false"
+            >
+              <span>Privacidade</span>
+            </button>
+          </template>
         </div>
       </div>
     </div>

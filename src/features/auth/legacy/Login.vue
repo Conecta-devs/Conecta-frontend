@@ -10,7 +10,7 @@ import {
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { LoginUser, registerUser } from '../services/auth'
-import { saveAccessToken, saveSession } from '../../../shared/services/session'
+import { saveSession } from '../../../shared/services/session'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
 import ProfileSetupModal from '../../profile/ProfileSetupModal.vue'
 
@@ -33,19 +33,17 @@ async function enviarFormulario() {
 
   try {
     if (modoCadastro.value) {
-      const registerResponse = await registerUser({
+      await registerUser({
         name: nome.value,
         email: email.value,
         password: senha.value,
       })
-      const registerToken = registerResponse.accessToken ?? registerResponse.token ?? null
 
-      if (registerResponse.user) {
-        saveSession(registerResponse.user, registerToken)
-      } else if (registerToken) {
-        // Mantém o token até o perfil ser salvo; a sessão completa é criada lá.
-        saveAccessToken(registerToken)
-      }
+      const loginResponse = await LoginUser({
+        email: email.value,
+        password: senha.value,
+      })
+      saveSession(loginResponse.user, loginResponse.accessToken)
 
       conta.value = 'conta criada com sucesso!'
       perfilCriado.value = true
@@ -60,9 +58,7 @@ async function enviarFormulario() {
         password: senha.value,
       })
 
-      const token = loginResponse.accessToken ?? loginResponse.token ?? null
-
-      saveSession(loginResponse.user, token)
+      saveSession(loginResponse.user, loginResponse.accessToken)
       router.push('/dashboard')
     }
   } catch (error) {
@@ -109,27 +105,27 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
 
       <div class="relative z-10 max-w-[440px] py-8 lg:py-0">
         <p class="mb-4 text-[10px] font-bold uppercase tracking-[1.5px] text-s-blue">
-          Um lugar para pertencer(text a decidir)
+          Um lugar para pertencer
         </p>
         <h1
           class="text-h2 max-w-[430px]"
         >
-          texto aleatorio sujeito a mudança apenas layout mesmo...
+          CONECTE-SE
         </h1>
         <p class="mt-5 max-w-[390px] text-sm leading-6 text-s-blue">
           Conecte-se com estudantes, encontre seu grupo e construa novas histórias dentro e fora da
-          sala de aula.(texto aleatorio sujeito a mudança)
+          sala de aula.
         </p>
         <div class="mt-8 flex items-center gap-3 text-xs font-semibold text-s-blue">
           <span class="grid size-8 place-items-center rounded-full bg-co-coral text-co-white"
             ><font-awesome-icon :icon="faUser"
           /></span>
-          Comunidade feita para você(text a decidir)
+          Comunidade feita para você
         </div>
       </div>
 
       <p class="relative z-10 m-0 hidden text-[11px] text-s-blue lg:block">
-        Conversa que aproxima. Conecta que transforma.(text a decidir)
+        Conversa que aproxima. Conecta que transforma.
       </p>
     </section>
 
@@ -148,15 +144,15 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
           <h2 class="text-h2">
             {{
               modoCadastro
-                ? 'Crie sua conta. (text a decidir)'
-                : 'Que bom ter você aqui. (text a decidir)'
+                ? 'Crie sua conta. '
+                : 'Que bom ter você aqui. '
             }}
           </h2>
           <p class="mt-3 text-sm leading-6 text-text-2">
             {{
               modoCadastro
-                ? 'Preencha seus dados e comece a fazer novas conexões. (text a decidir)'
-                : 'Entre para continuar de onde parou. (text a decidir)'
+                ? 'Preencha seus dados e comece a fazer novas conexões.'
+                : 'Entre para continuar de onde parou.'
             }}
           </p>
         </div>
@@ -239,9 +235,12 @@ function finalizarPerfil(payload: { name: string; image: string; gen: string; bi
               </button></div
           ></label>
           <div v-if="!modoCadastro" class="-mt-2 flex justify-end">
-            <a class="text-xs font-bold text-s-blue no-underline hover:text-co-blue" href="#"
-              >Esqueci minha senha</a
+            <RouterLink
+              class="text-xs font-bold text-s-blue no-underline hover:text-co-blue"
+              to="/forgot-password"
             >
+              Esqueci minha senha
+            </RouterLink>
           </div>
           <button
             class="auth-submit cursor-pointer mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-lg border-0 bg-co-blue text-sm font-bold text-co-white transition-colors hover:bg-co-blue/90"

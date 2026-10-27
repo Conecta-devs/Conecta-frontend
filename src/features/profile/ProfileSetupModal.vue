@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { getUserProfile, updateUserProfile } from '../auth/services/auth'
 import { currentUser, saveSession } from '../../shared/services/session'
@@ -16,19 +16,40 @@ const emit = defineEmits<{
 interface ProfileForm {
   name: string
   image: string
-  gen: string
+  gen: GenderValue
   bio: string
+}
+
+type GenderValue = 'masculino' | 'feminino' | 'outro' | 'prefiro nao informar'
+
+function normalizeGenderValue(value?: string | null): GenderValue {
+  switch (value?.trim().toLocaleLowerCase('pt-BR')) {
+    case 'masculino':
+      return 'masculino'
+    case 'feminino':
+      return 'feminino'
+    case 'outro':
+      return 'outro'
+    case 'prefiro nao informar':
+    case 'prefiro não informar':
+    case 'nao informar':
+    case 'não informar':
+    default:
+      return 'prefiro nao informar'
+  }
 }
 
 const emptyForm = (): ProfileForm => ({
   name: '',
   image: '',
-  gen: 'Não informar',
+  gen: 'prefiro nao informar',
   bio: '',
 })
 
 const form = ref<ProfileForm>(emptyForm())
 const isSaving = ref(false)
+let previousBodyOverflow: string | null = null
+let previousDocumentOverflow: string | null = null
 
 const imagePreview = computed(() => {
   return form.value.image || 'https://placehold.co/240x240/a9b7e5/667087?text=Sua+foto'
@@ -38,13 +59,29 @@ watch(
   () => props.modelValue,
   async (isOpen) => {
     if (isOpen) {
+      previousBodyOverflow = document.body.style.overflow
+      previousDocumentOverflow = document.documentElement.style.overflow
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
       await loadProfile()
       return
     }
 
+    restoreBodyOverflow()
     form.value = emptyForm()
   },
 )
+
+function restoreBodyOverflow() {
+  if (previousBodyOverflow === null || previousDocumentOverflow === null) return
+
+  document.body.style.overflow = previousBodyOverflow
+  document.documentElement.style.overflow = previousDocumentOverflow
+  previousBodyOverflow = null
+  previousDocumentOverflow = null
+}
+
+onBeforeUnmount(restoreBodyOverflow)
 
 async function loadProfile() {
   try {
@@ -53,7 +90,7 @@ async function loadProfile() {
     form.value = {
       name: profile.name || '',
       image: profile.image || '',
-      gen: profile.gen || 'Não informar',
+      gen: normalizeGenderValue(profile.gen),
       bio: profile.bio || '',
     }
   } catch {
@@ -72,7 +109,7 @@ async function saveProfile() {
     const updated = await updateUserProfile({
       name: form.value.name,
       bio: form.value.bio,
-      gen: form.value.gen,
+      gen: normalizeGenderValue(form.value.gen),
       image: form.value.image,
     })
 
@@ -96,18 +133,21 @@ async function saveProfile() {
   <Teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-text-1/55 p-4 backdrop-blur-sm"
+      class="fixed inset-0 z-[60] flex items-start justify-center overflow-hidden bg-text-1/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
       @click.self="close"
     >
       <div
-        class="min-h-[86dvh] w-full max-w-[70dvw] overflow-y-auto rounded-[15px] border border-none bg-co-white shadow-xl shadow-co-blue/20"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-setup-title"
+        class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-xl border border-traceline bg-co-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]"
       >
-        <div class="flex items-center justify-between border-b border-traceline px-6 py-5 sm:px-8">
+        <div class="flex items-center justify-between gap-3 border-b border-traceline px-4 py-4 sm:px-8 sm:py-5">
           <div>
             <p class="mb-1 text-[10px] font-bold uppercase tracking-[1.6px] text-co-coral">
               Perfil de usuário
             </p>
-            <h2 class="text-h2 text-text-1">
+            <h2 id="profile-setup-title" class="text-h2 text-text-1">
               Personalize sua presença
             </h2>
           </div>
@@ -121,8 +161,8 @@ async function saveProfile() {
           </button>
         </div>
 
-        <div class="grid gap-8 px-6 py-6 sm:px-8 lg:grid-cols-[230px_1fr]">
-          <aside class="rounded-[24px] bg-s-blue/30 p-5">
+        <div class="grid min-w-0 gap-6 px-4 py-5 sm:gap-8 sm:px-8 sm:py-6 lg:grid-cols-[230px_minmax(0,1fr)]">
+          <aside class="min-w-0 rounded-2xl bg-s-blue/30 p-4 sm:p-5">
             <div
               class="mb-4 mx-auto flex h-[170px] w-[170px] items-center justify-center overflow-hidden rounded-full border-4 border-co-white bg-s-blue shadow-lg shadow-co-blue/10"
             >
@@ -151,7 +191,7 @@ async function saveProfile() {
                   v-model="form.name"
                   type="text"
                   placeholder="Seu nome completo"
-                  class="h-12 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
+                  class="h-12 w-full min-w-0 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
                 />
               </label>
 
@@ -161,7 +201,7 @@ async function saveProfile() {
                   v-model="form.image"
                   type="url"
                   placeholder="https://exemplo.com/foto.jpg"
-                  class="h-12 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
+                  class="h-12 w-full min-w-0 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
                 />
               </label>
 
@@ -169,12 +209,12 @@ async function saveProfile() {
                 <span>Gênero</span>
                 <select
                   v-model="form.gen"
-                  class="h-12 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
+                  class="h-12 w-full min-w-0 rounded-xl border border-traceline bg-co-white px-3.5 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
                 >
-                  <option>Não informar</option>
-                  <option>Masculino</option>
-                  <option>Feminino</option>
-                  <option>Outro</option>
+                  <option value="prefiro nao informar">Prefiro não informar</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="feminino">Feminino</option>
+                  <option value="outro">Outro</option>
                 </select>
               </label>
             </div>
@@ -186,7 +226,7 @@ async function saveProfile() {
                 rows="7"
                 maxlength="280"
                 placeholder="Conte um pouco sobre você, suas metas, hobbies e o que você busca na comunidade..."
-                class="min-h-[160px] resize-none rounded-xl border border-traceline bg-co-white px-3.5 py-3 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
+                class="min-h-[160px] w-full min-w-0 resize-y rounded-xl border border-traceline bg-co-white px-3.5 py-3 text-sm text-text-1 outline-none transition focus:border-s-blue focus:shadow-co-blue/10"
               />
             </label>
 

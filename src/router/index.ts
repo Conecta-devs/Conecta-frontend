@@ -9,6 +9,8 @@ const publicRoutes = [
   '/login',
   '/login-v2',
   '/conta-criada',
+  '/forgot-password',
+  '/reset-password',
 ]
 
 const router = createRouter({
@@ -55,12 +57,37 @@ const router = createRouter({
           component: () => import('../features/dashboard/pages/Chat.vue'),
           meta: { hideHeader: true },
         },
+        {
+          path: 'communities',
+          name: 'Communities',
+          component: () => import('../features/dashboard/pages/Communities.vue'),
+        },
+        {
+          path: 'agenda',
+          name: 'Agenda',
+          component: () => import('../features/dashboard/pages/Agenda.vue'),
+        },
+        {
+          path: 'posts',
+          name: 'Posts',
+          component: () => import('../features/dashboard/pages/Posts.vue'),
+        },
       ],
     },
     {
       path: '/login',
       name: 'Login',
       component: () => import('../features/auth/legacy/Login.vue'),
+    },
+    {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: () => import('../features/auth/pages/ForgotPassword.vue'),
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: () => import('../features/auth/pages/ResetPassword.vue'),
     },
     {
       path: '/:pathMatch(.*)*',
@@ -73,6 +100,12 @@ router.beforeEach((to) => {
   const authenticated = isAuthenticated()
   const isPublicRoute = publicRoutes.includes(to.path)
   const isDashboardRoute = to.path === '/dashboard' || to.path.startsWith('/dashboard/')
+  const isPasswordRecoveryRoute =
+    to.path === '/forgot-password' || to.path === '/reset-password'
+
+  if (isPasswordRecoveryRoute) {
+    return true
+  }
 
   if (to.path === '/login' && authenticated) {
     return '/dashboard'

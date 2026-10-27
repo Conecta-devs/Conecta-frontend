@@ -130,8 +130,7 @@ async function enviar() {
       }, 320)
     } else {
       const resposta = await LoginUser({ email: email.value, password: senha.value })
-      const token = resposta.accessToken ?? resposta.token ?? null
-      saveSession(resposta.user, token)
+      saveSession(resposta.user, resposta.accessToken)
       router.push('/dashboard')
     }
   } catch {
