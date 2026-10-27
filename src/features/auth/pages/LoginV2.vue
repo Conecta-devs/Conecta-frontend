@@ -204,19 +204,20 @@ const inputBase =
   >
     <!-- ========== Painel (468:187 azul) ========== -->
     <section
-      class="auth-panel relative flex shrink-0 flex-col justify-between overflow-hidden bg-co-blue px-6 py-6 text-co-white transition-colors duration-300 ease-out sm:px-12 sm:py-8 lg:min-h-dvh lg:px-[clamp(40px,7vw,91px)] lg:py-8"
+      class="auth-panel relative flex shrink-0 flex-col justify-between overflow-hidden bg-co-blue px-6 py-6 text-co-white transition-colors duration-300 ease-out sm:px-12 sm:py-8 lg:min-h-dvh lg:px-[clamp(40px,7vw,91px)] lg:pt-[22px] lg:pb-[18px]"
     >
-      <!-- Orbitais decorativos (468:204/468:205) — só a partir de sm -->
+      <!-- Orbitais decorativos (468:204/468:205) — no Figma ficam no canto
+           inferior direito do painel, encostados na borda do formulário. -->
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute -bottom-40 -left-16 hidden size-[420px] opacity-80 sm:block lg:-bottom-32 lg:-left-10 lg:size-[590px]"
+        class="pointer-events-none absolute -bottom-36 -right-24 hidden size-[420px] sm:block lg:-bottom-[221px] lg:-right-[142px] lg:size-[590px]"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute -bottom-48 -left-24 hidden size-[500px] opacity-60 sm:block lg:-bottom-40 lg:-left-20 lg:size-[670px]"
+        class="pointer-events-none absolute -bottom-44 -right-32 hidden size-[500px] sm:block lg:-bottom-[261px] lg:-right-[182px] lg:size-[670px]"
         draggable="false"
       />
 
@@ -252,7 +253,7 @@ const inputBase =
 
     <!-- ========== Formulário (454:99 / 468:206) ========== -->
     <section
-      class="flex flex-1 items-center justify-center px-6 py-10 sm:px-10 lg:px-16 lg:py-[123px]"
+      class="auth-form-section flex flex-1 items-center justify-center px-6 py-10 sm:px-10 lg:items-start lg:px-16"
     >
       <form
         class="flex w-full max-w-[710px] flex-col items-start gap-6 lg:gap-8"
@@ -422,20 +423,33 @@ const inputBase =
     <!-- ========== Sucesso (506:1739) — painel verde de tela cheia ========== -->
     <div
       v-if="criado"
-      class="auth-success fixed inset-0 z-50 flex flex-col justify-between overflow-hidden bg-tree-green px-7 py-8 text-co-white sm:px-12 lg:px-[91px]"
+      class="auth-success fixed inset-0 z-50 flex flex-col justify-between overflow-hidden bg-tree-green px-7 py-8 text-co-white sm:px-12 lg:px-[91px] lg:pt-[22px]"
       role="status"
       aria-live="polite"
     >
+      <!-- Orbitais: par inferior esquerdo e par superior direito (506:1803–1847). -->
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute -right-24 -top-32 size-[420px] opacity-70 sm:size-[520px] lg:-right-16 lg:-top-24 lg:size-[590px]"
+        class="pointer-events-none absolute -bottom-36 -left-20 size-[420px] lg:-bottom-[221px] lg:left-[15.73%] lg:size-[590px]"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute -right-32 -top-40 hidden size-[620px] opacity-50 sm:block lg:-right-24 lg:-top-32 lg:size-[670px]"
+        class="pointer-events-none absolute -bottom-44 -left-24 hidden size-[500px] sm:block lg:-bottom-[261px] lg:left-[13.65%] lg:size-[670px]"
+        draggable="false"
+      />
+      <img
+        :src="orbitInner"
+        alt=""
+        class="pointer-events-none absolute -right-24 -top-32 size-[420px] sm:size-[520px] lg:-top-[194px] lg:-right-[178px] lg:size-[590px]"
+        draggable="false"
+      />
+      <img
+        :src="orbitOuter"
+        alt=""
+        class="pointer-events-none absolute -right-32 -top-40 hidden size-[620px] sm:block lg:-top-[154px] lg:-right-[298px] lg:size-[670px]"
         draggable="false"
       />
 
@@ -473,6 +487,15 @@ const inputBase =
 .auth-shell {
   --smart-animate: 300ms;
   --smart-ease: ease-out;
+}
+
+/* Figma: o formulário começa a 123px do topo num frame de 911px. Em janelas
+   mais baixas o padding encolhe para a tela caber inteira, sem scroll. */
+@media (min-width: 64rem) {
+  .auth-form-section {
+    padding-top: clamp(16px, calc(100dvh - 800px), 123px);
+    padding-bottom: 16px;
+  }
 }
 
 /* Sucesso entra como no Smart Animate do protótipo: 300ms, ease out. */
