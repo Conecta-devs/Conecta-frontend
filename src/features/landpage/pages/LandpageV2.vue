@@ -94,7 +94,8 @@ function rolarPara(id: string) {
   secaoAtiva.value = id
 }
 
-const secoes = ['por-que-conecta', 'como-funciona']
+// "seguranca" entra na lista para quando a seção/tela existir.
+const secoes = ['por-que-conecta', 'como-funciona', 'seguranca']
 
 let observer: IntersectionObserver | null = null
 
@@ -158,7 +159,7 @@ onUnmounted(() => {
           <AppLogo variant="conecta" :font-size="24" alt="" class="hidden sm:inline" />
         </button>
 
-        <nav class="hidden items-center gap-8 lg:flex" aria-label="Navegação principal">
+        <nav class="hidden items-center gap-6 lg:flex xl:gap-8" aria-label="Navegação principal">
           <button
             type="button"
             class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
@@ -178,6 +179,18 @@ onUnmounted(() => {
             @click="rolarPara('como-funciona')"
           >
             Como funciona
+          </button>
+          <!-- Segurança ainda não tem seção própria: quando a tela chegar,
+               basta dar o id "seguranca" ao destino (ou trocar por router.push). -->
+          <button
+            type="button"
+            class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
+            :class="
+              secaoAtiva === 'seguranca' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
+            "
+            @click="rolarPara('seguranca')"
+          >
+            Segurança
           </button>
         </nav>
 
@@ -227,6 +240,13 @@ onUnmounted(() => {
             @click="rolarPara('como-funciona')"
           >
             Como funciona
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer border-0 border-b border-traceline bg-transparent px-0 py-4 text-left text-h4 text-text-1"
+            @click="rolarPara('seguranca')"
+          >
+            Segurança
           </button>
         </nav>
 
