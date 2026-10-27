@@ -1,63 +1,91 @@
-<<<<<<< Updated upstream
-const API_URL = '/api'
-=======
-import {
-  clearSession,
-  currentUser,
-  getStoredAccessToken,
-  saveSession,
-} from './session'
 import { apiUrl, fetchApi } from './api'
->>>>>>> Stashed changes
+import { clearSession, currentUser, getStoredAccessToken, saveSession } from './session'
+
+export interface AuthUser {
+  sub?: string
+  name: string
+  email: string
+  course?: string
+  image?: string | null
+  bio?: string
+}
+
+export interface LoginPayload {
+  email: string
+  password: string
+}
 
 export interface RegisterPayload {
   name: string
   email: string
   password: string
 }
-export interface LoginPayload {
-  email: string
-  password: string
-}
-
-export interface AuthUser {
-  name: string
-  email: string
-  course: string
-}
 
 export interface LoginResponse {
-  accessToken: string
   user: AuthUser
+  accessToken: string
 }
 
-<<<<<<< Updated upstream
-=======
-function fetchWithAccessToken(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  accessToken: string,
-): Promise<Response> {
-  const headers = new Headers(init.headers)
-  headers.set('Authorization', `Bearer ${accessToken}`)
+export type UserProfile = AuthUser
 
-  return fetchApi(input, { ...init, headers })
+type RefreshFailureKind = 'unauthorized' | 'network' | 'server' | 'http' | 'invalid-response'
+
+class RefreshFailure extends Error {
+  readonly kind: RefreshFailureKind
+
+  constructor(kind: RefreshFailureKind, message: string) {
+    super(message)
+    this.name = 'RefreshFailure'
+    this.kind = kind
+  }
 }
 
-function refreshAccessToken(expectedAccessToken: string): Promise<string> {
-  const currentAccessToken = getStoredAccessToken()
+let refreshPromise: Promise<string> | null = null
+let loginRedirectPromise: Promise<void> | null = null
 
-  if (currentAccessToken && currentAccessToken !== expectedAccessToken) {
-    return Promise.resolve(currentAccessToken)
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeUser(value: unknown): AuthUser | null {
+  if (!isRecord(value) || typeof value.name !== 'string' || typeof value.email !== 'string') {
+    return null
   }
 
-  if (currentAccessToken !== expectedAccessToken) {
-    return Promise.reject(new RefreshFailure('unauthorized', 'A sessão foi encerrada.'))
+  const sub = typeof value.sub === 'string' ? value.sub : value.id
+  return {
+    ...(typeof sub === 'string' ? { sub } : {}),
+    name: value.name,
+    email: value.email,
+    ...(typeof value.course === 'string' ? { course: value.course } : {}),
+    ...(typeof value.image === 'string' || value.image === null ? { image: value.image } : {}),
+    ...(typeof value.bio === 'string' ? { bio: value.bio } : {}),
+  }
+}
+
+async function responseMessage(response: Response, fallback: string): Promise<string> {
+  const data: unknown = await response.json().catch(() => null)
+  if (isRecord(data) && typeof data.message === 'string' && data.message.trim()) {
+    return data.message.trim()
+  }
+  if (
+    isRecord(data) &&
+    Array.isArray(data.message) &&
+    data.message.every((item) => typeof item === 'string')
+  ) {
+    return data.message.join(' ')
+  }
+  return fallback
+}
+
+async function refreshAccessToken(expectedAccessToken: string): Promise<string> {
+  if (getStoredAccessToken() !== expectedAccessToken) {
+    const latestAccessToken = getStoredAccessToken()
+    if (latestAccessToken) return latestAccessToken
+    throw new RefreshFailure('unauthorized', 'A sessão foi encerrada.')
   }
 
-  if (refreshPromise) {
-    return refreshPromise
-  }
+  if (refreshPromise) return refreshPromise
 
   const pendingRefresh = (async () => {
     let response: Response
@@ -65,10 +93,7 @@ function refreshAccessToken(expectedAccessToken: string): Promise<string> {
       response = await fetchApi(apiUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          Accept: 'application/json',
-          'X-CSRF-Protection': '1',
-        },
+        headers: { Accept: 'application/json', 'X-CSRF-Protection': '1' },
       })
     } catch {
       throw new RefreshFailure('network', 'Falha de rede ao renovar sua sessão.')
@@ -77,40 +102,28 @@ function refreshAccessToken(expectedAccessToken: string): Promise<string> {
     if (response.status === 401) {
       throw new RefreshFailure('unauthorized', 'Sua sessão expirou. Entre novamente.')
     }
-
     if (!response.ok) {
-      const kind = response.status >= 500 ? 'server' : 'http'
-      throw new RefreshFailure(kind, 'Não foi possível renovar sua sessão.')
-    }
-
-    const data: unknown = await response.json().catch(() => null)
-    if (
-      !data ||
-      typeof data !== 'object' ||
-      !('accessToken' in data) ||
-      typeof data.accessToken !== 'string' ||
-      !data.accessToken.trim()
-    ) {
       throw new RefreshFailure(
-        'invalid-response',
-        'A resposta de renovação da sessão é inválida.',
+        response.status >= 500 ? 'server' : 'http',
+        await responseMessage(response, 'Não foi possível renovar sua sessão.'),
       )
     }
 
-    const latestAccessToken = getStoredAccessToken()
-    if (latestAccessToken !== expectedAccessToken) {
+    const data: unknown = await response.json().catch(() => null)
+    if (!isRecord(data) || typeof data.accessToken !== 'string' || !data.accessToken.trim()) {
+      throw new RefreshFailure('invalid-response', 'A resposta de renovação da sessão é inválida.')
+    }
+
+    if (getStoredAccessToken() !== expectedAccessToken) {
+      const latestAccessToken = getStoredAccessToken()
       if (latestAccessToken) return latestAccessToken
       throw new RefreshFailure('unauthorized', 'A sessão foi encerrada.')
     }
 
     const user = currentUser.user
-    if (!user) {
-      throw new RefreshFailure('unauthorized', 'A sessão foi encerrada.')
-    }
-
-    const nextAccessToken = data.accessToken.trim()
-    saveSession(user, nextAccessToken)
-    return nextAccessToken
+    if (!user) throw new RefreshFailure('unauthorized', 'A sessão foi encerrada.')
+    saveSession(user, data.accessToken)
+    return data.accessToken
   })()
 
   refreshPromise = pendingRefresh
@@ -122,11 +135,10 @@ function refreshAccessToken(expectedAccessToken: string): Promise<string> {
       if (refreshPromise === pendingRefresh) refreshPromise = null
     },
   )
-
   return pendingRefresh
 }
 
-async function clearSessionAndRedirect(expectedAccessToken: string | null): Promise<void> {
+async function redirectToLogin(expectedAccessToken: string): Promise<void> {
   if (getStoredAccessToken() !== expectedAccessToken) return
 
   if (!loginRedirectPromise) {
@@ -134,7 +146,7 @@ async function clearSessionAndRedirect(expectedAccessToken: string | null): Prom
       clearSession()
       const { default: router } = await import('../router')
       if (router.currentRoute.value.path !== '/login') {
-        await router.replace('/login')
+        await router.push('/login')
       }
     })()
   }
@@ -149,94 +161,73 @@ async function clearSessionAndRedirect(expectedAccessToken: string | null): Prom
 
 export async function fetchProtected(
   input: RequestInfo | URL,
-  init: RequestInit,
+  init: RequestInit = {},
 ): Promise<Response> {
   const accessToken = getStoredAccessToken()
-  if (!accessToken) {
-    await clearSessionAndRedirect(null)
-    throw new Error('Sessão expirada. Faça login novamente.')
+  if (!accessToken) throw new Error('Sessão expirada. Entre novamente.')
+
+  const send = (token: string) => {
+    const headers = new Headers(init.headers)
+    headers.set('Authorization', `Bearer ${token}`)
+    return fetchApi(input, { ...init, headers })
   }
 
-  const response = await fetchWithAccessToken(input, init, accessToken)
+  let response = await send(accessToken)
   if (response.status !== 401) return response
 
-  let retryAccessToken: string
-  const latestAccessToken = getStoredAccessToken()
-
-  if (latestAccessToken && latestAccessToken !== accessToken) {
-    retryAccessToken = latestAccessToken
-  } else {
-    try {
-      retryAccessToken = await refreshAccessToken(accessToken)
-    } catch (error) {
-      const tokenAfterFailure = getStoredAccessToken()
-      if (tokenAfterFailure && tokenAfterFailure !== accessToken) {
-        retryAccessToken = tokenAfterFailure
-      } else {
-        if (
-          error instanceof RefreshFailure &&
-          (error.kind === 'unauthorized' || error.kind === 'invalid-response')
-        ) {
-          await clearSessionAndRedirect(accessToken)
-        }
-        throw error
-      }
+  try {
+    const refreshedToken = await refreshAccessToken(accessToken)
+    response = await send(refreshedToken)
+    if (response.status === 401) await redirectToLogin(refreshedToken)
+    return response
+  } catch (error) {
+    if (
+      error instanceof RefreshFailure &&
+      (error.kind === 'unauthorized' || error.kind === 'invalid-response')
+    ) {
+      await redirectToLogin(accessToken)
     }
+    throw error
   }
-
-  const retriedResponse = await fetchWithAccessToken(input, init, retryAccessToken)
-  if (retriedResponse.status === 401) {
-    await clearSessionAndRedirect(retryAccessToken)
-  }
-
-  return retriedResponse
 }
 
->>>>>>> Stashed changes
 export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
   const response = await fetchApi(apiUrl('/auth/login'), {
     method: 'POST',
-    headers: {
-      'Content-type': 'application/json',
-    },
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
 
   if (!response.ok) {
-    throw new Error('Não foi possível fazer login na sua conta.')
+    throw new Error(await responseMessage(response, 'Não foi possível entrar na sua conta.'))
   }
 
-  return response.json() as Promise<LoginResponse>
+  const data: unknown = await response.json().catch(() => null)
+  const user = isRecord(data) ? normalizeUser(data.user) : null
+  if (!user || !isRecord(data) || typeof data.accessToken !== 'string') {
+    throw new Error('A resposta de autenticação é inválida.')
+  }
+  return { user, accessToken: data.accessToken }
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<void> {
   const response = await fetchApi(apiUrl('/auth/register'), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-
   if (!response.ok) {
-    throw new Error('Não foi possível criar sua conta.')
+    throw new Error(await responseMessage(response, 'Não foi possível criar sua conta.'))
   }
 }
-<<<<<<< Updated upstream
-=======
 
 async function readRecoveryMessage(response: Response, fallbackMessage: string): Promise<string> {
   const data: unknown = await response.json().catch(() => null)
-  if (
-    !data ||
-    typeof data !== 'object' ||
-    !('message' in data) ||
-    typeof data.message !== 'string' ||
-    !data.message.trim()
-  ) {
+  if (!isRecord(data) || typeof data.message !== 'string' || !data.message.trim()) {
     throw new Error(fallbackMessage)
   }
-
   return data.message.trim()
 }
 
@@ -259,10 +250,7 @@ export async function requestPasswordReset(email: string): Promise<string> {
     throw new Error('Não foi possível solicitar a redefinição agora. Tente novamente.')
   }
 
-  return readRecoveryMessage(
-    response,
-    'Não foi possível confirmar a solicitação. Tente novamente.',
-  )
+  return readRecoveryMessage(response, 'Não foi possível confirmar a solicitação. Tente novamente.')
 }
 
 export async function resetPassword(token: string, password: string): Promise<string> {
@@ -296,25 +284,30 @@ export async function getUserProfile(): Promise<UserProfile> {
     credentials: 'include',
     headers: { Accept: 'application/json' },
   })
-
   if (!response.ok) {
-    throw new Error('Não foi possível carregar o perfil do usuário.')
+    throw new Error(await responseMessage(response, 'Não foi possível carregar seu perfil.'))
   }
 
-  const data = (await response.json()) as Partial<UserProfile>
-  return normalizeUserProfile(data)
+  const data: unknown = await response.json().catch(() => null)
+  const profile = normalizeUser(isRecord(data) && 'user' in data ? data.user : data)
+  if (!profile) throw new Error('A resposta do perfil é inválida.')
+  return profile
 }
 
 export async function updateUserProfile(payload: Partial<UserProfile>): Promise<UserProfile> {
-  const body = JSON.stringify(sanitizeProfilePayload(payload))
-
+  const body = JSON.stringify({
+    ...(typeof payload.name === 'string' ? { name: payload.name } : {}),
+    ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
+    ...(typeof payload.course === 'string' ? { course: payload.course } : {}),
+    ...(typeof payload.image === 'string' || payload.image === null
+      ? { image: payload.image }
+      : {}),
+    ...(typeof payload.bio === 'string' ? { bio: payload.bio } : {}),
+  })
   let response = await fetchProtected(apiUrl('/auth/edit'), {
     method: 'PUT',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body,
   })
 
@@ -322,19 +315,16 @@ export async function updateUserProfile(payload: Partial<UserProfile>): Promise<
     response = await fetchProtected(apiUrl('/auth/edit'), {
       method: 'PATCH',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       body,
     })
   }
-
   if (!response.ok) {
-    throw new Error('Não foi possível atualizar o perfil do usuário.')
+    throw new Error(await responseMessage(response, 'Não foi possível atualizar seu perfil.'))
   }
 
-  const data = (await response.json().catch(() => ({}))) as Partial<UserProfile>
-  return normalizeUserProfile(data)
+  const data: unknown = await response.json().catch(() => null)
+  const profile = normalizeUser(isRecord(data) && 'user' in data ? data.user : data)
+  if (!profile) throw new Error('A resposta de atualização do perfil é inválida.')
+  return profile
 }
->>>>>>> Stashed changes

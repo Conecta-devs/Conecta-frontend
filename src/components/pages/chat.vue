@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Socket } from 'socket.io-client'
 import {
   faArrowLeft,
@@ -39,6 +39,9 @@ import {
 import { currentUser } from '../../services/session'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
+type ChatContextTarget =
+  | { type: 'conversation'; conversation: ChatConversation }
+  | { type: 'user'; user: ChatUserSuggestion }
 
 const conversations = ref<ChatConversation[]>([])
 const messages = ref<ChatMessage[]>([])
@@ -56,6 +59,7 @@ const usersPage = ref(1)
 const usersHasMore = ref(false)
 const creatingConversationFor = ref<string | null>(null)
 const startConversationError = ref('')
+const hiddenRecentConversationIds = ref<string[]>([])
 const groupDialogMode = ref<'create' | 'add' | null>(null)
 const groupDialogError = ref('')
 const groupDialogLoading = ref(false)
@@ -81,14 +85,31 @@ const pendingUnreadCounts = ref<Record<string, { count: number; revision: number
 let unreadEventRevision = 0
 let conversationsRequestRevision = 0
 const groupManagementOpen = ref(false)
+const contextMenu = ref<{ target: ChatContextTarget; x: number; y: number } | null>(null)
+const contextMenuElement = ref<HTMLElement | null>(null)
+const contextMenuTrigger = ref<HTMLElement | null>(null)
+const removeRecentConfirmationConversation = ref<ChatConversation | null>(null)
+const removeRecentConfirmationError = ref('')
+const removeRecentConfirmationLoading = ref(false)
+const removeRecentConfirmationButton = ref<HTMLButtonElement | null>(null)
+const removeRecentConfirmationSubmitButton = ref<HTMLButtonElement | null>(null)
+const leaveConfirmationConversation = ref<ChatConversation | null>(null)
+const leaveConfirmationError = ref('')
+const leaveConfirmationLoading = ref(false)
+const leaveConfirmationButton = ref<HTMLButtonElement | null>(null)
+const leaveConfirmationSubmitButton = ref<HTMLButtonElement | null>(null)
 const isCurrentUserAdmin = computed(() => selectedConversation.value?.currentUserRole === 'admin')
 const sectionUnreadCounts = computed<Record<ChatSection, number>>(() => ({
-  recent: conversations.value.reduce((sum, conversation) => sum + conversation.unreadCount, 0),
+  recent: conversations.value
+    .filter((conversation) => !hiddenRecentConversationIds.value.includes(conversation.id))
+    .reduce((sum, conversation) => sum + conversation.unreadCount, 0),
   community: conversations.value
     .filter((conversation) => conversation.category === 'community')
+    .filter((conversation) => !hiddenRecentConversationIds.value.includes(conversation.id))
     .reduce((sum, conversation) => sum + conversation.unreadCount, 0),
   friend: conversations.value
     .filter((conversation) => conversation.category === 'friend')
+    .filter((conversation) => !hiddenRecentConversationIds.value.includes(conversation.id))
     .reduce((sum, conversation) => sum + conversation.unreadCount, 0),
   people: 0,
 }))
@@ -143,6 +164,22 @@ function clearOpenConversation(conversationId: string) {
   sendError.value = ''
   groupManagementOpen.value = false
   groupDialogMode.value = null
+  if (
+    contextMenu.value?.target.type === 'conversation' &&
+    contextMenu.value.target.conversation.id === conversationId
+  ) {
+    closeContextMenu()
+  }
+  if (removeRecentConfirmationConversation.value?.id === conversationId) {
+    removeRecentConfirmationConversation.value = null
+    removeRecentConfirmationError.value = ''
+    removeRecentConfirmationLoading.value = false
+  }
+  if (leaveConfirmationConversation.value?.id === conversationId) {
+    leaveConfirmationConversation.value = null
+    leaveConfirmationError.value = ''
+    leaveConfirmationLoading.value = false
+  }
 }
 
 function handleConversationAccessError(error: unknown, conversationId: string): boolean {
@@ -177,6 +214,7 @@ function clearChatState() {
   conversations.value = []
   messages.value = []
   availableUsers.value = []
+  hiddenRecentConversationIds.value = []
   selectedConversation.value = null
   readCursors.value = {}
   pendingUnreadCounts.value = {}
@@ -206,6 +244,14 @@ function clearChatState() {
   groupCandidatesHasMore.value = false
   groupManagementError.value = ''
   groupManagementOpen.value = false
+  contextMenu.value = null
+  contextMenuTrigger.value = null
+  removeRecentConfirmationConversation.value = null
+  removeRecentConfirmationError.value = ''
+  removeRecentConfirmationLoading.value = false
+  leaveConfirmationConversation.value = null
+  leaveConfirmationError.value = ''
+  leaveConfirmationLoading.value = false
   creatingConversationFor.value = null
   startConversationError.value = ''
   activeSection.value = 'recent'
@@ -232,6 +278,7 @@ const visibleConversations = computed(() => {
   const search = searchText.value.toLowerCase().trim()
 
   return conversations.value.filter((conversation) => {
+    if (hiddenRecentConversationIds.value.includes(conversation.id)) return false
     const matchesSection =
       activeSection.value === 'recent' || conversation.category === activeSection.value
     const matchesSearch = conversation.name.toLowerCase().includes(search)
@@ -239,6 +286,13 @@ const visibleConversations = computed(() => {
     return matchesSection && matchesSearch
   })
 })
+
+const availableUsersNotInFriends = computed(() =>
+  availableUsers.value.filter((user) => {
+    const conversation = getUserConversation(user)
+    return !conversation || hiddenRecentConversationIds.value.includes(conversation.id)
+  }),
+)
 
 function getInitials(name: string): string {
   return name
@@ -301,6 +355,60 @@ function mergeConversations(
   )
 }
 
+function hiddenRecentConversationsStorageKey(userId: string): string {
+  return `conecta_hidden_chat_conversations:${userId}`
+}
+
+function loadHiddenRecentConversations(userId: string | null) {
+  hiddenRecentConversationIds.value = []
+  if (!userId) return
+
+  const saved = localStorage.getItem(hiddenRecentConversationsStorageKey(userId))
+  if (!saved) return
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(saved)
+  } catch {
+    throw new Error('A preferência de conversas recentes está inválida neste navegador.')
+  }
+  if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === 'string')) {
+    throw new Error('A preferência de conversas recentes está inválida neste navegador.')
+  }
+  hiddenRecentConversationIds.value = [...new Set(parsed)]
+}
+
+function persistHiddenRecentConversations(conversationIds: string[]): void {
+  const userId = currentUser.user?.sub
+  if (!userId) throw new Error('Não foi possível identificar sua sessão.')
+  localStorage.setItem(
+    hiddenRecentConversationsStorageKey(userId),
+    JSON.stringify([...new Set(conversationIds)]),
+  )
+}
+
+function restoreRecentConversation(conversationId: string): void {
+  if (!hiddenRecentConversationIds.value.includes(conversationId)) return
+  const nextHiddenIds = hiddenRecentConversationIds.value.filter((id) => id !== conversationId)
+  persistHiddenRecentConversations(nextHiddenIds)
+  hiddenRecentConversationIds.value = nextHiddenIds
+}
+
+function getUserConversation(user: ChatUserSuggestion): ChatConversation | undefined {
+  return conversations.value.find(
+    (conversation) => conversation.category === 'friend' && conversation.otherUserId === user.id,
+  )
+}
+
+function hasRecentConversationForUser(user: ChatUserSuggestion): boolean {
+  const conversation = getUserConversation(user)
+  return Boolean(conversation && !hiddenRecentConversationIds.value.includes(conversation.id))
+}
+
+function getContextTargetConversation(target: ChatContextTarget): ChatConversation | undefined {
+  return target.type === 'conversation' ? target.conversation : getUserConversation(target.user)
+}
+
 function addOrReplaceMessage(message: ChatMessage) {
   if (selectedConversation.value?.id !== message.conversationId) return
   messages.value = mergeMessages(messages.value, [message])
@@ -343,6 +451,14 @@ function updateConversationSummary(value: unknown) {
       sequence?: number
       createdAt?: string
     } | null
+  }
+  if (hiddenRecentConversationIds.value.includes(event.id)) {
+    try {
+      restoreRecentConversation(event.id)
+    } catch (error) {
+      chatNotice.value =
+        error instanceof Error ? error.message : 'Não foi possível atualizar Recentes.'
+    }
   }
   const conversation = conversations.value.find((item) => item.id === event.id)
   if (!conversation) {
@@ -602,7 +718,240 @@ function retryChatSocket() {
   initializeChatSocket()
 }
 
+function closeContextMenu(restoreFocus = false) {
+  const trigger = contextMenuTrigger.value
+  contextMenu.value = null
+  contextMenuTrigger.value = null
+  if (restoreFocus) void nextTick(() => trigger?.focus())
+}
+
+function openContextMenu(target: ChatContextTarget, x: number, y: number, trigger: HTMLElement) {
+  contextMenuTrigger.value = trigger
+  contextMenu.value = { target, x, y }
+  void nextTick(() => {
+    const menu = contextMenuElement.value
+    if (!menu || !contextMenu.value) return
+    const margin = 8
+    const maxX = Math.max(margin, window.innerWidth - menu.offsetWidth - margin)
+    const maxY = Math.max(margin, window.innerHeight - menu.offsetHeight - margin)
+    contextMenu.value.x = Math.min(Math.max(x, margin), maxX)
+    contextMenu.value.y = Math.min(Math.max(y, margin), maxY)
+    menu.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+  })
+}
+
+function isContextMenuOpen(target: ChatContextTarget): boolean {
+  const openTarget = contextMenu.value?.target
+  if (!openTarget || openTarget.type !== target.type) return false
+  return openTarget.type === 'user'
+    ? target.type === 'user' && openTarget.user.id === target.user.id
+    : target.type === 'conversation' && openTarget.conversation.id === target.conversation.id
+}
+
+function handleContextMenu(event: MouseEvent, target: ChatContextTarget) {
+  const conversation = getContextTargetConversation(target)
+  if (!conversation || hiddenRecentConversationIds.value.includes(conversation.id)) return
+  event.preventDefault()
+  event.stopPropagation()
+  openContextMenu(target, event.clientX, event.clientY, event.currentTarget as HTMLElement)
+}
+
+function handleContextMenuButton(event: MouseEvent, target: ChatContextTarget) {
+  const conversation = getContextTargetConversation(target)
+  if (!conversation || hiddenRecentConversationIds.value.includes(conversation.id)) return
+  event.stopPropagation()
+  const trigger = event.currentTarget as HTMLElement
+  const bounds = trigger.getBoundingClientRect()
+  openContextMenu(target, bounds.left, bounds.bottom + 4, trigger)
+}
+
+function handleContextMenuKeyboard(event: KeyboardEvent, target: ChatContextTarget) {
+  if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return
+  const conversation = getContextTargetConversation(target)
+  if (!conversation || hiddenRecentConversationIds.value.includes(conversation.id)) return
+  event.preventDefault()
+  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  openContextMenu(target, bounds.left, bounds.bottom + 4, event.currentTarget as HTMLElement)
+}
+
+function handleContextMenuKeydown(event: KeyboardEvent) {
+  const items = Array.from(
+    contextMenuElement.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [],
+  ).filter((item) => !item.disabled)
+  if (!items.length) return
+  const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement)
+  let nextIndex: number | null = null
+
+  if (event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % items.length
+  if (event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + items.length) % items.length
+  if (event.key === 'Home') nextIndex = 0
+  if (event.key === 'End') nextIndex = items.length - 1
+  if (nextIndex !== null) {
+    event.preventDefault()
+    items[nextIndex]?.focus()
+  }
+}
+
+function handleContextMenuOutside(event: PointerEvent) {
+  if (!contextMenu.value || contextMenuElement.value?.contains(event.target as Node)) return
+  closeContextMenu()
+}
+
+function handleContextMenuViewportChange() {
+  closeContextMenu()
+}
+
+function handleContextMenuEscape(event: KeyboardEvent) {
+  if (event.key !== 'Escape') return
+  if (removeRecentConfirmationConversation.value) {
+    if (removeRecentConfirmationLoading.value) return
+    closeRemoveRecentConfirmation()
+    return
+  }
+  if (leaveConfirmationConversation.value) {
+    if (leaveConfirmationLoading.value) return
+    leaveConfirmationConversation.value = null
+    leaveConfirmationError.value = ''
+    return
+  }
+  if (contextMenu.value) {
+    event.preventDefault()
+    closeContextMenu(true)
+  }
+}
+
+function openLeaveConfirmation(conversation: ChatConversation) {
+  closeContextMenu()
+  leaveConfirmationConversation.value = conversation
+  leaveConfirmationError.value = ''
+  void nextTick(() => leaveConfirmationButton.value?.focus())
+}
+
+function requestRemoveFromRecent() {
+  const target = contextMenu.value?.target
+  const conversation = target ? getContextTargetConversation(target) : undefined
+  closeContextMenu()
+  if (!conversation) return
+  removeRecentConfirmationConversation.value = conversation
+  removeRecentConfirmationError.value = ''
+  void nextTick(() => removeRecentConfirmationButton.value?.focus())
+}
+
+function closeLeaveConfirmation() {
+  if (leaveConfirmationLoading.value) return
+  leaveConfirmationConversation.value = null
+  leaveConfirmationError.value = ''
+}
+
+function closeRemoveRecentConfirmation() {
+  if (removeRecentConfirmationLoading.value) return
+  removeRecentConfirmationConversation.value = null
+  removeRecentConfirmationError.value = ''
+}
+
+async function confirmRemoveFromRecent() {
+  const conversation = removeRecentConfirmationConversation.value
+  if (!conversation || removeRecentConfirmationLoading.value) return
+  removeRecentConfirmationLoading.value = true
+  removeRecentConfirmationError.value = ''
+
+  try {
+    const nextHiddenIds = [...hiddenRecentConversationIds.value, conversation.id]
+    persistHiddenRecentConversations(nextHiddenIds)
+    hiddenRecentConversationIds.value = [...new Set(nextHiddenIds)]
+    if (selectedConversation.value?.id === conversation.id) {
+      await leaveConversationRoom(conversation.id)
+      selectedConversation.value = null
+      messagesController?.abort()
+      messagesRequestId += 1
+      messages.value = []
+      nextCursor.value = null
+      messagesError.value = ''
+      sendError.value = ''
+      groupManagementOpen.value = false
+    }
+    removeRecentConfirmationConversation.value = null
+    chatNotice.value =
+      'Conversa removida de Recentes neste navegador. O histórico e as mensagens continuam salvos.'
+  } catch (error) {
+    removeRecentConfirmationError.value =
+      error instanceof Error ? error.message : 'Não foi possível remover a conversa de Recentes.'
+  } finally {
+    removeRecentConfirmationLoading.value = false
+  }
+}
+
+function handleRemoveRecentDialogKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Tab') return
+  const cancelButton = removeRecentConfirmationButton.value
+  const submitButton = removeRecentConfirmationSubmitButton.value
+  if (!cancelButton || !submitButton) return
+
+  if (event.shiftKey && document.activeElement === cancelButton) {
+    event.preventDefault()
+    submitButton.focus()
+  } else if (!event.shiftKey && document.activeElement === submitButton) {
+    event.preventDefault()
+    cancelButton.focus()
+  }
+}
+
+function handleLeaveDialogKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Tab') return
+  const cancelButton = leaveConfirmationButton.value
+  const submitButton = leaveConfirmationSubmitButton.value
+  if (!cancelButton || !submitButton) return
+
+  if (event.shiftKey && document.activeElement === cancelButton) {
+    event.preventDefault()
+    submitButton.focus()
+  } else if (!event.shiftKey && document.activeElement === submitButton) {
+    event.preventDefault()
+    cancelButton.focus()
+  }
+}
+
+async function confirmLeaveConversation() {
+  const conversation = leaveConfirmationConversation.value
+  if (!conversation || leaveConfirmationLoading.value) return
+  leaveConfirmationLoading.value = true
+  leaveConfirmationError.value = ''
+  const requestSessionGeneration = sessionGeneration
+
+  try {
+    await leaveChatGroup(conversation.id)
+    if (requestSessionGeneration !== sessionGeneration) return
+    await leaveConversationRoom(conversation.id)
+    conversations.value = conversations.value.filter((item) => item.id !== conversation.id)
+    if (selectedConversation.value?.id === conversation.id) {
+      messagesController?.abort()
+      messagesRequestId += 1
+      selectedConversation.value = null
+      messages.value = []
+      nextCursor.value = null
+      messagesError.value = ''
+      sendError.value = ''
+      groupManagementOpen.value = false
+    }
+    leaveConfirmationConversation.value = null
+    chatNotice.value = `Você saiu do grupo “${conversation.name}”. A conversa e as mensagens não foram apagadas.`
+  } catch (error) {
+    if (requestSessionGeneration !== sessionGeneration) return
+    if (handleConversationAccessError(error, conversation.id)) {
+      leaveConfirmationConversation.value = null
+      return
+    }
+    leaveConfirmationError.value =
+      error instanceof Error ? error.message : 'Não foi possível sair do grupo.'
+  } finally {
+    if (requestSessionGeneration === sessionGeneration) {
+      leaveConfirmationLoading.value = false
+    }
+  }
+}
+
 function selectSection(section: ChatSection) {
+  closeContextMenu()
   activeSection.value = section
   startConversationError.value = ''
 
@@ -714,15 +1063,25 @@ async function loadConversationList(preserveSelection = false) {
     if (
       preserveSelection &&
       selectedConversation.value &&
-      result.some((conversation) => conversation.id === selectedConversation.value?.id)
+      result.some(
+        (conversation) =>
+          conversation.id === selectedConversation.value?.id &&
+          !hiddenRecentConversationIds.value.includes(conversation.id),
+      )
     ) {
       selectedConversation.value =
         result.find((conversation) => conversation.id === selectedConversation.value?.id) ?? null
-    } else if (result.length > 0) {
-      selectConversation(result[0])
+    } else if (
+      result.some((conversation) => !hiddenRecentConversationIds.value.includes(conversation.id))
+    ) {
+      const firstVisibleConversation = result.find(
+        (conversation) => !hiddenRecentConversationIds.value.includes(conversation.id),
+      )
+      if (firstVisibleConversation) selectConversation(firstVisibleConversation)
     } else {
       selectedConversation.value = null
       messages.value = []
+      nextCursor.value = null
     }
   } catch (error) {
     if (!controller.signal.aborted) {
@@ -790,6 +1149,8 @@ async function loadMessages(conversationId: string, loadOlder = false) {
 }
 
 function selectConversation(conversation: ChatConversation) {
+  closeContextMenu()
+  closeRemoveRecentConfirmation()
   const previousConversationId = selectedConversation.value?.id
   if (previousConversationId && previousConversationId !== conversation.id) {
     void leaveConversationRoom(previousConversationId)
@@ -956,6 +1317,13 @@ async function startDirectConversation(user: ChatUserSuggestion) {
     (conversation) => conversation.otherUserId === user.id,
   )
   if (existingConversation) {
+    try {
+      restoreRecentConversation(existingConversation.id)
+    } catch (error) {
+      startConversationError.value =
+        error instanceof Error ? error.message : 'Não foi possível restaurar a conversa.'
+      return
+    }
     activeSection.value = 'recent'
     searchText.value = ''
     selectConversation(existingConversation)
@@ -1130,28 +1498,9 @@ async function removeGroupMember(member: ChatMember) {
   }
 }
 
-async function leaveCurrentGroup() {
+function requestLeaveCurrentGroup() {
   const conversation = selectedConversation.value
-  if (!conversation || conversation.category !== 'community') return
-  groupManagementError.value = ''
-  const requestSessionGeneration = sessionGeneration
-  try {
-    await leaveChatGroup(conversation.id)
-    if (requestSessionGeneration !== sessionGeneration) return
-    await leaveConversationRoom(conversation.id)
-    conversations.value = conversations.value.filter((item) => item.id !== conversation.id)
-    selectedConversation.value = null
-    messages.value = []
-    groupManagementOpen.value = false
-  } catch (error) {
-    if (requestSessionGeneration !== sessionGeneration) return
-    if (error instanceof ChatApiError && error.statusCode === 404) {
-      await refreshConversationDetails(conversation.id)
-      if (selectedConversation.value?.id !== conversation.id) return
-    }
-    groupManagementError.value =
-      error instanceof Error ? error.message : 'Não foi possível sair do grupo.'
-  }
+  if (conversation?.category === 'community') openLeaveConfirmation(conversation)
 }
 
 watch(
@@ -1159,6 +1508,12 @@ watch(
   (userId, previousUserId) => {
     if (userId === previousUserId) return
     clearChatState()
+    try {
+      loadHiddenRecentConversations(userId)
+    } catch (error) {
+      chatNotice.value =
+        error instanceof Error ? error.message : 'Não foi possível carregar Recentes.'
+    }
     disposeCurrentChatSocket()
     if (userId) {
       chatSocketStatus.value = 'connecting'
@@ -1172,11 +1527,25 @@ watch(
 )
 
 onMounted(() => {
+  try {
+    loadHiddenRecentConversations(currentUser.user?.sub ?? null)
+  } catch (error) {
+    chatNotice.value =
+      error instanceof Error ? error.message : 'Não foi possível carregar Recentes.'
+  }
+  document.addEventListener('pointerdown', handleContextMenuOutside)
+  document.addEventListener('keydown', handleContextMenuEscape)
+  window.addEventListener('resize', handleContextMenuViewportChange)
+  window.addEventListener('scroll', handleContextMenuViewportChange, true)
   void loadConversationList()
   initializeChatSocket()
 })
 
 onUnmounted(() => {
+  document.removeEventListener('pointerdown', handleContextMenuOutside)
+  document.removeEventListener('keydown', handleContextMenuEscape)
+  window.removeEventListener('resize', handleContextMenuViewportChange)
+  window.removeEventListener('scroll', handleContextMenuViewportChange, true)
   conversationsController?.abort()
   messagesController?.abort()
   usersController?.abort()
@@ -1266,36 +1635,57 @@ onUnmounted(() => {
           </button>
         </p>
         <template v-else>
-          <button
-            v-for="user in availableUsers"
+          <div
+            v-for="user in availableUsersNotInFriends"
             :key="user.id"
-            class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-[#f0f3fa] disabled:cursor-wait disabled:opacity-60"
-            type="button"
-            :disabled="creatingConversationFor !== null"
-            @click="startDirectConversation(user)"
+            class="group flex w-full items-center gap-1 rounded-xl p-1 transition-colors hover:bg-[#f0f3fa]"
+            @contextmenu="handleContextMenu($event, { type: 'user', user })"
+            @keydown="handleContextMenuKeyboard($event, { type: 'user', user })"
           >
-            <span
-              class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+            <button
+              class="flex min-w-0 flex-1 items-center gap-3 rounded-lg border-0 bg-transparent p-2 text-left transition-colors hover:bg-[#f0f3fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] disabled:cursor-wait disabled:opacity-60"
+              type="button"
+              :aria-label="`Iniciar conversa com ${user.name}`"
+              :disabled="creatingConversationFor !== null"
+              @click="startDirectConversation(user)"
             >
-              <img
-                v-if="user.image"
-                :src="user.image"
-                :alt="`Foto de ${user.name}`"
-                class="size-full object-cover"
-              />
-              <span v-else>{{ getInitials(user.name) }}</span>
-            </span>
-            <span class="min-w-0 flex-1">
-              <strong class="block truncate text-xs text-[#172238]">{{ user.name }}</strong>
-              <span class="mt-1 block truncate text-[10px] text-[#8c96a7]">
-                {{
-                  creatingConversationFor === user.id ? 'Abrindo conversa...' : 'Iniciar conversa'
-                }}
+              <span
+                class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+              >
+                <img
+                  v-if="user.image"
+                  :src="user.image"
+                  :alt="`Foto de ${user.name}`"
+                  class="size-full object-cover"
+                />
+                <span v-else>{{ getInitials(user.name) }}</span>
               </span>
-            </span>
-          </button>
+              <span class="min-w-0 flex-1">
+                <strong class="block truncate text-xs text-[#172238]">{{ user.name }}</strong>
+                <span class="mt-1 block truncate text-[10px] text-[#8c96a7]">
+                  {{
+                    creatingConversationFor === user.id ? 'Abrindo conversa...' : 'Iniciar conversa'
+                  }}
+                </span>
+              </span>
+            </button>
+            <button
+              v-if="hasRecentConversationForUser(user)"
+              class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-[#8c96a7] transition-colors hover:bg-[#e6eaf2] hover:text-[#253b73] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+              type="button"
+              :aria-label="`Mais opções para ${user.name}`"
+              aria-haspopup="menu"
+              aria-controls="chat-context-menu"
+              :aria-expanded="isContextMenuOpen({ type: 'user', user })"
+              @click.stop="handleContextMenuButton($event, { type: 'user', user })"
+              @keydown.enter.stop
+              @keydown.space.stop
+            >
+              <font-awesome-icon :icon="faEllipsis" />
+            </button>
+          </div>
           <p
-            v-if="availableUsers.length === 0"
+            v-if="availableUsersNotInFriends.length === 0"
             class="px-3 py-8 text-center text-xs text-[#929aaa]"
           >
             {{
@@ -1333,44 +1723,64 @@ onUnmounted(() => {
             Tentar novamente
           </button>
         </p>
-        <button
+        <div
           v-else
           v-for="conversation in visibleConversations"
           :key="conversation.id"
-          class="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-[#f0f3fa]"
+          class="group flex w-full items-center gap-1 rounded-xl p-1 transition-colors hover:bg-[#f0f3fa]"
           :class="selectedConversation?.id === conversation.id ? 'bg-[#e9eefb]' : ''"
-          type="button"
-          @click="selectConversation(conversation)"
+          @contextmenu="handleContextMenu($event, { type: 'conversation', conversation })"
+          @keydown="handleContextMenuKeyboard($event, { type: 'conversation', conversation })"
         >
-          <span
-            class="relative grid size-10 shrink-0 place-items-center rounded-full text-[10px] font-bold"
-            :class="
-              conversation.category === 'community'
-                ? 'bg-[#e9eefb] text-[#536bad]'
-                : 'bg-[#ffe9e2] text-[#db6d57]'
-            "
+          <button
+            class="flex min-w-0 flex-1 items-center gap-3 rounded-lg border-0 bg-transparent p-2 text-left transition-colors hover:bg-[#f0f3fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad]"
+            type="button"
+            :aria-label="`Abrir conversa ${conversation.name}`"
+            @click="selectConversation(conversation)"
           >
-            {{ getInitials(conversation.name) }}
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="flex items-center justify-between gap-2">
-              <strong class="truncate text-xs text-[#172238]">{{ conversation.name }}</strong>
-              <time class="shrink-0 text-[9px] text-[#9aa3b2]">{{
-                formatTime(conversation.lastMessage?.createdAt ?? conversation.updatedAt)
-              }}</time>
+            <span
+              class="relative grid size-10 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+              :class="
+                conversation.category === 'community'
+                  ? 'bg-[#e9eefb] text-[#536bad]'
+                  : 'bg-[#ffe9e2] text-[#db6d57]'
+              "
+            >
+              {{ getInitials(conversation.name) }}
             </span>
-            <span class="mt-1 flex min-w-0 items-center justify-between gap-2">
-              <span class="block truncate text-[10px] text-[#8c96a7]">{{
-                conversation.preview
-              }}</span>
-              <span
-                v-if="conversation.unreadCount > 0"
-                class="grid min-w-4 place-items-center rounded-full bg-[#253b73] px-1 text-[9px] font-bold text-white"
-                >{{ conversation.unreadCount }}</span
-              >
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center justify-between gap-2">
+                <strong class="truncate text-xs text-[#172238]">{{ conversation.name }}</strong>
+                <time class="shrink-0 text-[9px] text-[#9aa3b2]">{{
+                  formatTime(conversation.lastMessage?.createdAt ?? conversation.updatedAt)
+                }}</time>
+              </span>
+              <span class="mt-1 flex min-w-0 items-center justify-between gap-2">
+                <span class="block truncate text-[10px] text-[#8c96a7]">{{
+                  conversation.preview
+                }}</span>
+                <span
+                  v-if="conversation.unreadCount > 0"
+                  class="grid min-w-4 place-items-center rounded-full bg-[#253b73] px-1 text-[9px] font-bold text-white"
+                  >{{ conversation.unreadCount }}</span
+                >
+              </span>
             </span>
-          </span>
-        </button>
+          </button>
+          <button
+            class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-[#8c96a7] transition-colors hover:bg-[#e6eaf2] hover:text-[#253b73] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+            type="button"
+            :aria-label="`Mais opções para ${conversation.name}`"
+            aria-haspopup="menu"
+            aria-controls="chat-context-menu"
+            :aria-expanded="isContextMenuOpen({ type: 'conversation', conversation })"
+            @click.stop="handleContextMenuButton($event, { type: 'conversation', conversation })"
+            @keydown.enter.stop
+            @keydown.space.stop
+          >
+            <font-awesome-icon :icon="faEllipsis" />
+          </button>
+        </div>
         <p
           v-if="!conversationsLoading && !conversationsError && visibleConversations.length === 0"
           class="px-3 py-8 text-center text-xs text-[#929aaa]"
@@ -1507,7 +1917,7 @@ onUnmounted(() => {
             <button
               class="border-0 bg-transparent text-[10px] text-red-600 underline"
               type="button"
-              @click="leaveCurrentGroup"
+              @click="requestLeaveCurrentGroup"
             >
               Sair do grupo
             </button>
@@ -1810,6 +2220,119 @@ onUnmounted(() => {
           </button>
         </div>
       </form>
+    </div>
+
+    <div
+      v-if="contextMenu"
+      ref="contextMenuElement"
+      id="chat-context-menu"
+      class="fixed z-40 min-w-48 rounded-xl border border-[#e8ebf0] bg-white p-1.5 shadow-[0_12px_36px_rgba(23,34,56,.18)]"
+      :style="{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }"
+      role="menu"
+      aria-label="Opções da conversa"
+      @keydown="handleContextMenuKeydown"
+    >
+      <button
+        class="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-medium text-[#b23b32] outline-none transition-colors hover:bg-[#fff2ef] focus-visible:bg-[#fff2ef]"
+        type="button"
+        role="menuitem"
+        @click="requestRemoveFromRecent"
+      >
+        Remover conversa
+      </button>
+    </div>
+
+    <div
+      v-if="removeRecentConfirmationConversation"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-[#172238]/40 p-4"
+      @click.self="closeRemoveRecentConfirmation"
+    >
+      <section
+        class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="remove-recent-title"
+        aria-describedby="remove-recent-description"
+        @keydown="handleRemoveRecentDialogKeydown"
+      >
+        <h2 id="remove-recent-title" class="m-0 text-base font-semibold text-[#172238]">
+          Remover conversa de Recentes?
+        </h2>
+        <p id="remove-recent-description" class="mb-0 mt-2 text-xs leading-5 text-[#6f7a8d]">
+          “{{ removeRecentConfirmationConversation.name }}” será ocultada da lista deste navegador.
+          A conversa e as mensagens continuam no servidor. Para uma conversa individual, você pode
+          restaurá-la ao iniciar uma conversa com essa pessoa novamente.
+        </p>
+        <p v-if="removeRecentConfirmationError" class="mb-0 mt-3 text-xs text-red-600" role="alert">
+          {{ removeRecentConfirmationError }}
+        </p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button
+            ref="removeRecentConfirmationButton"
+            class="rounded-lg border border-[#e1e5ec] bg-white px-3 py-2 text-xs font-semibold text-[#53617a] transition-colors hover:bg-[#f4f6fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+            type="button"
+            :disabled="removeRecentConfirmationLoading"
+            @click="closeRemoveRecentConfirmation"
+          >
+            Cancelar
+          </button>
+          <button
+            ref="removeRecentConfirmationSubmitButton"
+            class="rounded-lg border-0 bg-[#b23b32] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#972f28] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b23b32] disabled:cursor-wait disabled:opacity-60"
+            type="button"
+            :disabled="removeRecentConfirmationLoading"
+            @click="confirmRemoveFromRecent"
+          >
+            {{ removeRecentConfirmationLoading ? 'Removendo…' : 'Remover conversa' }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="leaveConfirmationConversation"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-[#172238]/40 p-4"
+      @click.self="closeLeaveConfirmation"
+    >
+      <section
+        class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="leave-conversation-title"
+        aria-describedby="leave-conversation-description"
+        @keydown="handleLeaveDialogKeydown"
+      >
+        <h2 id="leave-conversation-title" class="m-0 text-base font-semibold text-[#172238]">
+          Sair deste grupo?
+        </h2>
+        <p id="leave-conversation-description" class="mb-0 mt-2 text-xs leading-5 text-[#6f7a8d]">
+          Você deixará “{{ leaveConfirmationConversation.name }}” e não terá mais acesso à conversa.
+          Isso não apaga o grupo nem as mensagens. Um administrador poderá adicionar você novamente.
+        </p>
+        <p v-if="leaveConfirmationError" class="mb-0 mt-3 text-xs text-red-600" role="alert">
+          {{ leaveConfirmationError }}
+        </p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button
+            ref="leaveConfirmationButton"
+            class="rounded-lg border border-[#e1e5ec] bg-white px-3 py-2 text-xs font-semibold text-[#53617a] transition-colors hover:bg-[#f4f6fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+            type="button"
+            :disabled="leaveConfirmationLoading"
+            @click="closeLeaveConfirmation"
+          >
+            Cancelar
+          </button>
+          <button
+            ref="leaveConfirmationSubmitButton"
+            class="rounded-lg border-0 bg-[#b23b32] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#972f28] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b23b32] disabled:cursor-wait disabled:opacity-60"
+            type="button"
+            :disabled="leaveConfirmationLoading"
+            @click="confirmLeaveConversation"
+          >
+            {{ leaveConfirmationLoading ? 'Saindo…' : 'Sair do grupo' }}
+          </button>
+        </div>
+      </section>
     </div>
   </section>
 </template>

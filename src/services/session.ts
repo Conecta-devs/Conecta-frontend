@@ -27,12 +27,16 @@ export function saveSession(user: AuthUser, token?: string) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(user))
   localStorage.setItem('userName', user.name)
   localStorage.setItem('userEmail', user.email)
-  localStorage.setItem('course', user.course)
+  localStorage.setItem('course', user.course ?? '')
 
   if (token) {
     localStorage.setItem('token', token)
     localStorage.setItem('conecta_token', token)
   }
+}
+
+export function getStoredAccessToken(): string | null {
+  return localStorage.getItem('conecta_token') || localStorage.getItem('token')
 }
 
 export function clearSession() {

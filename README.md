@@ -225,6 +225,8 @@ O cliente participa das salas autorizadas com `chat:conversation:join` e acompan
 
 Erros HTTP preservam o status e o formato NestJS (`statusCode`, `message`, `error`). Respostas `401` seguem o refresh/login já existente; respostas `403` ou `404` para a conversa aberta removem essa conversa da lista local e limpam seu histórico, oferecendo uma atualização da lista. O socket é encerrado e seus listeners são removidos quando a sessão autenticada muda ou a tela é desmontada.
 
+“Remover conversa” no menu de contexto apenas oculta a conversa de Recentes neste navegador e para o usuário atual; não chama uma rota de exclusão, não remove amizades e não apaga o histórico no servidor. Conversas individuais podem ser restauradas ao iniciar a conversa pela aba Pessoas.
+
 ---
 
 ## 🤝 Contribuindo
