@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { LoginUser, registerUser } from '../services/auth'
@@ -69,14 +69,22 @@ const sessaoAtiva = ref(isAuthenticated())
  * Transição formulário → "Conta criada com sucesso!".
  *
  * No Figma o botão `468:230` usa: Ação "Mudar para", Animação "Animação
- * inteligente", Suavização "Desaceleração", 300 ms. Aqui o sucesso entra como
- * um painel verde de tela cheia com fade/scale de 300ms ease-out, mantendo o
- * ritmo e as camadas (logo, orbitais, textos) da animação original.
+ * inteligente", Suavização "Desaceleração", 300 ms. O painel é uma camada
+ * persistente: largura 750 → 100% e cor azul → verde; logo e intro fazem
+ * cross-fade; o formulário sai com fade + translateY(-12px).
  */
 const transicionando = ref(false)
 
 /** Modal de perfil aberto após o cadastro (mesmo fluxo da tela legada). */
 const modalPerfilAberto = ref(false)
+
+let timerTransicao: number | undefined
+let timerModal: number | undefined
+
+onBeforeUnmount(() => {
+  window.clearTimeout(timerTransicao)
+  window.clearTimeout(timerModal)
+})
 
 /** A Landpage manda `?modo=register` (Inscreva-se / Quero participar / Começar agora). */
 onMounted(() => {
@@ -131,10 +139,15 @@ async function enviar() {
       // Smart Animate: "Mudar para" a tela de sucesso (ease out, 300ms).
       transicionando.value = true
       criado.value = true
-      modalPerfilAberto.value = true
-      window.setTimeout(() => {
+      window.clearTimeout(timerTransicao)
+      window.clearTimeout(timerModal)
+      timerTransicao = window.setTimeout(() => {
         transicionando.value = false
       }, 320)
+      // O modal de perfil só abre depois do Smart Animate aparecer.
+      timerModal = window.setTimeout(() => {
+        modalPerfilAberto.value = true
+      }, 800)
     } else {
       const resposta = await LoginUser({ email: email.value.trim(), password: senha.value })
       saveSession(resposta.user, resposta.accessToken)
@@ -154,6 +167,9 @@ async function enviar() {
 }
 
 function irParaLogin() {
+  window.clearTimeout(timerTransicao)
+  window.clearTimeout(timerModal)
+  modalPerfilAberto.value = false
   criado.value = false
   transicionando.value = false
   modo.value = 'login'
@@ -199,61 +215,166 @@ const inputBase =
 
 <template>
   <div
-    class="auth-shell relative flex min-h-dvh flex-col bg-co-white lg:grid lg:grid-cols-[minmax(0,750px)_minmax(0,1fr)]"
-    :class="{ 'auth-shell--criado': criado, 'auth-shell--saindo': transicionando }"
+    class="auth-shell relative flex min-h-dvh flex-col bg-co-white lg:block"
+    :class="{
+      'auth-shell--criado': criado,
+      'auth-shell--saindo': transicionando,
+      'h-dvh overflow-hidden': criado,
+    }"
   >
-    <!-- ========== Painel (468:187 azul) ========== -->
+    <!-- ========== Painel (468:187 azul 750x910 → 506:1739 verde 1920x910) ==========
+         Camada persistente do Smart Animate: largura 750 → 100% e cor azul →
+         verde; logo, intro, rodapé e orbitais interpolam no lugar. -->
     <section
-      class="auth-panel relative flex shrink-0 flex-col justify-between overflow-hidden bg-co-blue px-6 py-6 text-co-white transition-colors duration-300 ease-out sm:px-12 sm:py-8 lg:min-h-dvh lg:px-[clamp(40px,7vw,91px)] lg:pt-[22px] lg:pb-[18px]"
+      class="auth-panel flex shrink-0 flex-col justify-between overflow-hidden px-6 py-6 text-co-white transition-none sm:px-12 sm:py-8 lg:absolute lg:inset-y-0 lg:left-0 lg:right-auto lg:z-10 lg:pl-[clamp(40px,7vw,91px)] lg:pr-0 lg:pt-[22px] lg:pb-[18px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none"
+      :class="
+        criado
+          ? 'fixed inset-0 z-40 w-auto bg-tree-green lg:w-full'
+          : 'relative bg-co-blue lg:w-[750px]'
+      "
     >
-      <!-- Orbitais decorativos (468:204/468:205) — no Figma ficam no canto
-           inferior direito do painel, encostados na borda do formulário. -->
+      <!-- Par inferior (468:204/468:205) — camada casada: mesmo centro em
+           todos os frames, então fica ancorado à esquerda (302/262). -->
       <img
         :src="orbitInner"
         alt=""
-        class="pointer-events-none absolute -bottom-36 -right-24 hidden size-[420px] sm:block lg:-bottom-[221px] lg:-right-[142px] lg:size-[590px]"
+        class="pointer-events-none absolute -bottom-36 -right-24 hidden size-[420px] sm:block lg:right-auto lg:-bottom-[221px] lg:left-[302px] lg:size-[590px]"
         draggable="false"
       />
       <img
         :src="orbitOuter"
         alt=""
-        class="pointer-events-none absolute -bottom-44 -right-32 hidden size-[500px] sm:block lg:-bottom-[261px] lg:-right-[182px] lg:size-[670px]"
+        class="pointer-events-none absolute -bottom-44 -right-32 hidden size-[500px] sm:block lg:right-auto lg:-bottom-[261px] lg:left-[262px] lg:size-[670px]"
         draggable="false"
       />
 
+      <!-- Par superior direito (506:1846/506:1847) — existe só no sucesso e
+           entra com fade de 300ms. -->
+      <img
+        :src="orbitInner"
+        alt=""
+        class="pointer-events-none absolute -right-24 -top-32 size-[420px] transition-opacity duration-300 ease-out motion-reduce:transition-none sm:size-[520px] lg:-right-[218px] lg:-top-[155px] lg:size-[590px]"
+        :class="criado ? 'opacity-100' : 'opacity-0'"
+        draggable="false"
+      />
+      <img
+        :src="orbitOuter"
+        alt=""
+        class="pointer-events-none absolute -right-32 -top-40 hidden size-[620px] transition-opacity duration-300 ease-out motion-reduce:transition-none sm:block lg:-right-[258px] lg:-top-[195px] lg:size-[670px]"
+        :class="criado ? 'opacity-100' : 'opacity-0'"
+        draggable="false"
+      />
+
+      <!-- Logo (100x55 em (91,22)) — camada casada: fica no lugar, troca a cor. -->
       <button
         type="button"
-        class="relative z-10 flex w-fit cursor-pointer items-center gap-2.5 border-0 bg-transparent p-0 text-co-white"
+        class="relative z-10 h-[55px] w-[100px] shrink-0 cursor-pointer border-0 bg-transparent p-0"
         aria-label="Voltar ao início"
         @click="voltarAoInicio"
       >
-        <AppLogo variant="logo-2" :width="100" :height="55" alt="" />
+        <AppLogo
+          variant="logo-2"
+          :width="100"
+          :height="55"
+          alt=""
+          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          :class="criado ? 'opacity-0' : 'opacity-100'"
+        />
+        <AppLogo
+          variant="logo-1"
+          :width="100"
+          :height="55"
+          alt=""
+          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          :class="criado ? 'opacity-100' : 'opacity-0'"
+        />
       </button>
 
-      <div class="relative z-10 flex flex-col items-start gap-4 py-6 sm:gap-5 sm:py-8 lg:py-0">
-        <p
-          class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-        >
-          Conecte-se com<br />quem entende você.
-        </p>
-        <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-          Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-          e construa novas histórias dentro e fora da sala.
-        </p>
-        <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
-          <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
-          <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
+      <!-- Intro do painel — camada casada: formulário × sucesso em cross-fade.
+           Os dois blocos ocupam a mesma célula do grid para o painel não
+           mudar de altura no meio da animação. -->
+      <div class="relative z-10 w-full shrink-0 py-6 sm:py-8 lg:py-0">
+        <div class="grid w-full">
+          <!-- Intro do formulário (446:109 / 468:187) -->
+          <div
+            class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+            :class="criado ? 'pointer-events-none opacity-0' : 'opacity-100'"
+            :aria-hidden="criado ? 'true' : undefined"
+          >
+            <p
+              class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
+            >
+              Conecte-se com<br />quem entende você.
+            </p>
+            <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
+              Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
+              e construa novas histórias dentro e fora da sala.
+            </p>
+            <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
+              <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
+              <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
+            </div>
+          </div>
+
+          <!-- Intro do sucesso (506:1794) -->
+          <div
+            class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+            :class="criado ? 'opacity-100' : 'pointer-events-none opacity-0'"
+            :aria-hidden="criado ? undefined : 'true'"
+            role="status"
+            aria-live="polite"
+          >
+            <p
+              class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
+            >
+              Conta criada com sucesso!
+            </p>
+            <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
+              Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
+              e construa novas histórias dentro e fora da sala.
+            </p>
+            <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
+              <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
+              <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <p class="relative z-10 hidden text-h6 leading-[normal] text-s-blue lg:block">
-        Conversa que aproxima. Conexão que transforma.
-      </p>
+      <!-- Rodapé do painel: frase (formulário) × CTA (sucesso). Altura fixa de
+           50px para a troca não mexer no bloco de intro. -->
+      <div
+        class="relative z-10 flex h-[50px] w-full shrink-0 items-end"
+        :class="criado ? 'justify-end' : 'hidden lg:flex'"
+      >
+        <p
+          class="text-h6 leading-[normal] text-s-blue transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          :class="criado ? 'pointer-events-none absolute inset-x-0 top-0 opacity-0' : 'opacity-100'"
+        >
+          Conversa que aproxima. Conexão que transforma.
+        </p>
+        <div
+          class="flex w-full justify-end transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          :class="criado ? 'opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'"
+        >
+          <AppButton
+            variant="blue"
+            :width="260"
+            :padding-left="40"
+            class="lg:mr-[230px]"
+            @click="acaoSucesso"
+          >
+            {{ rotuloSucesso }}
+          </AppButton>
+        </div>
+      </div>
     </section>
 
-    <!-- ========== Formulário (454:99 / 468:206) ========== -->
+    <!-- ========== Formulário (454:99 / 468:206) — sai no Smart Animate ========== -->
     <section
-      class="auth-form-section flex flex-1 items-center justify-center px-6 py-10 sm:px-10 lg:items-start lg:px-16"
+      class="auth-form-section flex flex-1 items-center justify-center px-6 py-10 transition-[opacity,translate] duration-300 ease-out motion-reduce:transition-none sm:px-10 lg:absolute lg:inset-y-0 lg:left-[750px] lg:right-0 lg:z-0 lg:flex-none lg:items-start lg:px-16"
+      :class="criado ? 'pointer-events-none -translate-y-3 opacity-0' : 'opacity-100'"
+      :aria-hidden="criado ? 'true' : undefined"
     >
       <form
         class="flex w-full max-w-[710px] flex-col items-start gap-6 lg:gap-8"
@@ -420,64 +541,6 @@ const inputBase =
       </form>
     </section>
 
-    <!-- ========== Sucesso (506:1739) — painel verde de tela cheia ========== -->
-    <div
-      v-if="criado"
-      class="auth-success fixed inset-0 z-50 flex flex-col justify-between overflow-hidden bg-tree-green px-7 py-8 text-co-white sm:px-12 lg:px-[91px] lg:pt-[22px]"
-      role="status"
-      aria-live="polite"
-    >
-      <!-- Orbitais: par inferior esquerdo e par superior direito (506:1803–1847). -->
-      <img
-        :src="orbitInner"
-        alt=""
-        class="pointer-events-none absolute -bottom-36 -left-20 size-[420px] lg:-bottom-[221px] lg:left-[15.73%] lg:size-[590px]"
-        draggable="false"
-      />
-      <img
-        :src="orbitOuter"
-        alt=""
-        class="pointer-events-none absolute -bottom-44 -left-24 hidden size-[500px] sm:block lg:-bottom-[261px] lg:left-[13.65%] lg:size-[670px]"
-        draggable="false"
-      />
-      <img
-        :src="orbitInner"
-        alt=""
-        class="pointer-events-none absolute -right-24 -top-32 size-[420px] sm:size-[520px] lg:-top-[194px] lg:-right-[178px] lg:size-[590px]"
-        draggable="false"
-      />
-      <img
-        :src="orbitOuter"
-        alt=""
-        class="pointer-events-none absolute -right-32 -top-40 hidden size-[620px] sm:block lg:-top-[154px] lg:-right-[298px] lg:size-[670px]"
-        draggable="false"
-      />
-
-      <AppLogo variant="logo-1" :width="100" :height="55" alt="" class="relative z-10" />
-
-      <div class="relative z-10 flex flex-col items-start gap-4 sm:gap-5">
-        <p
-          class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-        >
-          Conta criada com sucesso!
-        </p>
-        <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-          Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-          e construa novas histórias dentro e fora da sala.
-        </p>
-        <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
-          <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
-          <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
-        </div>
-      </div>
-
-      <div class="relative z-10 flex w-full justify-end">
-        <AppButton variant="blue" :width="260" :padding-left="40" @click="acaoSucesso">
-          {{ rotuloSucesso }}
-        </AppButton>
-      </div>
-    </div>
-
     <!-- Perfil pós-cadastro (mesmo fluxo da tela legada) -->
     <ProfileSetupModal v-model="modalPerfilAberto" @save="finalizarPerfil" />
   </div>
@@ -498,9 +561,12 @@ const inputBase =
   }
 }
 
-/* Sucesso entra como no Smart Animate do protótipo: 300ms, ease out. */
-.auth-success {
-  animation: auth-sucesso var(--smart-animate) var(--smart-ease) both;
+/* Abaixo de lg o painel vira a tela de sucesso inteira: fade/scale de 300ms
+   (no desktop a expansão do painel já faz o Smart Animate). */
+@media (max-width: 63.999rem) {
+  .auth-shell--criado .auth-panel {
+    animation: auth-sucesso var(--smart-animate) var(--smart-ease) both;
+  }
 }
 
 @keyframes auth-sucesso {
@@ -519,7 +585,7 @@ const inputBase =
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-success {
+  .auth-shell--criado .auth-panel {
     animation: none;
   }
   .auth-shell,
