@@ -1,6 +1,25 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
 import { requestPasswordReset } from '../services/auth'
+import AuthField from '../components/AuthField.vue'
+import AuthFormColumn from '../components/AuthFormColumn.vue'
+import AuthShowcase from '../components/AuthShowcase.vue'
+import AppButton from '../../../shared/ui/AppButton.vue'
+import AppLink from '../../../shared/ui/AppLink.vue'
+
+/**
+ * Figma — Esqueci minha senha (760:611).
+ *
+ * Painel azul de 750px + coluna de recuperação por e-mail (760:644):
+ * "Voltar ao login", eyebrow 14, título 32, orientação 14, divisor de 1px,
+ * campo de e-mail (ícone `mail`), botão coral de 250 × 50 e link de volta.
+ *
+ * A resposta da API (sucesso ou erro) aparece dentro do frame do campo,
+ * 5px abaixo do input — nunca numa linha nova acima do botão.
+ */
+const router = useRouter()
 
 const email = ref('')
 const isSubmitting = ref(false)
@@ -25,71 +44,93 @@ async function submitRequest() {
     isSubmitting.value = false
   }
 }
+
+function voltarAoLogin() {
+  void router.push('/login')
+}
 </script>
 
 <template>
-  <main
-    class="flex min-h-screen items-center justify-center bg-[#f8f7f4] px-5 py-10 font-['DM_Sans',sans-serif] text-[#172238]"
-  >
-    <section class="w-full max-w-[430px]">
-      <RouterLink
-        class="mb-10 inline-flex items-center gap-2.5 text-xl font-bold text-[#253b73] no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#536bad]"
-        to="/login"
-        aria-label="Conecta, voltar ao login"
-      >
-        <span class="grid size-9 place-items-center rounded-lg bg-[#253b73] text-white">C</span>
-        <span class="font-['Space_Grotesk',sans-serif]">conecta<span class="text-[#e8755f]">.</span></span>
-      </RouterLink>
+  <div class="relative flex min-h-dvh flex-col bg-co-white lg:block">
+    <AuthShowcase />
 
-      <div class="rounded-xl border border-[#e4e7ed] bg-white p-6 shadow-sm sm:p-9">
-        <p class="mb-2 text-[10px] font-bold uppercase tracking-[1.4px] text-[#e8755f]">
-          Recuperação de conta
+    <AuthFormColumn>
+      <form class="flex w-full flex-col items-start gap-6 lg:gap-8" @submit.prevent="submitRequest">
+        <!-- 760:646 — seta DM Sans Bold 13 + Roboto 14 em text-2. -->
+        <button
+          type="button"
+          class="group inline-flex shrink-0 cursor-pointer items-center gap-[3px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
+          @click="voltarAoLogin"
+        >
+          <span
+            class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
+            >←</span
+          >
+          Voltar ao login
+        </button>
+
+        <!-- 760:647 -->
+        <p class="text-h6 leading-[normal] text-co-coral">
+          RECUPERAÇÃO DE CONTA <span class="text-co-blue">CONECTA.</span>
         </p>
-        <h1 class="font-['Space_Grotesk',sans-serif] text-2xl font-semibold text-[#172238]">
-          Esqueceu sua senha?
-        </h1>
-        <p class="mt-3 text-sm leading-6 text-[#7d8798]">
+
+        <!-- 760:648 -->
+        <h1 class="text-title leading-[normal] text-text-1">Esqueceu sua senha?</h1>
+
+        <!-- 760:649 -->
+        <p class="text-h6 leading-[normal] text-text-2">
           Informe o e-mail associado à sua conta para receber as instruções de redefinição.
         </p>
 
-        <form class="mt-7 flex flex-col gap-5" @submit.prevent="submitRequest">
-          <label class="flex flex-col gap-2 text-xs font-bold text-[#53617a]" for="recovery-email">
-            E-mail
-            <input
-              id="recovery-email"
-              v-model.trim="email"
-              type="email"
-              autocomplete="email"
-              maxlength="150"
-              required
-              class="h-12 w-full rounded-lg border border-[#e1e5ec] bg-[#fbfcfe] px-3.5 text-sm text-[#172238] outline-none transition focus:border-[#536bad] focus:shadow-[0_0_0_3px_rgba(83,107,173,.1)]"
-              placeholder="voce@email.com"
-            />
-          </label>
+        <!-- 760:650 — divisor de 710 × 1 -->
+        <div class="h-px w-full shrink-0 bg-traceline" aria-hidden="true" />
 
-          <p v-if="errorMessage" class="text-sm text-red-600" role="alert">
+        <!-- 760:651 — campo + mensagem da API -->
+        <AuthField
+          id="recovery-email"
+          v-model="email"
+          label="E-mail"
+          icon="mail"
+          type="email"
+          autocomplete="email"
+          placeholder="voce@email.com"
+          :maxlength="150"
+        >
+          <p
+            v-if="errorMessage"
+            class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
+            role="alert"
+          >
             {{ errorMessage }}
           </p>
-          <p v-if="successMessage" class="text-sm leading-6 text-[#28704f]" role="status">
+          <p
+            v-else-if="successMessage"
+            class="text-h6 leading-[normal] text-[#2b6e4f]"
+            role="status"
+          >
             {{ successMessage }}
           </p>
+        </AuthField>
 
-          <button
+        <!-- 760:656 — botão coral 250 × 50 + link, gap 3 -->
+        <div class="flex w-full shrink-0 flex-col items-center gap-[3px]">
+          <AppButton
             type="submit"
+            variant="coral"
             :disabled="isSubmitting"
-            class="inline-flex h-12 items-center justify-center rounded-lg bg-[#253b73] px-5 text-sm font-bold text-white transition hover:bg-[#1d2f61] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad] disabled:cursor-not-allowed disabled:opacity-60"
+            :width="250"
+            :padding-left="40"
+            :gap="15"
+            :gap-hover="23"
           >
             {{ isSubmitting ? 'Enviando...' : 'Enviar instruções' }}
-          </button>
-        </form>
+          </AppButton>
 
-        <RouterLink
-          class="mt-6 inline-block text-sm font-bold text-[#536bad] no-underline hover:text-[#253b73] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
-          to="/login"
-        >
-          Voltar ao login
-        </RouterLink>
-      </div>
-    </section>
-  </main>
+          <AppLink href="/login" size="h6" @click.prevent="voltarAoLogin">
+            Voltar ao login
+          </AppLink>
+        </div>
+      </form>
+    </AuthFormColumn>
+  </div>
 </template>

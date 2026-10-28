@@ -14,8 +14,8 @@ import { computed } from 'vue'
  * em x=32.
  *
  * Onde o Figma usa: telas de recuperação de senha (Esqueci minha senha
- * 760:611 → mail; Criar nova senha 760:666 → lock). Login/Register não usam
- * estes ícones.
+ * 760:611 → mail; Criar nova senha 760:666 → lock) e, no projeto, também nos
+ * campos de Login/Register (person, mail e lock).
  */
 type AuthIconVariant = 'person' | 'mail' | 'lock'
 
