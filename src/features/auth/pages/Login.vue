@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { LoginUser, registerUser } from '../services/auth'
 import { saveSession } from '../../../shared/services/session'
+import AppAuthIcon from '../../../shared/ui/AppAuthIcon.vue'
 import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
@@ -33,6 +34,10 @@ import orbitInner from '../../../assets/decorations/orbit.svg'
  * Tokens do Figma: gap 32 no form, 5 no label→input, inputs 50px raio 10,
  * botão coral 50px raio 10 com seta 16x12 a 15px do label, aba ativa em co-blue
  * com underline de 3px, eyebrow 14 (coral + azul), título 32 SemiBold.
+ *
+ * Ícones dos inputs: component set "Auth Icons" (754:403) — AppAuthIcon
+ * `person` (754:420), `mail` (754:401) e `lock` (754:402), 14px a 13px da
+ * esquerda, com o texto começando em 32px.
  */
 
 const router = useRouter()
@@ -189,9 +194,16 @@ function voltarAoInicio() {
   router.push('/')
 }
 
-/** Classes compartilhadas dos campos (frame: label 14, input 50px raio 10). */
+/**
+ * Classes compartilhadas dos campos (frame: label 14, input 50px raio 10).
+ * Ícone do Figma a 13px da esquerda (754:403) → texto começa em 32px.
+ */
 const inputBase =
-  'flex h-[50px] w-full items-center rounded-[10px] border border-[rgba(0,0,0,0.16)] bg-[rgba(255,255,255,0.8)] px-3 text-h6 text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral'
+  'flex h-[50px] w-full items-center rounded-[10px] border border-[rgba(0,0,0,0.16)] bg-[rgba(255,255,255,0.8)] pr-3 pl-[32px] text-h6 text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral'
+
+/** Ícone decorativo dentro do input: 14px, herdando a cor do token text-2. */
+const inputIcon =
+  'pointer-events-none absolute left-[13px] text-text-2 transition-colors group-focus-within:text-co-coral'
 </script>
 
 <template>
@@ -415,41 +427,48 @@ const inputBase =
           class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2"
         >
           Nome completo
-          <input
-            v-model="nome"
-            type="text"
-            class="font-sans"
-            :class="inputBase"
-            placeholder="Como podemos chamar você?"
-            autocomplete="name"
-            maxlength="100"
-            required
-          />
+          <span class="group relative flex w-full items-center">
+            <AppAuthIcon variant="person" :class="inputIcon" />
+            <input
+              v-model="nome"
+              type="text"
+              class="font-sans"
+              :class="inputBase"
+              placeholder="Como podemos chamar você?"
+              autocomplete="name"
+              maxlength="100"
+              required
+            />
+          </span>
         </label>
 
         <label class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2">
           E-mail
-          <input
-            v-model="email"
-            type="email"
-            class="font-sans"
-            :class="inputBase"
-            placeholder="✉ voce@email.com"
-            autocomplete="email"
-            maxlength="150"
-            required
-          />
+          <span class="group relative flex w-full items-center">
+            <AppAuthIcon variant="mail" :class="inputIcon" />
+            <input
+              v-model="email"
+              type="email"
+              class="font-sans"
+              :class="inputBase"
+              placeholder="voce@email.com"
+              autocomplete="email"
+              maxlength="150"
+              required
+            />
+          </span>
         </label>
 
         <label class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2">
           Senha
-          <span class="relative flex w-full items-center">
+          <span class="group relative flex w-full items-center">
+            <AppAuthIcon variant="lock" :class="inputIcon" />
             <input
               v-model="senha"
               :type="mostrarSenha ? 'text' : 'password'"
               class="font-sans"
               :class="inputBase"
-              placeholder="▣ Digite sua senha"
+              placeholder="Digite sua senha"
               :autocomplete="modo === 'register' ? 'new-password' : 'current-password'"
               maxlength="20"
               minlength="8"
@@ -478,17 +497,20 @@ const inputBase =
           class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2"
         >
           Confirmar Senha
-          <input
-            v-model="confirmarSenha"
-            :type="mostrarSenha ? 'text' : 'password'"
-            class="font-sans"
-            :class="inputBase"
-            placeholder="▣ Digite novamente sua senha"
-            autocomplete="new-password"
-            maxlength="20"
-            minlength="8"
-            required
-          />
+          <span class="group relative flex w-full items-center">
+            <AppAuthIcon variant="lock" :class="inputIcon" />
+            <input
+              v-model="confirmarSenha"
+              :type="mostrarSenha ? 'text' : 'password'"
+              class="font-sans"
+              :class="inputBase"
+              placeholder="Digite novamente sua senha"
+              autocomplete="new-password"
+              maxlength="20"
+              minlength="8"
+              required
+            />
+          </span>
           <!--
             Erro no frame 506:1693 (5px abaixo do input): o de senhas e o erro
             geral do cadastro (e-mail já cadastrado, validação etc.) dividem
