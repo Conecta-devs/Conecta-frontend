@@ -1,15 +1,16 @@
 <script setup lang="ts">
 /**
- * Figma — coluna do formulário nas telas de recuperação de senha
- * (760:644 / 760:699).
+ * Figma — coluna do formulário nas telas de autenticação
+ * (760:644 / 760:699 / 506:1659).
  *
  * A partir de `lg` a coluna ocupa a direita do painel de 750px (left 750,
  * largura 1170) e o conteúdo começa a 124px do topo num frame de 911px.
  * Como no Login, o `padding-top` encolhe em janelas mais baixas para a tela
  * caber inteira, sem scroll.
  *
- * O formulário em si (largura 710, gap 32) fica no slot: a coluna só cuida
- * do posicionamento e do fade de saída quando a senha é redefinida.
+ * O formulário de 710px (gap 32) fica aqui dentro: assim Login, cadastro e
+ * recuperação de senha compartilham a mesma largura e o mesmo `justify-center`
+ * — a 1920px ele cai em x=980, exatamente como no Figma.
  */
 withDefaults(
   defineProps<{
@@ -20,6 +21,8 @@ withDefaults(
     escondido: false,
   },
 )
+
+defineEmits<{ submit: [] }>()
 </script>
 
 <template>
@@ -29,7 +32,12 @@ withDefaults(
     :aria-hidden="escondido ? 'true' : undefined"
     :inert="escondido ? true : undefined"
   >
-    <slot />
+    <form
+      class="flex w-full max-w-[710px] flex-col items-start gap-6 lg:gap-8"
+      @submit.prevent="$emit('submit')"
+    >
+      <slot />
+    </form>
   </section>
 </template>
 

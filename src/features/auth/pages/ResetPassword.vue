@@ -90,92 +90,125 @@ function voltarAoLogin() {
     class="relative flex min-h-dvh flex-col bg-co-white lg:block"
     :class="redefinida ? 'h-dvh overflow-hidden bg-tree-green' : ''"
   >
-    <AuthShowcase :estado="redefinida ? 'sucesso' : 'form'" />
-
-    <AuthFormColumn :escondido="redefinida">
-      <form class="flex w-full flex-col items-start gap-6 lg:gap-8" @submit.prevent="submitReset">
-        <!-- 760:701 -->
-        <button
-          type="button"
-          class="group inline-flex shrink-0 cursor-pointer items-center gap-[3px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
-          @click="voltarAoLogin"
-        >
-          <span
-            class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
-            >←</span
-          >
-          Voltar ao login
-        </button>
-
-        <!-- 760:702 -->
-        <p class="text-h6 leading-[normal] text-co-coral">
-          SEGURANÇA DA CONTA <span class="text-co-blue">CONECTA.</span>
-        </p>
-
-        <!-- 760:703 -->
-        <h1 class="text-title leading-[normal] text-text-1">Criar nova senha</h1>
-
-        <!-- 760:704 -->
-        <p class="text-h6 leading-[normal] text-text-2">
-          Escolha uma senha com pelo menos 8 caracteres.
-        </p>
-
-        <!-- 760:705 -->
-        <div class="h-px w-full shrink-0 bg-traceline" aria-hidden="true" />
-
-        <!-- 760:706 -->
-        <AuthField
-          id="new-password"
-          v-model="password"
-          label="Nova senha"
-          icon="lock"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Digite sua nova senha"
-          :minlength="8"
-          :maxlength="20"
-        />
-
-        <!-- 760:711 — mensagem da API no frame do 2º campo -->
-        <AuthField
-          id="confirm-password"
-          v-model="passwordConfirmation"
-          label="Confirmar nova senha"
-          icon="lock"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Digite novamente sua senha"
-          :minlength="8"
-          :maxlength="20"
+    <AuthShowcase :estado="redefinida ? 'sucesso' : 'form'" @cta="voltarAoLogin">
+      <div class="grid w-full">
+        <div
+          class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+          :class="redefinida ? 'pointer-events-none opacity-0' : 'opacity-100'"
+          :aria-hidden="redefinida ? 'true' : undefined"
         >
           <p
-            v-if="errorMessage"
-            class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-            role="alert"
+            class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
           >
-            {{ errorMessage }}
+            Conecte-se com<br />quem entende você.
           </p>
-        </AuthField>
-
-        <!-- 760:716 -->
-        <div class="flex w-full shrink-0 flex-col items-center gap-[3px]">
-          <AppButton
-            type="submit"
-            variant="coral"
-            :disabled="isSubmitting"
-            :width="250"
-            :padding-left="40"
-            :gap="15"
-            :gap-hover="23"
-          >
-            {{ isSubmitting ? 'Redefinindo...' : 'Redefinir senha' }}
-          </AppButton>
-
-          <AppLink href="/login" size="h6" @click.prevent="voltarAoLogin">
-            Voltar ao login
-          </AppLink>
+          <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
+            Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
+            e construa novas histórias dentro e fora da sala.
+          </p>
         </div>
-      </form>
+        <div
+          class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+          :class="redefinida ? 'opacity-100' : 'pointer-events-none opacity-0'"
+          :aria-hidden="redefinida ? undefined : 'true'"
+          role="status"
+          aria-live="polite"
+        >
+          <p
+            class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
+          >
+            Senha redefinida com sucesso!
+          </p>
+          <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
+            Agora você pode entrar com sua nova senha<br class="hidden sm:block" />
+            e continuar se conectando com outros estudantes.
+          </p>
+        </div>
+      </div>
+    </AuthShowcase>
+
+    <AuthFormColumn :escondido="redefinida" @submit="submitReset">
+      <!-- 760:701 -->
+      <button
+        type="button"
+        class="group inline-flex shrink-0 cursor-pointer items-center gap-[5px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
+        @click="voltarAoLogin"
+      >
+        <span
+          class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
+          >←</span
+        >
+        Voltar ao login
+      </button>
+
+      <!-- 760:702 -->
+      <p class="text-h6 leading-[normal] text-co-coral">
+        SEGURANÇA DA CONTA <span class="text-co-blue">CONECTA.</span>
+      </p>
+
+      <!-- 760:703 -->
+      <h1 class="text-title leading-[normal] text-text-1">Criar nova senha</h1>
+
+      <!-- 760:704 -->
+      <p class="text-h6 leading-[normal] text-text-2">
+        Escolha uma senha com pelo menos 8 caracteres.
+      </p>
+
+      <!-- 760:705 -->
+      <div class="h-px w-full shrink-0 bg-traceline" aria-hidden="true" />
+
+      <!-- 760:706 -->
+      <AuthField
+        id="new-password"
+        v-model="password"
+        label="Nova senha"
+        icon="lock"
+        type="password"
+        revelavel
+        autocomplete="new-password"
+        placeholder="Digite sua nova senha"
+        :minlength="8"
+        :maxlength="20"
+      />
+
+      <!-- 760:711 — mensagem da API no frame do 2º campo -->
+      <AuthField
+        id="confirm-password"
+        v-model="passwordConfirmation"
+        label="Confirmar nova senha"
+        icon="lock"
+        type="password"
+        revelavel
+        autocomplete="new-password"
+        placeholder="Digite novamente sua senha"
+        :minlength="8"
+        :maxlength="20"
+      >
+        <p
+          v-if="errorMessage"
+          class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
+          role="alert"
+        >
+          {{ errorMessage }}
+        </p>
+      </AuthField>
+
+      <!-- 760:716 -->
+      <div class="flex w-full shrink-0 flex-col items-center gap-[3px]">
+        <AppButton
+          type="submit"
+          variant="coral"
+          :disabled="isSubmitting"
+          :width="250"
+          :padding-left="40"
+          :gap="15"
+          :gap-hover="23"
+        >
+          {{ isSubmitting ? 'Redefinindo...' : 'Redefinir senha' }}
+        </AppButton>
+
+        <AppLink href="/login" size="h6" @click.prevent="voltarAoLogin"> Voltar ao login </AppLink>
+      </div>
     </AuthFormColumn>
   </div>
 </template>

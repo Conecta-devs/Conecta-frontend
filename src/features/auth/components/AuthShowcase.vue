@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 
 import AppButton from '../../../shared/ui/AppButton.vue'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
@@ -9,38 +8,45 @@ import orbitInner from '../../../assets/decorations/orbit.svg'
 import orbitOuter from '../../../assets/decorations/orbit2.svg'
 
 /**
- * Figma — painel de apresentação das telas de recuperação de senha.
+ * Figma — painel de apresentação das telas de autenticação.
  *
- *   form    = 760:612 / 760:667 (azul, 750 × 911)
- *   sucesso = 760:726 (verde, 1920 × 911)
+ *   form    = 760:612 / 760:667 / 468:187 (azul, 750 × 911)
+ *   sucesso = 760:726 / 506:1739 (verde, 1920 × 911)
  *
  * Nos dois estados o painel é uma coluna com três blocos separados por 250px:
  * marca (91, 22), mensagem (91, 327.45) e rodapé — assinatura em 877.45 no
  * azul, botão em 793.45 no verde. O `justify-between` reproduz essas posições
  * exatamente num frame de 911px e comprime em janelas mais baixas, sem scroll.
+ * Como o padding inferior acompanha o rodapé (18 + 16 no azul, 68 + 50 no
+ * verde), a mensagem fica em 327 nos dois estados, como no Smart Animate.
  *
- * Os halos são os mesmos SVGs da Landpage/Login: 590px (orbit.svg) e 670px
+ * Os halos são os mesmos SVGs da Landpage: 590px (orbit.svg) e 670px
  * (orbit2.svg) com o frame de 590/510 do Figma. O par inferior fica sempre
  * visível; o par superior direito só entra no estado de sucesso.
  *
- * A descrição é `co-white` nos dois frames de recuperação (760:636/760:691),
- * diferente do Login (506:1710), que usa `s-coral`.
+ * A mensagem tem um slot (o Login usa para as duas intros em cross-fade) e o
+ * rodapé é assinatura no azul e CTA no verde (`cta-label` + evento `cta`).
+ * Sem slot, o painel mostra as telas de recuperação de senha
+ * (760:611/760:666/760:726).
  */
 const props = withDefaults(
   defineProps<{
     /** 'form' = painel azul de 750px; 'sucesso' = tela cheia verde. */
     estado?: 'form' | 'sucesso'
+    /** Texto do CTA da tela de sucesso. */
+    ctaLabel?: string
   }>(),
   {
     estado: 'form',
+    ctaLabel: 'Voltar ao login',
   },
 )
 
-const router = useRouter()
+defineEmits<{ cta: [] }>()
 
 const sucesso = computed(() => props.estado === 'sucesso')
 
-/** Título e descrição de cada frame (760:635/760:636 e 760:742/760:743). */
+/** Título e descrição da recuperação de senha (760:635/760:742). */
 const textos = computed(() =>
   sucesso.value
     ? {
@@ -58,19 +64,15 @@ const textos = computed(() =>
         ],
       },
 )
-
-function voltarAoLogin() {
-  void router.push('/login')
-}
 </script>
 
 <template>
   <section
-    class="auth-showcase flex shrink-0 flex-col justify-between overflow-hidden px-5 pt-4 text-co-white sm:px-8 sm:pt-6 lg:absolute lg:inset-y-0 lg:left-0 lg:z-10 lg:pl-10 lg:pr-0 lg:pt-[30px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none xl:pl-[90px] xl:pt-[22px]"
+    class="auth-showcase flex shrink-0 flex-col justify-between overflow-hidden px-5 pt-4 pb-6 text-co-white sm:px-8 sm:pt-6 sm:pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:z-10 lg:pl-10 lg:pr-0 lg:pt-[30px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out xl:pl-[90px] xl:pt-[22px] motion-reduce:transition-none"
     :class="
       sucesso
-        ? 'fixed inset-0 z-40 w-auto bg-tree-green pb-6 lg:w-full lg:pb-[68px]'
-        : 'relative bg-co-blue pb-6 lg:w-[750px] lg:pb-[18px]'
+        ? 'auth-showcase--sucesso fixed inset-0 z-40 w-auto bg-tree-green lg:w-full lg:pb-[68px]'
+        : 'relative bg-co-blue lg:w-[750px] lg:pb-[18px]'
     "
   >
     <!-- Par inferior (760:613/760:614) — camada casada: mesmo centro nos
@@ -145,33 +147,35 @@ function voltarAoLogin() {
       />
     </RouterLink>
 
-    <!-- Mensagem (760:634 / 760:741): título, descrição e comunidade, gap 20. -->
+    <!-- Mensagem (760:634 / 760:741): conteúdo (slot), depois a comunidade,
+         gap 20. No Login o slot traz as duas intros em cross-fade. -->
     <div class="relative z-10 flex w-full shrink-0 flex-col gap-5 py-6 sm:py-8 lg:py-0">
-      <div
-        class="text-[32px] leading-[1.05] tracking-[-1.5px] sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1 lg:leading-[normal] lg:tracking-[-5px]"
-      >
-        <p v-for="linha in textos.titulo" :key="linha" class="leading-[normal]">{{ linha }}</p>
-      </div>
-      <div
-        class="text-h5 leading-[1.4] sm:text-h4 sm:leading-[normal]"
-        :class="sucesso ? 'text-s-coral' : 'text-co-white'"
-      >
-        <p v-for="linha in textos.descricao" :key="linha" class="leading-[inherit]">{{ linha }}</p>
-      </div>
+      <slot>
+        <div
+          class="text-[32px] leading-[1.05] tracking-[-1.5px] sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1 lg:leading-[normal] lg:tracking-[-5px]"
+        >
+          <p v-for="linha in textos.titulo" :key="linha" class="leading-[normal]">{{ linha }}</p>
+        </div>
+        <div
+          class="text-h5 leading-[1.4] sm:text-h4 sm:leading-[normal]"
+          :class="sucesso ? 'text-s-coral' : 'text-co-white'"
+        >
+          <p v-for="linha in textos.descricao" :key="linha" class="leading-[inherit]">
+            {{ linha }}
+          </p>
+        </div>
+      </slot>
 
-      <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
+      <div class="hidden shrink-0 items-center justify-start gap-[10px] sm:flex">
         <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
         <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
       </div>
     </div>
 
-    <!-- Rodapé: assinatura (azul) ou CTA (verde, 760:750 — 260 × 50 a 230px
-         da borda direita). -->
-    <div
-      class="relative z-10 flex w-full shrink-0 items-end"
-      :class="sucesso ? 'justify-end' : 'hidden lg:flex'"
-    >
-      <p v-if="!sucesso" class="text-h6 leading-[normal] text-s-blue">
+    <!-- Rodapé: assinatura (azul) ou CTA (verde, 260 × 50 a 230px da borda
+         direita). O slot permite ao Login trocar o texto do botão. -->
+    <div class="relative z-10 flex w-full shrink-0 items-end">
+      <p v-if="!sucesso" class="hidden text-h6 leading-[normal] text-s-blue lg:block">
         Conversa que aproxima. Conexão que transforma.
       </p>
       <div v-else class="flex w-full justify-end">
@@ -180,11 +184,38 @@ function voltarAoLogin() {
           :width="260"
           :padding-left="40"
           class="lg:mr-[230px]"
-          @click="voltarAoLogin"
+          @click="$emit('cta')"
         >
-          Voltar ao login
+          {{ ctaLabel }}
         </AppButton>
       </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+/* Abaixo de lg o painel vira a tela de sucesso inteira: fade/scale de 300ms
+   (no desktop a expansão do painel já faz o Smart Animate). */
+@media (max-width: 63.999rem) {
+  .auth-showcase--sucesso {
+    animation: auth-sucesso 300ms ease-out both;
+  }
+}
+
+@keyframes auth-sucesso {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-showcase--sucesso {
+    animation: none;
+  }
+}
+</style>
