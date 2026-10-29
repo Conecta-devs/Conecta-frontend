@@ -155,7 +155,6 @@ Cada `feature` mantém suas páginas, componentes e serviços próximos. Compone
 - Um `<h1>` por tela de formulário e intro do painel em `<h2>`.
 - Campos com `aria-invalid` e `aria-describedby` apontando para a mensagem; erros com `role="alert"` e sucessos com `role="status"`.
 - Botão de envio com `aria-busy` e botão de mostrar/ocultar senha com `aria-label`.
-- O contraste da paleta ainda não foi ajustado — é o único item pendente no Lighthouse de acessibilidade.
 
 ## 🌳 Git e contribuição
 
