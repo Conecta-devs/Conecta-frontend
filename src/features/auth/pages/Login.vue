@@ -2,13 +2,13 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { LoginUser, registerUser } from '../services/auth'
+import { loginUser, registerUser } from '../services/auth'
 import { saveSession } from '../../../shared/services/session'
 import AuthField from '../components/AuthField.vue'
 import AuthFormColumn from '../components/AuthFormColumn.vue'
 import AuthIntro from '../components/AuthIntro.vue'
-import AuthMessage from '../components/AuthMessage.vue'
 import AuthShowcase from '../components/AuthShowcase.vue'
+import { introSucessoConta, introSucessoReset } from '../successTexts'
 import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
 import AppBackLink from '../../../shared/ui/AppBackLink.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
@@ -151,16 +151,7 @@ const subtitulo = computed(() =>
  * `titulo2: ''` desliga a segunda linha fixa do título (sucesso é uma linha só);
  * a descrição continua sendo a padrão da intro.
  */
-const introSucesso = computed(() =>
-  sucessoReset.value
-    ? {
-        titulo: 'Senha redefinida com sucesso!',
-        titulo2: '',
-        descricao: 'Agora você pode entrar com sua nova senha',
-        descricao2: 'e continuar se conectando com outros estudantes.',
-      }
-    : { titulo: 'Conta criada com sucesso!', titulo2: '' },
-)
+const introSucesso = computed(() => (sucessoReset.value ? introSucessoReset : introSucessoConta))
 
 function trocarModo(novo: Modo) {
   modo.value = novo
@@ -200,7 +191,7 @@ async function enviar() {
         transicionando.value = false
       }, 320)
     } else {
-      const resposta = await LoginUser({ email: email.value.trim(), password: senha.value })
+      const resposta = await loginUser({ email: email.value.trim(), password: senha.value })
       saveSession(resposta.user, resposta.accessToken)
       router.push('/dashboard')
     }
@@ -281,7 +272,7 @@ function voltarAoInicio() {
 
       <AppEyebrow texto="BEM-VINDO AO" />
 
-      <p class="text-title text-text-1">{{ titulo }}</p>
+      <h1 class="text-title text-text-1">{{ titulo }}</h1>
 
       <p class="text-h6 leading-[normal] text-text-2">{{ subtitulo }}</p>
 
@@ -324,9 +315,8 @@ function voltarAoInicio() {
         :autocomplete="modo === 'register' ? 'new-password' : 'current-password'"
         :minlength="8"
         :maxlength="20"
-      >
-        <AuthMessage v-if="modo === 'login' && erro">{{ erro }}</AuthMessage>
-      </AuthField>
+        :erro="modo === 'login' ? erro : ''"
+      />
 
       <AuthField
         v-if="modo === 'register'"
@@ -340,14 +330,8 @@ function voltarAoInicio() {
         autocomplete="new-password"
         :minlength="8"
         :maxlength="20"
-      >
-        <!--
-          Erro no frame 506:1693 (5px abaixo do input): o de senhas e o erro
-          geral do cadastro (e-mail já cadastrado, validação etc.) dividem
-          este slot — nunca uma linha nova acima do botão.
-        -->
-        <AuthMessage v-if="erroSenha || erro">{{ erroSenha || erro }}</AuthMessage>
-      </AuthField>
+        :erro="erroSenha || erro"
+      />
 
       <!-- "Esqueci minha senha" só existe no Login (468:97); o Register não tem. -->
       <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
@@ -367,6 +351,7 @@ function voltarAoInicio() {
           type="submit"
           variant="coral"
           :disabled="enviando"
+          :busy="enviando"
           :centered="enviando"
           :width="modo === 'register' ? 225 : 250"
         >
@@ -387,7 +372,7 @@ function voltarAoInicio() {
             {{ modo === 'register' ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
           </p>
           <AppLink
-            href="#"
+            :href="modo === 'register' ? '/login?modo=login' : '/login?modo=register'"
             size="h6"
             :arrow="false"
             :variant="modo === 'register' ? 'blue' : 'coral'"

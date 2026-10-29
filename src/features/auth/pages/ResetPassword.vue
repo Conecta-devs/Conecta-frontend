@@ -6,8 +6,8 @@ import { resetPassword } from '../services/auth'
 import AuthField from '../components/AuthField.vue'
 import AuthFormColumn from '../components/AuthFormColumn.vue'
 import AuthIntro from '../components/AuthIntro.vue'
-import AuthMessage from '../components/AuthMessage.vue'
 import AuthShowcase from '../components/AuthShowcase.vue'
+import { introSucessoReset } from '../successTexts'
 import AppBackLink from '../../../shared/ui/AppBackLink.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
 import AppDivider from '../../../shared/ui/AppDivider.vue'
@@ -142,7 +142,7 @@ function entrarNaMinhaConta() {
     class="auth-shell relative flex min-h-dvh flex-col bg-co-white lg:block"
     :class="{
       'auth-shell--saindo': transicionando,
-      'h-dvh overflow-hidden bg-tree-green': redefinida,
+      'h-dvh overflow-hidden': redefinida,
     }"
   >
     <AuthShowcase
@@ -157,10 +157,7 @@ function entrarNaMinhaConta() {
           :aria-hidden="redefinida ? 'true' : undefined"
         />
         <AuthIntro
-          titulo="Senha redefinida com sucesso!"
-          titulo2=""
-          descricao="Agora você pode entrar com sua nova senha"
-          descricao2="e continuar se conectando com outros estudantes."
+          v-bind="introSucessoReset"
           class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
           :class="redefinida ? 'opacity-100' : 'pointer-events-none opacity-0'"
           :aria-hidden="redefinida ? undefined : 'true'"
@@ -214,9 +211,8 @@ function entrarNaMinhaConta() {
         placeholder="Digite novamente sua senha"
         :minlength="8"
         :maxlength="20"
-      >
-        <AuthMessage v-if="errorMessage">{{ errorMessage }}</AuthMessage>
-      </AuthField>
+        :erro="errorMessage"
+      />
 
       <!-- 760:716 -->
       <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
@@ -224,6 +220,7 @@ function entrarNaMinhaConta() {
           type="submit"
           variant="coral"
           :disabled="isSubmitting"
+          :busy="isSubmitting"
           :centered="isSubmitting"
           :width="250"
         >

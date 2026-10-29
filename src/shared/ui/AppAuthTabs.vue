@@ -46,7 +46,11 @@ function select(tab: AuthMode) {
 </script>
 
 <template>
-  <div class="relative flex h-4 w-full max-w-[710px] items-center">
+  <div
+    role="group"
+    aria-label="Entrar ou criar conta"
+    class="relative flex h-4 w-full max-w-[710px] items-center"
+  >
     <button
       type="button"
       class="flex h-4 w-1/2 items-center justify-center border-0 bg-transparent p-0 text-center text-h6 transition-colors duration-150 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"

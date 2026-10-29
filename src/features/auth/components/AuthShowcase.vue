@@ -21,17 +21,19 @@ import orbitOuter from '../../../assets/decorations/orbit2.svg'
  * verde), a mensagem fica em 327 nos dois estados, como no Smart Animate.
  *
  * Os halos são os mesmos SVGs da Landpage: 590px (orbit.svg) e 670px
- * (orbit2.svg) com o frame de 590/510 do Figma. O par inferior fica sempre
- * visível; o par superior direito só entra no estado de sucesso.
+ * (orbit2.svg) com o frame de 590/510 do Figma. Os dois anéis têm o mesmo
+ * centro; no painel azul eles escalam juntos com a largura do painel (para não
+ * se cruzarem em telas menores) e no sucesso mantêm 590/670. O par inferior
+ * fica sempre visível; o par superior direito só entra no estado de sucesso.
  *
  * A mensagem tem um slot (o Login usa para as duas intros em cross-fade) e o
  * rodapé é assinatura no azul e CTA no verde (`cta-label` + evento `cta`).
- * Sem slot, o painel mostra as telas de recuperação de senha
- * (760:611/760:666/760:726).
+ * Todas as telas de auth passam a intro pelo slot; o painel não tem mais
+ * conteúdo padrão duplicando o `AuthIntro`.
  */
 const props = withDefaults(
   defineProps<{
-    /** 'form' = painel azul de 750px; 'sucesso' = tela cheia verde. */
+    /** 'form' = painel azul (750px no Figma); 'sucesso' = tela cheia verde. */
     estado?: 'form' | 'sucesso'
     /** Texto do CTA da tela de sucesso. */
     ctaLabel?: string
@@ -45,25 +47,6 @@ const props = withDefaults(
 defineEmits<{ cta: [] }>()
 
 const sucesso = computed(() => props.estado === 'sucesso')
-
-/** Título e descrição da recuperação de senha (760:635/760:742). */
-const textos = computed(() =>
-  sucesso.value
-    ? {
-        titulo: ['Senha redefinida com sucesso!'],
-        descricao: [
-          'Agora você pode entrar com sua nova senha',
-          'e continuar se conectando com outros estudantes.',
-        ],
-      }
-    : {
-        titulo: ['Conecte-se com', 'quem entende você.'],
-        descricao: [
-          'Conheça novos estudantes, encontre seu grupo',
-          'e construa novas histórias dentro e fora da sala.',
-        ],
-      },
-)
 </script>
 
 <template>
@@ -72,7 +55,7 @@ const textos = computed(() =>
     :class="
       sucesso
         ? 'auth-showcase--sucesso fixed inset-0 z-40 w-auto bg-tree-green lg:w-full lg:pb-[68px]'
-        : 'relative bg-co-blue lg:w-[750px] lg:pb-[18px]'
+        : 'auth-showcase--form relative bg-co-blue lg:w-[var(--auth-panel-width)] lg:pb-[18px]'
     "
   >
     <!-- Par inferior (760:613/760:614) — camada casada: mesmo centro nos
@@ -80,13 +63,13 @@ const textos = computed(() =>
     <img
       :src="orbitInner"
       alt=""
-      class="pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(79vw,590px)] translate-x-1/2 translate-y-1/2 lg:right-auto lg:bottom-[-221px] lg:left-[302px] lg:size-[590px] lg:translate-x-0 lg:translate-y-0"
+      class="auth-orbit auth-orbit--baixo auth-orbit--inner pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(79vw,590px)] translate-x-1/2 translate-y-1/2"
       draggable="false"
     />
     <img
       :src="orbitOuter"
       alt=""
-      class="pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(89.4vw,670px)] translate-x-1/2 translate-y-1/2 lg:right-auto lg:bottom-[-261px] lg:left-[262px] lg:size-[670px] lg:translate-x-0 lg:translate-y-0"
+      class="auth-orbit auth-orbit--baixo auth-orbit--outer pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(89.4vw,670px)] translate-x-1/2 translate-y-1/2"
       draggable="false"
     />
 
@@ -94,14 +77,14 @@ const textos = computed(() =>
     <img
       :src="orbitInner"
       alt=""
-      class="pointer-events-none absolute top-[10%] right-[10%] size-[min(79vw,590px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none lg:top-[-155px] lg:right-[-218px] lg:size-[590px] lg:translate-x-0 lg:translate-y-0"
+      class="auth-orbit auth-orbit--cima auth-orbit--inner pointer-events-none absolute top-[10%] right-[10%] size-[min(79vw,590px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none"
       :class="sucesso ? 'opacity-100' : 'opacity-0'"
       draggable="false"
     />
     <img
       :src="orbitOuter"
       alt=""
-      class="pointer-events-none absolute top-[10%] right-[10%] size-[min(89.4vw,670px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none lg:top-[-195px] lg:right-[-258px] lg:size-[670px] lg:translate-x-0 lg:translate-y-0"
+      class="auth-orbit auth-orbit--cima auth-orbit--outer pointer-events-none absolute top-[10%] right-[10%] size-[min(89.4vw,670px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none"
       :class="sucesso ? 'opacity-100' : 'opacity-0'"
       draggable="false"
     />
@@ -147,24 +130,11 @@ const textos = computed(() =>
       />
     </RouterLink>
 
-    <!-- Mensagem (760:634 / 760:741): conteúdo (slot), depois a comunidade,
-         gap 20. No Login o slot traz as duas intros em cross-fade. -->
+    <!-- Mensagem (760:634 / 760:741): a intro vem da tela (slot) e a
+         comunidade fica logo abaixo, gap 20. No Login o slot traz as duas
+         intros em cross-fade. -->
     <div class="relative z-10 flex w-full shrink-0 flex-col gap-5 py-6 sm:py-8 lg:py-0">
-      <slot>
-        <div
-          class="text-[32px] leading-[1.05] tracking-[-1.5px] sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1 lg:leading-[normal] lg:tracking-[-5px]"
-        >
-          <p v-for="linha in textos.titulo" :key="linha" class="leading-[normal]">{{ linha }}</p>
-        </div>
-        <div
-          class="text-h5 leading-[1.4] sm:text-h4 sm:leading-[normal]"
-          :class="sucesso ? 'text-s-coral' : 'text-co-white'"
-        >
-          <p v-for="linha in textos.descricao" :key="linha" class="leading-[inherit]">
-            {{ linha }}
-          </p>
-        </div>
-      </slot>
+      <slot />
 
       <div class="hidden shrink-0 items-center justify-start gap-[10px] sm:flex">
         <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
@@ -188,6 +158,61 @@ const textos = computed(() =>
 </template>
 
 <style scoped>
+/* A partir de `lg` as órbitas são posicionadas pela largura do painel, não
+   pela altura da janela: assim os dois anéis continuam concêntricos e a
+   distância entre eles escala junto (no Figma o centro é único, em 597 /
+   base−74 num painel de 750). */
+@media (min-width: 64rem) {
+  /* Referencial: 750px do Figma no sucesso; largura real do painel no form. */
+  .auth-showcase {
+    --orbit-unit: 750px;
+  }
+
+  .auth-showcase--form {
+    --orbit-unit: var(--auth-panel-width);
+  }
+
+  .auth-orbit {
+    translate: none;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .auth-orbit--inner {
+    width: min(590px, 78.67%);
+  }
+
+  .auth-orbit--outer {
+    width: min(670px, 89.33%);
+  }
+
+  /* Par inferior (760:613/760:614) */
+  .auth-orbit--baixo.auth-orbit--inner {
+    right: auto;
+    left: calc(var(--orbit-unit) * 0.40267);
+    bottom: calc(var(--orbit-unit) * -0.29467);
+  }
+
+  .auth-orbit--baixo.auth-orbit--outer {
+    right: auto;
+    left: calc(var(--orbit-unit) * 0.34933);
+    bottom: calc(var(--orbit-unit) * -0.348);
+  }
+
+  /* Par superior direito (760:729/760:730) */
+  .auth-orbit--cima.auth-orbit--inner {
+    left: auto;
+    right: calc(var(--orbit-unit) * -0.29067);
+    top: calc(var(--orbit-unit) * -0.20667);
+  }
+
+  .auth-orbit--cima.auth-orbit--outer {
+    left: auto;
+    right: calc(var(--orbit-unit) * -0.344);
+    top: calc(var(--orbit-unit) * -0.26);
+  }
+}
+
 /* Abaixo de lg o painel vira a tela de sucesso inteira: fade/scale de 300ms
    (no desktop a expansão do painel já faz o Smart Animate). */
 @media (max-width: 63.999rem) {

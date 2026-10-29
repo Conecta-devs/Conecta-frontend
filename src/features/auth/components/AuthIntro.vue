@@ -3,7 +3,8 @@
  * Figma — intro do painel de autenticação (446:109 / 468:187 / 506:1794 /
  * 760:611 / 760:666 / 760:726).
  *
- * Título 72 (32 abaixo de `sm`) e descrição 18 (16 no mobile) em `s-coral`,
+ * Título 72 no Figma (clamp 44–72 a partir de `lg`, para o painel encolher
+ * sem quebrar em mais linhas) e descrição 18 (16 no mobile) em `s-coral`,
  * gap 20. A quebra do título é sempre visível; a da descrição só a partir de
  * `sm` — abaixo disso o texto flui naturalmente, como nos frames responsivos.
  *
@@ -31,11 +32,11 @@ withDefaults(
 
 <template>
   <div class="flex w-full flex-col items-start gap-4 sm:gap-5">
-    <p
-      class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
+    <h2
+      class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-[clamp(44px,4.3vw,72px)] lg:leading-[normal] lg:tracking-[-0.07em]"
     >
       {{ titulo }}<template v-if="titulo2"><br />{{ titulo2 }}</template>
-    </p>
+    </h2>
     <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
       {{ descricao }}<span v-if="descricao2" class="sm:block">{{ ` ${descricao2}` }}</span>
     </p>

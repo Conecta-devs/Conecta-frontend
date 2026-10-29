@@ -74,6 +74,16 @@
 }
 
 /*
+ * Largura do painel de apresentação das telas de auth a partir de `lg`.
+ * Figma: 750px em 1920. O teto de 45vw garante que a intro ocupe no máximo
+ * metade da tela em notebooks e tablets; o piso de 480px evita que ela
+ * encolha demais em 1024 (~47%).
+ */
+:root {
+  --auth-panel-width: clamp(480px, 45vw, 750px);
+}
+
+/*
  * Base em @layer para que as utilities do Tailwind possam sobrescrever
  * (regra sem layer sempre ganharia de @layer utilities).
  */

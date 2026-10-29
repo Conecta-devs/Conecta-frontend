@@ -40,6 +40,8 @@ const props = withDefaults(
      * Usado nos estados de carregamento ("Enviando...", "Redefinindo...").
      */
     centered?: boolean
+    /** Anuncia o estado de carregamento (`aria-busy`). */
+    busy?: boolean
   }>(),
   {
     variant: 'coral',
@@ -47,6 +49,7 @@ const props = withDefaults(
     type: 'button',
     labelVariant: 'h5',
     centered: false,
+    busy: false,
   },
 )
 
@@ -118,6 +121,7 @@ const labelClasses: Record<NonNullable<typeof props.labelVariant>, string> = {
     class="relative shrink-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
     :class="sizes[size].root"
     :style="{ width: rootWidth, height: rootHeight }"
+    :aria-busy="busy ? 'true' : undefined"
     @mouseenter="active = true"
     @mouseleave="active = false"
     @focus="active = true"

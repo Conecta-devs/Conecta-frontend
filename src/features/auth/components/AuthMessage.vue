@@ -8,9 +8,12 @@
  */
 withDefaults(
   defineProps<{
+    /** Permite vincular a mensagem ao input via `aria-describedby`. */
+    id?: string
     variante?: 'erro' | 'sucesso'
   }>(),
   {
+    id: undefined,
     variante: 'erro',
   },
 )
@@ -18,6 +21,7 @@ withDefaults(
 
 <template>
   <p
+    :id="id"
     class="text-h6 leading-[normal]"
     :class="variante === 'sucesso' ? 'text-tree-green' : 'text-[rgba(255,0,4,0.65)]'"
     :role="variante === 'sucesso' ? 'status' : 'alert'"

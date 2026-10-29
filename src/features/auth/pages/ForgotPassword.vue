@@ -6,7 +6,6 @@ import { requestPasswordReset } from '../services/auth'
 import AuthField from '../components/AuthField.vue'
 import AuthFormColumn from '../components/AuthFormColumn.vue'
 import AuthIntro from '../components/AuthIntro.vue'
-import AuthMessage from '../components/AuthMessage.vue'
 import AuthShowcase from '../components/AuthShowcase.vue'
 import AppBackLink from '../../../shared/ui/AppBackLink.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
@@ -88,12 +87,9 @@ function voltarAoLogin() {
         autocomplete="email"
         placeholder="voce@email.com"
         :maxlength="150"
-      >
-        <AuthMessage v-if="errorMessage">{{ errorMessage }}</AuthMessage>
-        <AuthMessage v-else-if="successMessage" variante="sucesso">{{
-          successMessage
-        }}</AuthMessage>
-      </AuthField>
+        :erro="errorMessage"
+        :sucesso="successMessage"
+      />
 
       <!-- 760:656 — botão coral 250 × 50 + link, gap 5 -->
       <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
@@ -101,6 +97,7 @@ function voltarAoLogin() {
           type="submit"
           variant="coral"
           :disabled="isSubmitting"
+          :busy="isSubmitting"
           :centered="isSubmitting"
           :width="250"
         >
