@@ -97,7 +97,13 @@ function voltarAoLogin() {
 
       <!-- 760:656 — botão coral 250 × 50 + link, gap 5 -->
       <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
-        <AppButton type="submit" variant="coral" :disabled="isSubmitting" :width="250">
+        <AppButton
+          type="submit"
+          variant="coral"
+          :disabled="isSubmitting"
+          :centered="isSubmitting"
+          :width="250"
+        >
           {{ isSubmitting ? 'Enviando...' : 'Enviar instruções' }}
         </AppButton>
 

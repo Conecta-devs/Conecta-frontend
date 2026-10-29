@@ -35,12 +35,18 @@ const props = withDefaults(
     gapHover?: number
     /** Variante tipográfica do label (tokens text-h* do Tailwind). Padrão: h5 (16px). */
     labelVariant?: 'h3' | 'h4' | 'h5' | 'h6'
+    /**
+     * Centraliza label + seta e ignora o `paddingLeft`.
+     * Usado nos estados de carregamento ("Enviando...", "Redefinindo...").
+     */
+    centered?: boolean
   }>(),
   {
     variant: 'coral',
     size: 'md',
     type: 'button',
     labelVariant: 'h5',
+    centered: false,
   },
 )
 
@@ -126,10 +132,10 @@ const labelClasses: Record<NonNullable<typeof props.labelVariant>, string> = {
 
     <!-- Conteúdo (431:128 / 435:72 e equivalentes) -->
     <span
-      class="absolute inset-0 flex items-center justify-start transition-[gap,color] duration-300 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
-      :class="contentClasses"
+      class="absolute inset-0 flex items-center transition-[gap,color] duration-300 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
+      :class="[contentClasses, centered ? 'justify-center' : 'justify-start']"
       :style="{
-        paddingLeft: `${contentPaddingLeft}px`,
+        paddingLeft: centered ? '0px' : `${contentPaddingLeft}px`,
         gap: `${active ? (gapHover ?? 23) : (gap ?? 15)}px`,
       }"
     >

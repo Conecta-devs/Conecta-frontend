@@ -367,6 +367,7 @@ function voltarAoInicio() {
           type="submit"
           variant="coral"
           :disabled="enviando"
+          :centered="enviando"
           :width="modo === 'register' ? 225 : 250"
         >
           {{
