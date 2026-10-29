@@ -137,9 +137,7 @@ function voltarAoLogin() {
           {{ isSubmitting ? 'Enviando...' : 'Enviar instruções' }}
         </AppButton>
 
-        <AppLink href="/login" size="h6" @click.prevent="voltarAoLogin">
-          Voltar ao login
-        </AppLink>
+        <AppLink href="/login" size="h6" @click.prevent="voltarAoLogin"> Voltar ao login </AppLink>
       </div>
     </AuthFormColumn>
   </div>

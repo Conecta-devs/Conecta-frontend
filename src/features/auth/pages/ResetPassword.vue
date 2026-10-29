@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { resetPassword } from '../services/auth'
@@ -47,6 +47,25 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 const redefinida = ref(props.estadoInicial === 'redefinida')
 
+/**
+ * Transição formulário → "Senha redefinida com sucesso!".
+ *
+ * Mesma animação do "Conta criada com sucesso!" (Login): o painel é uma camada
+ * persistente, largura 750 → 100% e cor azul → verde, intros em cross-fade e
+ * o formulário sai com fade + translateY(-12px) — 300ms, ease out.
+ *
+ * A URL só muda para `/senha-redefinida` ao fim da transição: assim a troca de
+ * rota não interrompe o Smart Animate (e um refresh nesse meio-tempo ainda cai
+ * no estado verde, que também é o padrão da rota de destino).
+ */
+const transicionando = ref(false)
+
+let timerTransicao: number | undefined
+
+onBeforeUnmount(() => {
+  window.clearTimeout(timerTransicao)
+})
+
 async function submitReset() {
   if (isSubmitting.value || redefinida.value) return
 
@@ -70,8 +89,15 @@ async function submitReset() {
     await resetPassword(token.value, password.value)
     password.value = ''
     passwordConfirmation.value = ''
+
+    // Smart Animate: "Mudar para" a tela de sucesso (ease out, 300ms).
+    transicionando.value = true
     redefinida.value = true
-    await router.replace('/senha-redefinida')
+    window.clearTimeout(timerTransicao)
+    timerTransicao = window.setTimeout(() => {
+      transicionando.value = false
+      void router.replace('/senha-redefinida')
+    }, 320)
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Não foi possível redefinir a senha agora.'
@@ -87,8 +113,11 @@ function voltarAoLogin() {
 
 <template>
   <div
-    class="relative flex min-h-dvh flex-col bg-co-white lg:block"
-    :class="redefinida ? 'h-dvh overflow-hidden bg-tree-green' : ''"
+    class="auth-shell relative flex min-h-dvh flex-col bg-co-white lg:block"
+    :class="{
+      'auth-shell--saindo': transicionando,
+      'h-dvh overflow-hidden bg-tree-green': redefinida,
+    }"
   >
     <AuthShowcase :estado="redefinida ? 'sucesso' : 'form'" @cta="voltarAoLogin">
       <div class="grid w-full">
@@ -212,3 +241,10 @@ function voltarAoLogin() {
     </AuthFormColumn>
   </div>
 </template>
+
+<style scoped>
+/* Igual ao Login: durante o Smart Animate o formulário não recebe cliques. */
+.auth-shell--saindo {
+  pointer-events: none;
+}
+</style>
