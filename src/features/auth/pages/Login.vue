@@ -6,9 +6,14 @@ import { LoginUser, registerUser } from '../services/auth'
 import { saveSession } from '../../../shared/services/session'
 import AuthField from '../components/AuthField.vue'
 import AuthFormColumn from '../components/AuthFormColumn.vue'
+import AuthIntro from '../components/AuthIntro.vue'
+import AuthMessage from '../components/AuthMessage.vue'
 import AuthShowcase from '../components/AuthShowcase.vue'
 import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
+import AppBackLink from '../../../shared/ui/AppBackLink.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
+import AppDivider from '../../../shared/ui/AppDivider.vue'
+import AppEyebrow from '../../../shared/ui/AppEyebrow.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
 
 /**
@@ -58,7 +63,16 @@ const confirmarSenha = ref('')
 const erro = ref('')
 const erroSenha = ref('')
 const enviando = ref(false)
-const criado = ref(props.estadoInicial === 'criado')
+
+/**
+ * Marca deixada pelo CTA de "Senha redefinida com sucesso!" (ResetPassword).
+ * Vive só no `history.state` do `/login`: a tela abre no frame verde e, no
+ * frame seguinte, reverte o Smart Animate — a continuação visual do clique,
+ * sem desmontar a tela de origem no meio da transição.
+ */
+const sucessoReset = ref(window.history.state?.sucessoReset === true)
+
+const criado = ref(props.estadoInicial === 'criado' || sucessoReset.value)
 
 /**
  * Transição formulário → "Conta criada com sucesso!".
@@ -68,12 +82,14 @@ const criado = ref(props.estadoInicial === 'criado')
  * persistente: largura 750 → 100% e cor azul → verde; logo e intro fazem
  * cross-fade; o formulário sai com fade + translateY(-12px).
  */
-const transicionando = ref(false)
+const transicionando = ref(sucessoReset.value)
 
 let timerTransicao: number | undefined
+let frameTransicao = 0
 
 onBeforeUnmount(() => {
   window.clearTimeout(timerTransicao)
+  window.cancelAnimationFrame(frameTransicao)
 })
 
 /** A Landpage manda `?modo=register` (Inscreva-se / Quero participar / Começar agora). */
@@ -94,6 +110,22 @@ function aplicarModoDaQuery(valor: unknown) {
 
 onMounted(() => {
   aplicarModoDaQuery(route.query.modo)
+
+  if (!sucessoReset.value) return
+
+  // Consome a marca: refresh e voltar/avançar não repetem a animação.
+  window.history.replaceState({ ...window.history.state, sucessoReset: false }, '')
+
+  // Pinta um frame do painel verde (igual à tela anterior) e só então reverte.
+  frameTransicao = window.requestAnimationFrame(() => {
+    frameTransicao = window.requestAnimationFrame(() => {
+      criado.value = false
+      window.clearTimeout(timerTransicao)
+      timerTransicao = window.setTimeout(() => {
+        transicionando.value = false
+      }, 320)
+    })
+  })
 })
 
 /** Mantém a tela sincronizada quando o `?modo` muda (link, voltar/avançar). */
@@ -112,6 +144,22 @@ const subtitulo = computed(() =>
   modo.value === 'register'
     ? 'Comece a se conectar com outros estudantes.'
     : 'Entre para continuar de onde parou.',
+)
+
+/**
+ * Textos do frame de sucesso; o CTA da redefinição reusa este mesmo painel.
+ * `titulo2: ''` desliga a segunda linha fixa do título (sucesso é uma linha só);
+ * a descrição continua sendo a padrão da intro.
+ */
+const introSucesso = computed(() =>
+  sucessoReset.value
+    ? {
+        titulo: 'Senha redefinida com sucesso!',
+        titulo2: '',
+        descricao: 'Agora você pode entrar com sua nova senha',
+        descricao2: 'e continuar se conectando com outros estudantes.',
+      }
+    : { titulo: 'Conta criada com sucesso!', titulo2: '' },
 )
 
 function trocarModo(novo: Modo) {
@@ -209,60 +257,29 @@ function voltarAoInicio() {
            de altura no meio do cross-fade. -->
       <div class="grid w-full">
         <!-- Intro do formulário (446:109 / 468:187) -->
-        <div
-          class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+        <AuthIntro
+          class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
           :class="criado ? 'pointer-events-none opacity-0' : 'opacity-100'"
           :aria-hidden="criado ? 'true' : undefined"
-        >
-          <p
-            class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-          >
-            Conecte-se com<br />quem entende você.
-          </p>
-          <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-            Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-            e construa novas histórias dentro e fora da sala.
-          </p>
-        </div>
+        />
 
         <!-- Intro do sucesso (506:1794) -->
-        <div
-          class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+        <AuthIntro
+          v-bind="introSucesso"
+          class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
           :class="criado ? 'opacity-100' : 'pointer-events-none opacity-0'"
           :aria-hidden="criado ? undefined : 'true'"
           role="status"
           aria-live="polite"
-        >
-          <p
-            class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-          >
-            Conta criada com sucesso!
-          </p>
-          <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-            Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-            e construa novas histórias dentro e fora da sala.
-          </p>
-        </div>
+        />
       </div>
     </AuthShowcase>
 
     <!-- ========== Formulário (454:99 / 468:206) — sai no Smart Animate ========== -->
     <AuthFormColumn :escondido="criado" @submit="enviar">
-      <button
-        type="button"
-        class="group inline-flex shrink-0 cursor-pointer items-center gap-[3px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
-        @click="voltarAoInicio"
-      >
-        <span
-          class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
-          >←</span
-        >
-        Voltar para o início
-      </button>
+      <AppBackLink label="Voltar para o início" @click="voltarAoInicio" />
 
-      <p class="text-h6 leading-[normal] text-co-coral">
-        BEM-VINDO AO <span class="text-co-blue">CONECTA.</span>
-      </p>
+      <AppEyebrow texto="BEM-VINDO AO" />
 
       <p class="text-title text-text-1">{{ titulo }}</p>
 
@@ -272,7 +289,7 @@ function voltarAoInicio() {
       <AppAuthTabs :mode="modo" @select="trocarModo" />
 
       <!-- Separador (454:105 / 468:218) — linha de 710x1 em traceline -->
-      <div class="h-px w-full shrink-0 bg-traceline" aria-hidden="true" />
+      <AppDivider />
 
       <AuthField
         v-if="modo === 'register'"
@@ -308,13 +325,7 @@ function voltarAoInicio() {
         :minlength="8"
         :maxlength="20"
       >
-        <p
-          v-if="modo === 'login' && erro"
-          class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-          role="alert"
-        >
-          {{ erro }}
-        </p>
+        <AuthMessage v-if="modo === 'login' && erro">{{ erro }}</AuthMessage>
       </AuthField>
 
       <AuthField
@@ -335,13 +346,7 @@ function voltarAoInicio() {
           geral do cadastro (e-mail já cadastrado, validação etc.) dividem
           este slot — nunca uma linha nova acima do botão.
         -->
-        <p
-          v-if="erroSenha || erro"
-          class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-          role="alert"
-        >
-          {{ erroSenha || erro }}
-        </p>
+        <AuthMessage v-if="erroSenha || erro">{{ erroSenha || erro }}</AuthMessage>
       </AuthField>
 
       <!-- "Esqueci minha senha" só existe no Login (468:97); o Register não tem. -->
@@ -363,9 +368,6 @@ function voltarAoInicio() {
           variant="coral"
           :disabled="enviando"
           :width="modo === 'register' ? 225 : 250"
-          :padding-left="40"
-          :gap="15"
-          :gap-hover="23"
         >
           {{
             enviando

@@ -5,8 +5,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { resetPassword } from '../services/auth'
 import AuthField from '../components/AuthField.vue'
 import AuthFormColumn from '../components/AuthFormColumn.vue'
+import AuthIntro from '../components/AuthIntro.vue'
+import AuthMessage from '../components/AuthMessage.vue'
 import AuthShowcase from '../components/AuthShowcase.vue'
+import AppBackLink from '../../../shared/ui/AppBackLink.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
+import AppDivider from '../../../shared/ui/AppDivider.vue'
+import AppEyebrow from '../../../shared/ui/AppEyebrow.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
 
 /**
@@ -106,8 +111,29 @@ async function submitReset() {
   }
 }
 
+/**
+ * Links "Voltar ao login" de dentro do formulário: troca de rota direta.
+ * O CTA do sucesso usa `entrarNaMinhaConta`, que preserva a animação.
+ */
 function voltarAoLogin() {
   void router.push('/login')
+}
+
+/**
+ * CTA da tela de sucesso.
+ *
+ * Repete o fluxo de "Conta criada com sucesso!" (Login): a rota para `/login`
+ * muda na hora e o Login recebe `state.sucessoReset`, abrindo no painel verde
+ * para reverter o Smart Animate (verde de largura total → azul de 750px +
+ * formulário entrando). Trocar de rota aqui desmontaria esta tela e cortaria
+ * a animação no meio.
+ */
+function entrarNaMinhaConta() {
+  void router.push({
+    path: '/login',
+    query: { modo: 'login' },
+    state: { sucessoReset: true },
+  })
 }
 </script>
 
@@ -119,61 +145,37 @@ function voltarAoLogin() {
       'h-dvh overflow-hidden bg-tree-green': redefinida,
     }"
   >
-    <AuthShowcase :estado="redefinida ? 'sucesso' : 'form'" @cta="voltarAoLogin">
+    <AuthShowcase
+      :estado="redefinida ? 'sucesso' : 'form'"
+      cta-label="Entrar na minha conta"
+      @cta="entrarNaMinhaConta"
+    >
       <div class="grid w-full">
-        <div
-          class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+        <AuthIntro
+          class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
           :class="redefinida ? 'pointer-events-none opacity-0' : 'opacity-100'"
           :aria-hidden="redefinida ? 'true' : undefined"
-        >
-          <p
-            class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-          >
-            Conecte-se com<br />quem entende você.
-          </p>
-          <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-            Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-            e construa novas histórias dentro e fora da sala.
-          </p>
-        </div>
-        <div
-          class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
+        />
+        <AuthIntro
+          titulo="Senha redefinida com sucesso!"
+          titulo2=""
+          descricao="Agora você pode entrar com sua nova senha"
+          descricao2="e continuar se conectando com outros estudantes."
+          class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
           :class="redefinida ? 'opacity-100' : 'pointer-events-none opacity-0'"
           :aria-hidden="redefinida ? undefined : 'true'"
           role="status"
           aria-live="polite"
-        >
-          <p
-            class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-          >
-            Senha redefinida com sucesso!
-          </p>
-          <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-            Agora você pode entrar com sua nova senha<br class="hidden sm:block" />
-            e continuar se conectando com outros estudantes.
-          </p>
-        </div>
+        />
       </div>
     </AuthShowcase>
 
     <AuthFormColumn :escondido="redefinida" @submit="submitReset">
       <!-- 760:701 -->
-      <button
-        type="button"
-        class="group inline-flex shrink-0 cursor-pointer items-center gap-[5px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
-        @click="voltarAoLogin"
-      >
-        <span
-          class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
-          >←</span
-        >
-        Voltar ao login
-      </button>
+      <AppBackLink @click="voltarAoLogin" />
 
       <!-- 760:702 -->
-      <p class="text-h6 leading-[normal] text-co-coral">
-        SEGURANÇA DA CONTA <span class="text-co-blue">CONECTA.</span>
-      </p>
+      <AppEyebrow texto="SEGURANÇA DA CONTA" />
 
       <!-- 760:703 -->
       <h1 class="text-title leading-[normal] text-text-1">Criar nova senha</h1>
@@ -184,7 +186,7 @@ function voltarAoLogin() {
       </p>
 
       <!-- 760:705 -->
-      <div class="h-px w-full shrink-0 bg-traceline" aria-hidden="true" />
+      <AppDivider />
 
       <!-- 760:706 -->
       <AuthField
@@ -213,26 +215,12 @@ function voltarAoLogin() {
         :minlength="8"
         :maxlength="20"
       >
-        <p
-          v-if="errorMessage"
-          class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-          role="alert"
-        >
-          {{ errorMessage }}
-        </p>
+        <AuthMessage v-if="errorMessage">{{ errorMessage }}</AuthMessage>
       </AuthField>
 
       <!-- 760:716 -->
-      <div class="flex w-full shrink-0 flex-col items-center gap-[3px]">
-        <AppButton
-          type="submit"
-          variant="coral"
-          :disabled="isSubmitting"
-          :width="250"
-          :padding-left="40"
-          :gap="15"
-          :gap-hover="23"
-        >
+      <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
+        <AppButton type="submit" variant="coral" :disabled="isSubmitting" :width="250">
           {{ isSubmitting ? 'Redefinindo...' : 'Redefinir senha' }}
         </AppButton>
 

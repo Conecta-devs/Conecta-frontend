@@ -179,13 +179,7 @@ const textos = computed(() =>
         Conversa que aproxima. Conexão que transforma.
       </p>
       <div v-else class="flex w-full justify-end">
-        <AppButton
-          variant="blue"
-          :width="260"
-          :padding-left="40"
-          class="lg:mr-[230px]"
-          @click="$emit('cta')"
-        >
+        <AppButton variant="blue" :width="260" class="lg:mr-[230px]" @click="$emit('cta')">
           {{ ctaLabel }}
         </AppButton>
       </div>
