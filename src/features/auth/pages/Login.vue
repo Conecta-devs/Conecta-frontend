@@ -2,15 +2,19 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { LoginUser, registerUser } from '../services/auth'
+import { loginUser, registerUser } from '../services/auth'
 import { saveSession } from '../../../shared/services/session'
+import AuthField from '../components/AuthField.vue'
+import AuthFormColumn from '../components/AuthFormColumn.vue'
+import AuthIntro from '../components/AuthIntro.vue'
+import AuthShowcase from '../components/AuthShowcase.vue'
+import { introSucessoConta, introSucessoReset } from '../successTexts'
 import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
+import AppBackLink from '../../../shared/ui/AppBackLink.vue'
 import AppButton from '../../../shared/ui/AppButton.vue'
+import AppDivider from '../../../shared/ui/AppDivider.vue'
+import AppEyebrow from '../../../shared/ui/AppEyebrow.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
-import AppLogo from '../../../shared/ui/AppLogo.vue'
-import coletiveIcon from '../../../assets/icons/coletive-white.svg'
-import orbitOuter from '../../../assets/decorations/orbit2.svg'
-import orbitInner from '../../../assets/decorations/orbit.svg'
 
 /**
  * Figma — Login / Register (446:109, 468:187, 506:1651, 506:1917, 506:1739)
@@ -26,13 +30,14 @@ import orbitInner from '../../../assets/decorations/orbit.svg'
  *   - erroSenha: erro inline no confirmar senha (frame 506:1693)
  *   - criado:    frame 506:1739 → tela "Conta criada com sucesso!"
  *
+ * O painel, a coluna do formulário e os campos são compartilhados com as
+ * telas de recuperação de senha (AuthShowcase, AuthFormColumn e AuthField).
+ * Aqui ficam só as diferenças do Login: as duas intros em cross-fade no painel,
+ * as abas Entrar/Criar conta e o "Esqueci minha senha".
+ *
  * O layout original era um canvas fixo de 1920x910. Aqui ele é responsivo:
  * empilha no mobile (painel compacto no topo) e vira duas colunas a partir de
  * `lg` (painel 750 / formulário 1170, como no Figma).
- *
- * Tokens do Figma: gap 32 no form, 5 no label→input, inputs 50px raio 10,
- * botão coral 50px raio 10 com seta 16x12 a 15px do label, aba ativa em co-blue
- * com underline de 3px, eyebrow 14 (coral + azul), título 32 SemiBold.
  */
 
 const router = useRouter()
@@ -55,11 +60,19 @@ const nome = ref('')
 const email = ref('')
 const senha = ref('')
 const confirmarSenha = ref('')
-const mostrarSenha = ref(false)
 const erro = ref('')
 const erroSenha = ref('')
 const enviando = ref(false)
-const criado = ref(props.estadoInicial === 'criado')
+
+/**
+ * Marca deixada pelo CTA de "Senha redefinida com sucesso!" (ResetPassword).
+ * Vive só no `history.state` do `/login`: a tela abre no frame verde e, no
+ * frame seguinte, reverte o Smart Animate — a continuação visual do clique,
+ * sem desmontar a tela de origem no meio da transição.
+ */
+const sucessoReset = ref(window.history.state?.sucessoReset === true)
+
+const criado = ref(props.estadoInicial === 'criado' || sucessoReset.value)
 
 /**
  * Transição formulário → "Conta criada com sucesso!".
@@ -69,12 +82,14 @@ const criado = ref(props.estadoInicial === 'criado')
  * persistente: largura 750 → 100% e cor azul → verde; logo e intro fazem
  * cross-fade; o formulário sai com fade + translateY(-12px).
  */
-const transicionando = ref(false)
+const transicionando = ref(sucessoReset.value)
 
 let timerTransicao: number | undefined
+let frameTransicao = 0
 
 onBeforeUnmount(() => {
   window.clearTimeout(timerTransicao)
+  window.cancelAnimationFrame(frameTransicao)
 })
 
 /** A Landpage manda `?modo=register` (Inscreva-se / Quero participar / Começar agora). */
@@ -95,6 +110,22 @@ function aplicarModoDaQuery(valor: unknown) {
 
 onMounted(() => {
   aplicarModoDaQuery(route.query.modo)
+
+  if (!sucessoReset.value) return
+
+  // Consome a marca: refresh e voltar/avançar não repetem a animação.
+  window.history.replaceState({ ...window.history.state, sucessoReset: false }, '')
+
+  // Pinta um frame do painel verde (igual à tela anterior) e só então reverte.
+  frameTransicao = window.requestAnimationFrame(() => {
+    frameTransicao = window.requestAnimationFrame(() => {
+      criado.value = false
+      window.clearTimeout(timerTransicao)
+      timerTransicao = window.setTimeout(() => {
+        transicionando.value = false
+      }, 320)
+    })
+  })
 })
 
 /** Mantém a tela sincronizada quando o `?modo` muda (link, voltar/avançar). */
@@ -114,6 +145,13 @@ const subtitulo = computed(() =>
     ? 'Comece a se conectar com outros estudantes.'
     : 'Entre para continuar de onde parou.',
 )
+
+/**
+ * Textos do frame de sucesso; o CTA da redefinição reusa este mesmo painel.
+ * `titulo2: ''` desliga a segunda linha fixa do título (sucesso é uma linha só);
+ * a descrição continua sendo a padrão da intro.
+ */
+const introSucesso = computed(() => (sucessoReset.value ? introSucessoReset : introSucessoConta))
 
 function trocarModo(novo: Modo) {
   modo.value = novo
@@ -153,7 +191,7 @@ async function enviar() {
         transicionando.value = false
       }, 320)
     } else {
-      const resposta = await LoginUser({ email: email.value.trim(), password: senha.value })
+      const resposta = await loginUser({ email: email.value.trim(), password: senha.value })
       saveSession(resposta.user, resposta.accessToken)
       router.push('/dashboard')
     }
@@ -188,411 +226,172 @@ function irParaLogin() {
 function voltarAoInicio() {
   router.push('/')
 }
-
-/** Classes compartilhadas dos campos (frame: label 14, input 50px raio 10). */
-const inputBase =
-  'flex h-[50px] w-full items-center rounded-[10px] border border-[rgba(0,0,0,0.16)] bg-[rgba(255,255,255,0.8)] px-3 text-h6 text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral'
 </script>
 
 <template>
   <div
     class="auth-shell relative flex min-h-dvh flex-col bg-co-white lg:block"
     :class="{
-      'auth-shell--criado': criado,
       'auth-shell--saindo': transicionando,
       'h-dvh overflow-hidden': criado,
     }"
   >
     <!-- ========== Painel (468:187 azul 750x910 → 506:1739 verde 1920x910) ==========
          Camada persistente do Smart Animate: largura 750 → 100% e cor azul →
-         verde; logo, intro, rodapé e orbitais interpolam no lugar.
-         Padding horizontal/vertical segue a Navigation da Landpage (40/30 no
-         lg, 90/22 no xl) para o logo cair no mesmo ponto das duas telas. -->
-    <section
-      class="auth-panel flex shrink-0 flex-col justify-between overflow-hidden px-5 pt-4 pb-6 text-co-white transition-none sm:px-8 sm:pt-6 sm:pb-8 lg:absolute lg:inset-y-0 lg:left-0 lg:right-auto lg:z-10 lg:pl-10 lg:pr-0 lg:pt-[30px] lg:pb-[18px] lg:transition-[width,background-color] lg:duration-300 lg:ease-out motion-reduce:transition-none xl:pl-[90px] xl:pt-[22px]"
-      :class="
-        criado
-          ? 'fixed inset-0 z-40 w-auto bg-tree-green lg:w-full'
-          : 'relative bg-co-blue lg:w-[750px]'
-      "
+         verde. Só as intros (formulário × sucesso) e o CTA mudam aqui. -->
+    <AuthShowcase
+      :estado="criado ? 'sucesso' : 'form'"
+      cta-label="Entrar na minha conta"
+      @cta="irParaLogin"
     >
-      <!-- Par inferior (468:204/468:205) — camada casada: mesmo centro em
-           todos os frames. Abaixo de lg acompanha a proporção do painel
-           (79% da largura, centro a 20% da direita e 8% abaixo do rodapé);
-           no desktop usa as coordenadas do Figma (302/262). -->
-      <img
-        :src="orbitInner"
-        alt=""
-        class="pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(79vw,590px)] translate-x-1/2 translate-y-1/2 lg:right-auto lg:bottom-[-221px] lg:left-[302px] lg:size-[590px] lg:translate-x-0 lg:translate-y-0"
-        draggable="false"
-      />
-      <img
-        :src="orbitOuter"
-        alt=""
-        class="pointer-events-none absolute right-[20.4%] -bottom-[8.1%] size-[min(89.4vw,670px)] translate-x-1/2 translate-y-1/2 lg:right-auto lg:bottom-[-261px] lg:left-[262px] lg:size-[670px] lg:translate-x-0 lg:translate-y-0"
-        draggable="false"
-      />
-
-      <!-- Par superior direito (506:1846/506:1847) — existe só no sucesso e
-           entra com fade de 300ms. -->
-      <img
-        :src="orbitInner"
-        alt=""
-        class="pointer-events-none absolute top-[10%] right-[10%] size-[min(79vw,590px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none lg:top-[-155px] lg:right-[-218px] lg:size-[590px] lg:translate-x-0 lg:translate-y-0"
-        :class="criado ? 'opacity-100' : 'opacity-0'"
-        draggable="false"
-      />
-      <img
-        :src="orbitOuter"
-        alt=""
-        class="pointer-events-none absolute top-[10%] right-[10%] size-[min(89.4vw,670px)] translate-x-1/2 -translate-y-1/2 transition-opacity duration-300 ease-out motion-reduce:transition-none lg:top-[-195px] lg:right-[-258px] lg:size-[670px] lg:translate-x-0 lg:translate-y-0"
-        :class="criado ? 'opacity-100' : 'opacity-0'"
-        draggable="false"
-      />
-
-      <!-- Logo (100x55 em (91,22) no desktop; 72x40 abaixo de xl como na
-           Navigation) — camada casada: fica no lugar, troca a cor. O padding
-           do painel acima garante a mesma posição do logo na Landpage. -->
-      <button
-        type="button"
-        class="relative z-10 h-10 w-[72px] shrink-0 cursor-pointer border-0 bg-transparent p-0 xl:h-[55px] xl:w-[100px]"
-        aria-label="Voltar ao início"
-        @click="voltarAoInicio"
-      >
-        <AppLogo
-          variant="logo-2"
-          :width="72"
-          :height="40"
-          alt=""
-          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none xl:hidden"
-          :class="criado ? 'opacity-0' : 'opacity-100'"
+      <!-- As duas intros ocupam a mesma célula do grid para o painel não mudar
+           de altura no meio do cross-fade. -->
+      <div class="grid w-full">
+        <!-- Intro do formulário (446:109 / 468:187) -->
+        <AuthIntro
+          class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          :class="criado ? 'pointer-events-none opacity-0' : 'opacity-100'"
+          :aria-hidden="criado ? 'true' : undefined"
         />
-        <AppLogo
-          variant="logo-1"
-          :width="72"
-          :height="40"
-          alt=""
-          class="absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none xl:hidden"
-          :class="criado ? 'opacity-100' : 'opacity-0'"
-        />
-        <AppLogo
-          variant="logo-2"
-          :width="100"
-          :height="55"
-          alt=""
-          class="absolute inset-0 hidden transition-opacity duration-300 ease-out motion-reduce:transition-none xl:block"
-          :class="criado ? 'opacity-0' : 'opacity-100'"
-        />
-        <AppLogo
-          variant="logo-1"
-          :width="100"
-          :height="55"
-          alt=""
-          class="absolute inset-0 hidden transition-opacity duration-300 ease-out motion-reduce:transition-none xl:block"
-          :class="criado ? 'opacity-100' : 'opacity-0'"
-        />
-      </button>
 
-      <!-- Intro do painel — camada casada: formulário × sucesso em cross-fade.
-           Os dois blocos ocupam a mesma célula do grid para o painel não
-           mudar de altura no meio da animação. -->
-      <div class="relative z-10 w-full shrink-0 py-6 sm:py-8 lg:py-0">
-        <div class="grid w-full">
-          <!-- Intro do formulário (446:109 / 468:187) -->
-          <div
-            class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
-            :class="criado ? 'pointer-events-none opacity-0' : 'opacity-100'"
-            :aria-hidden="criado ? 'true' : undefined"
-          >
-            <p
-              class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-            >
-              Conecte-se com<br />quem entende você.
-            </p>
-            <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-              Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-              e construa novas histórias dentro e fora da sala.
-            </p>
-            <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
-              <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
-              <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
-            </div>
-          </div>
-
-          <!-- Intro do sucesso (506:1794) -->
-          <div
-            class="col-start-1 row-start-1 flex w-full flex-col items-start gap-4 transition-opacity duration-300 ease-out motion-reduce:transition-none sm:gap-5"
-            :class="criado ? 'opacity-100' : 'pointer-events-none opacity-0'"
-            :aria-hidden="criado ? undefined : 'true'"
-            role="status"
-            aria-live="polite"
-          >
-            <p
-              class="text-[32px] leading-[1.05] tracking-[-1.5px] text-co-white sm:text-[48px] sm:tracking-[-2.5px] lg:text-h1"
-            >
-              Conta criada com sucesso!
-            </p>
-            <p class="text-h5 leading-[1.4] text-s-coral sm:text-h4 sm:leading-[normal]">
-              Conheça novos estudantes, encontre seu grupo<br class="hidden sm:block" />
-              e construa novas histórias dentro e fora da sala.
-            </p>
-            <div class="hidden shrink-0 items-center justify-center gap-[10px] sm:flex">
-              <img :src="coletiveIcon" alt="" class="size-[50px] shrink-0" draggable="false" />
-              <p class="text-h6 leading-[normal] text-s-blue">Comunidade feita para você</p>
-            </div>
-          </div>
-        </div>
+        <!-- Intro do sucesso (506:1794) -->
+        <AuthIntro
+          v-bind="introSucesso"
+          class="col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none"
+          :class="criado ? 'opacity-100' : 'pointer-events-none opacity-0'"
+          :aria-hidden="criado ? undefined : 'true'"
+          role="status"
+          aria-live="polite"
+        />
       </div>
-
-      <!-- Rodapé do painel: frase (formulário) × CTA (sucesso). Altura fixa de
-           50px para a troca não mexer no bloco de intro. -->
-      <div
-        class="relative z-10 flex h-[50px] w-full shrink-0 items-end"
-        :class="criado ? 'justify-end' : 'hidden lg:flex'"
-      >
-        <p
-          class="text-h6 leading-[normal] text-s-blue transition-opacity duration-300 ease-out motion-reduce:transition-none"
-          :class="criado ? 'pointer-events-none absolute inset-x-0 top-0 opacity-0' : 'opacity-100'"
-        >
-          Conversa que aproxima. Conexão que transforma.
-        </p>
-        <div
-          class="flex w-full justify-end transition-opacity duration-300 ease-out motion-reduce:transition-none"
-          :class="criado ? 'opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'"
-        >
-          <AppButton
-            variant="blue"
-            :width="260"
-            :padding-left="40"
-            class="lg:mr-[230px]"
-            @click="irParaLogin"
-          >
-            Entrar na minha conta
-          </AppButton>
-        </div>
-      </div>
-    </section>
+    </AuthShowcase>
 
     <!-- ========== Formulário (454:99 / 468:206) — sai no Smart Animate ========== -->
-    <section
-      class="auth-form-section flex flex-1 items-center justify-center px-6 py-10 transition-[opacity,translate] duration-300 ease-out motion-reduce:transition-none sm:px-10 lg:absolute lg:inset-y-0 lg:left-[750px] lg:right-0 lg:z-0 lg:flex-none lg:items-start lg:px-16"
-      :class="criado ? 'pointer-events-none -translate-y-3 opacity-0' : 'opacity-100'"
-      :aria-hidden="criado ? 'true' : undefined"
-    >
-      <form
-        class="flex w-full max-w-[710px] flex-col items-start gap-6 lg:gap-8"
-        @submit.prevent="enviar"
-      >
-        <button
-          type="button"
-          class="group inline-flex shrink-0 cursor-pointer items-center gap-[3px] border-0 bg-transparent p-0 font-sans text-h6 leading-[normal] whitespace-nowrap text-text-2 transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
-          @click="voltarAoInicio"
+    <AuthFormColumn :escondido="criado" @submit="enviar">
+      <AppBackLink label="Voltar para o início" @click="voltarAoInicio" />
+
+      <AppEyebrow texto="BEM-VINDO AO" />
+
+      <h1 class="text-title text-text-1">{{ titulo }}</h1>
+
+      <p class="text-h6 leading-[normal] text-text-2">{{ subtitulo }}</p>
+
+      <!-- Tabs Entrar / Criar conta (554:177) — componente compartilhado -->
+      <AppAuthTabs :mode="modo" @select="trocarModo" />
+
+      <!-- Separador (454:105 / 468:218) — linha de 710x1 em traceline -->
+      <AppDivider />
+
+      <AuthField
+        v-if="modo === 'register'"
+        id="auth-name"
+        v-model="nome"
+        label="Nome completo"
+        icon="person"
+        placeholder="Como podemos chamar você?"
+        autocomplete="name"
+        :maxlength="100"
+      />
+
+      <AuthField
+        id="auth-email"
+        v-model="email"
+        label="E-mail"
+        icon="mail"
+        type="email"
+        placeholder="voce@email.com"
+        autocomplete="email"
+        :maxlength="150"
+      />
+
+      <AuthField
+        id="auth-password"
+        v-model="senha"
+        label="Senha"
+        icon="lock"
+        type="password"
+        revelavel
+        placeholder="Digite sua senha"
+        :autocomplete="modo === 'register' ? 'new-password' : 'current-password'"
+        :minlength="8"
+        :maxlength="20"
+        :erro="modo === 'login' ? erro : ''"
+      />
+
+      <AuthField
+        v-if="modo === 'register'"
+        id="auth-password-confirmation"
+        v-model="confirmarSenha"
+        label="Confirmar Senha"
+        icon="lock"
+        type="password"
+        revelavel
+        placeholder="Digite novamente sua senha"
+        autocomplete="new-password"
+        :minlength="8"
+        :maxlength="20"
+        :erro="erroSenha || erro"
+      />
+
+      <!-- "Esqueci minha senha" só existe no Login (468:97); o Register não tem. -->
+      <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
+        <AppLink
+          href="/forgot-password"
+          size="h5"
+          :arrow="false"
+          @click.prevent="router.push('/forgot-password')"
         >
-          <span
-            class="inline-block font-arrow text-arrow transition-transform duration-300 ease-[cubic-bezier(0,0,0.58,1)] group-hover:-translate-x-1 motion-reduce:transition-none"
-            >←</span
-          >
-          Voltar para o início
-        </button>
+          Esqueci minha senha
+        </AppLink>
+      </div>
 
-        <p class="text-h6 leading-[normal] text-co-coral">
-          BEM-VINDO AO <span class="text-co-blue">CONECTA.</span>
-        </p>
-
-        <p class="text-title text-text-1">{{ titulo }}</p>
-
-        <p class="text-h6 leading-[normal] text-text-2">{{ subtitulo }}</p>
-
-        <!-- Tabs Entrar / Criar conta (554:177) — componente compartilhado -->
-        <AppAuthTabs :mode="modo" @select="trocarModo" />
-
-        <!-- Separador (454:105 / 468:218) — linha de 710x1 em traceline -->
-        <div class="h-px w-full shrink-0 bg-traceline" aria-hidden="true" />
-
-        <!-- Campos -->
-        <label
-          v-if="modo === 'register'"
-          class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2"
+      <!-- Botão principal + link alternativo -->
+      <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
+        <AppButton
+          type="submit"
+          variant="coral"
+          :disabled="enviando"
+          :busy="enviando"
+          :centered="enviando"
+          :width="modo === 'register' ? 225 : 250"
         >
-          Nome completo
-          <input
-            v-model="nome"
-            type="text"
-            class="font-sans"
-            :class="inputBase"
-            placeholder="Como podemos chamar você?"
-            autocomplete="name"
-            maxlength="100"
-            required
-          />
-        </label>
+          {{
+            enviando
+              ? 'Enviando...'
+              : modo === 'register'
+                ? 'Criar a minha conta'
+                : 'Entrar na minha conta'
+          }}
+        </AppButton>
 
-        <label class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2">
-          E-mail
-          <input
-            v-model="email"
-            type="email"
-            class="font-sans"
-            :class="inputBase"
-            placeholder="✉ voce@email.com"
-            autocomplete="email"
-            maxlength="150"
-            required
-          />
-        </label>
-
-        <label class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2">
-          Senha
-          <span class="relative flex w-full items-center">
-            <input
-              v-model="senha"
-              :type="mostrarSenha ? 'text' : 'password'"
-              class="font-sans"
-              :class="inputBase"
-              placeholder="▣ Digite sua senha"
-              :autocomplete="modo === 'register' ? 'new-password' : 'current-password'"
-              maxlength="20"
-              minlength="8"
-              required
-            />
-            <button
-              type="button"
-              class="absolute right-3 cursor-pointer border-0 bg-transparent p-0 text-h6 text-text-2"
-              :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
-              @click="mostrarSenha = !mostrarSenha"
-            >
-              {{ mostrarSenha ? 'ocultar' : 'ver' }}
-            </button>
-          </span>
-          <p
-            v-if="modo === 'login' && erro"
-            class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-            role="alert"
-          >
-            {{ erro }}
+        <div
+          v-if="modo === 'login' || (!erro && !erroSenha)"
+          class="flex flex-wrap items-center justify-center gap-[3px] text-h6 leading-[normal]"
+        >
+          <p class="text-text-2">
+            {{ modo === 'register' ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
           </p>
-        </label>
-
-        <label
-          v-if="modo === 'register'"
-          class="flex w-full shrink-0 flex-col gap-[5px] text-h6 leading-[normal] text-text-2"
-        >
-          Confirmar Senha
-          <input
-            v-model="confirmarSenha"
-            :type="mostrarSenha ? 'text' : 'password'"
-            class="font-sans"
-            :class="inputBase"
-            placeholder="▣ Digite novamente sua senha"
-            autocomplete="new-password"
-            maxlength="20"
-            minlength="8"
-            required
-          />
-          <!--
-            Erro no frame 506:1693 (5px abaixo do input): o de senhas e o erro
-            geral do cadastro (e-mail já cadastrado, validação etc.) dividem
-            este slot — nunca uma linha nova acima do botão.
-          -->
-          <p
-            v-if="erroSenha || erro"
-            class="text-h6 leading-[normal] text-[rgba(255,0,4,0.65)]"
-            role="alert"
+          <AppLink
+            :href="modo === 'register' ? '/login?modo=login' : '/login?modo=register'"
+            size="h6"
+            :arrow="false"
+            :variant="modo === 'register' ? 'blue' : 'coral'"
+            @click.prevent="trocarModo(modo === 'register' ? 'login' : 'register')"
           >
-            {{ erroSenha || erro }}
-          </p>
-        </label>
-
-        <!-- "Esqueci minha senha" só existe no Login (468:97); o Register não tem. -->
-        <div v-if="modo === 'login'" class="flex w-full shrink-0 items-center justify-end">
-          <AppLink href="/forgot-password" size="h5" :arrow="false">Esqueci minha senha</AppLink>
+            {{ modo === 'register' ? 'Entrar agora' : 'Criar Conta' }}
+          </AppLink>
         </div>
-
-        <!-- Botão principal + link alternativo -->
-        <div class="flex w-full shrink-0 flex-col items-center gap-[5px]">
-          <AppButton
-            type="submit"
-            variant="coral"
-            :disabled="enviando"
-            :width="modo === 'register' ? 225 : 250"
-            :padding-left="40"
-            :gap="15"
-            :gap-hover="23"
-          >
-            {{
-              enviando
-                ? 'Enviando...'
-                : modo === 'register'
-                  ? 'Criar a minha conta'
-                  : 'Entrar na minha conta'
-            }}
-          </AppButton>
-
-          <div
-            v-if="modo === 'login' || (!erro && !erroSenha)"
-            class="flex flex-wrap items-center justify-center gap-[3px] text-h6 leading-[normal]"
-          >
-            <p class="text-text-2">
-              {{ modo === 'register' ? 'Já possui uma conta?' : 'Ainda não possui uma conta?' }}
-            </p>
-            <AppLink
-              href="#"
-              size="h6"
-              :arrow="false"
-              :variant="modo === 'register' ? 'blue' : 'coral'"
-              @click.prevent="trocarModo(modo === 'register' ? 'login' : 'register')"
-            >
-              {{ modo === 'register' ? 'Entrar agora' : 'Criar Conta' }}
-            </AppLink>
-          </div>
-        </div>
-      </form>
-    </section>
+      </div>
+    </AuthFormColumn>
   </div>
 </template>
 
 <style scoped>
-.auth-shell {
-  --smart-animate: 300ms;
-  --smart-ease: ease-out;
-}
-
-/* Figma: o formulário começa a 123px do topo num frame de 911px. Em janelas
-   mais baixas o padding encolhe para a tela caber inteira, sem scroll. */
-@media (min-width: 64rem) {
-  .auth-form-section {
-    padding-top: clamp(16px, calc(100dvh - 800px), 123px);
-    padding-bottom: 16px;
-  }
-}
-
-/* Abaixo de lg o painel vira a tela de sucesso inteira: fade/scale de 300ms
-   (no desktop a expansão do painel já faz o Smart Animate). */
-@media (max-width: 63.999rem) {
-  .auth-shell--criado .auth-panel {
-    animation: auth-sucesso var(--smart-animate) var(--smart-ease) both;
-  }
-}
-
-@keyframes auth-sucesso {
-  from {
-    opacity: 0;
-    transform: scale(1.02);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 .auth-shell--saindo {
   pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-shell--criado .auth-panel {
-    animation: none;
-  }
   .auth-shell,
   .auth-shell * {
     transition-duration: 0.01ms !important;

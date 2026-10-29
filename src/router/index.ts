@@ -9,6 +9,7 @@ const publicRoutes = [
   '/conta-criada',
   '/forgot-password',
   '/reset-password',
+  '/senha-redefinida',
 ]
 
 const router = createRouter({
@@ -76,6 +77,12 @@ const router = createRouter({
       path: '/reset-password',
       name: 'ResetPassword',
       component: () => import('../features/auth/pages/ResetPassword.vue'),
+    },
+    {
+      path: '/senha-redefinida',
+      name: 'SenhaRedefinida',
+      component: () => import('../features/auth/pages/ResetPassword.vue'),
+      props: { estadoInicial: 'redefinida' },
     },
     {
       path: '/:pathMatch(.*)*',

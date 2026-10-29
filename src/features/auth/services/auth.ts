@@ -296,7 +296,7 @@ async function describeAuthError(
   }
 }
 
-export async function LoginUser(payload: LoginPayload): Promise<LoginResponse> {
+export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
   let response: Response
   try {
     response = await fetch(`${API_URL}/auth/login`, {
