@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
+
 import AppArrowIcon from './AppArrowIcon.vue'
 
 /**
@@ -17,6 +20,8 @@ type LinkSize = 'h4' | 'h5' | 'h6'
 withDefaults(
   defineProps<{
     href?: string
+    /** Rota interna: quando informada, renderiza um RouterLink. */
+    to?: RouteLocationRaw
     variant?: LinkVariant
     /** Tamanho do texto: h4 (18px, padrão), h5 (16px) ou h6 (14px). */
     size?: LinkSize
@@ -33,8 +38,10 @@ withDefaults(
 </script>
 
 <template>
-  <a
-    :href="href"
+  <component
+    :is="to ? RouterLink : 'a'"
+    :to="to"
+    :href="to ? undefined : href"
     class="inline-flex items-center gap-2 font-sans whitespace-nowrap transition-colors duration-300 ease-[cubic-bezier(0,0,0.58,1)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-co-blue motion-reduce:transition-none"
     :class="[
       size === 'h6' ? 'text-h6' : size === 'h5' ? 'text-h5' : 'text-h4',
@@ -46,5 +53,5 @@ withDefaults(
     <slot>Text</slot>
 
     <AppArrowIcon v-if="arrow" />
-  </a>
+  </component>
 </template>

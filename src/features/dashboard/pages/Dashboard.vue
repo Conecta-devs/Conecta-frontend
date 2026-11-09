@@ -1,336 +1,368 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import {
-  faArrowRight,
-  faCalendarDays,
-  faChevronRight,
-  faUsers,
-  faCheckCircle,
-  faHeart,
-} from '@fortawesome/free-solid-svg-icons'
+import { computed, onMounted, ref } from 'vue'
+
 import {
   getMyAgendaParticipation,
   listAgendaItems,
+  updateAgendaInterest,
   type AgendaItem,
 } from '../services/agenda'
+import AppButton from '../../../shared/ui/AppButton.vue'
+import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
+import AppIcon from '../../../shared/ui/AppIcon.vue'
+import AppLink from '../../../shared/ui/AppLink.vue'
 
-type AgendaSummaryItem = {
+type NextEvent = {
   item: AgendaItem
   interested: boolean
   confirmed: boolean
 }
 
-const upcomingAgendaItems = ref<AgendaSummaryItem[]>([])
-const agendaSummaryLoading = ref(true)
-const agendaSummaryError = ref(false)
-
-
-
+const nextEvent = ref<NextEvent | null>(null)
+const agendaLoading = ref(true)
+const agendaError = ref(false)
+const savingInterest = ref(false)
+const interestError = ref(false)
 
 onMounted(async () => {
   try {
     const now = Date.now()
     const items = await listAgendaItems()
 
-    // Mantém somente eventos futuros que não foram cancelados.
-    const futureItems = items.filter((item) => {
-      const start = Date.parse(item.startsAt)
+    const futureItems = items
+      .filter((item) => {
+        const start = Date.parse(item.startsAt)
 
-      return (
-        item.cancelledAt == null &&
-        Number.isFinite(start) &&
-        start >= now
-      )
-    })
-
-    // Consulta a participação do usuário em cada evento.
-    const results = await Promise.allSettled(
-      futureItems.map(async (item) => ({
-        item,
-        participation: await getMyAgendaParticipation(item.id),
-      })),
-    )
-
-    const personalizedItems = results
-      .filter(
-        (
-          result,
-        ): result is PromiseFulfilledResult<{
-          item: AgendaItem
-          participation: Awaited<
-            ReturnType<typeof getMyAgendaParticipation>
-          >
-        }> => result.status === 'fulfilled',
-      )
-      .map((result) => result.value)
-      .filter(
-        ({ participation }) =>
-          participation.confirmed || participation.interested,
-      )
-      .sort((left, right) => {
-        const leftPriority = left.participation.confirmed ? 0 : 1
-        const rightPriority = right.participation.confirmed ? 0 : 1
-
-        if (leftPriority !== rightPriority) {
-          return leftPriority - rightPriority
-        }
-
-        return (
-          Date.parse(left.item.startsAt) -
-          Date.parse(right.item.startsAt)
-        )
+        return item.cancelledAt == null && Number.isFinite(start) && start >= now
       })
+      .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt))
 
-    upcomingAgendaItems.value = personalizedItems
-      .slice(0, 3)
-      .map(({ item, participation }) => ({
-        item,
-        interested: participation.interested,
-        confirmed: participation.confirmed,
-      }))
+    const item = futureItems[0]
+
+    if (!item) {
+      nextEvent.value = null
+      return
+    }
+
+    const participation = await getMyAgendaParticipation(item.id).catch(() => null)
+
+    nextEvent.value = {
+      item,
+      interested: participation?.interested ?? false,
+      confirmed: participation?.confirmed ?? false,
+    }
   } catch (error) {
-    console.error('Erro ao carregar resumo da Agenda:', error)
-    agendaSummaryError.value = true
+    console.error('Erro ao carregar o próximo encontro:', error)
+    agendaError.value = true
   } finally {
-    agendaSummaryLoading.value = false
+    agendaLoading.value = false
   }
 })
 
+async function toggleInterest() {
+  const entry = nextEvent.value
 
+  if (!entry || savingInterest.value || entry.confirmed) return
 
-function formatAgendaStart(value: string): string {
-  const date = new Date(value)
-  if (!Number.isFinite(date.getTime())) return 'Data indisponível'
+  savingInterest.value = true
+  interestError.value = false
 
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
+  try {
+    const participation = await updateAgendaInterest(entry.item.id, !entry.interested)
+
+    nextEvent.value = {
+      ...entry,
+      interested: participation.interested,
+      confirmed: participation.confirmed,
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar o interesse no encontro:', error)
+    interestError.value = true
+  } finally {
+    savingInterest.value = false
+  }
 }
 
+function parseDate(value: string): Date | null {
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? date : null
+}
+
+function formatDay(value: string): string {
+  return parseDate(value)?.getDate().toString() ?? '--'
+}
+
+function formatMonth(value: string): string {
+  const date = parseDate(value)
+
+  return date
+    ? date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()
+    : '---'
+}
+
+function formatHour(value: string): string {
+  const date = parseDate(value)
+
+  if (!date) return '--'
+
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes()
+
+  return minutes === 0 ? `${hours}h` : `${hours}h${minutes.toString().padStart(2, '0')}`
+}
+
+const eventDay = computed(() => (nextEvent.value ? formatDay(nextEvent.value.item.startsAt) : ''))
+const eventMonth = computed(() =>
+  nextEvent.value ? formatMonth(nextEvent.value.item.startsAt) : '',
+)
+const eventTimeRange = computed(() => {
+  if (!nextEvent.value) return ''
+
+  return `${formatHour(nextEvent.value.item.startsAt)} às ${formatHour(nextEvent.value.item.endsAt)}`
+})
+
+const interestLabel = computed(() => {
+  if (savingInterest.value) return 'Salvando...'
+  if (nextEvent.value?.confirmed) return 'Presença confirmada'
+  if (nextEvent.value?.interested) return 'Interessado'
+
+  return 'Tenho interesse'
+})
+
+const interestVariant = computed<'blue' | 'blue-outline'>(() =>
+  nextEvent.value && (nextEvent.value.interested || nextEvent.value.confirmed)
+    ? 'blue-outline'
+    : 'blue',
+)
+
 const communities = [
-  { name: '{group_name}', members: '{members_counter}', color: '{color}' },
-  { name: '{group_name}', members: '{members_counter}', color: '{color}' },
-  { name: '{group_name}', members: '{members_counter}', color: '{color}' },
-]
+  {
+    name: 'Calouros que se ajudam',
+    members: 128,
+    icon: 'coletive',
+    symbolClass: 'bg-s-coral',
+  },
+  {
+    name: 'Grupo de estudos de Cálculo',
+    members: 64,
+    icon: 'book',
+    symbolClass: 'bg-traceline',
+  },
+  {
+    name: 'Vida no campus',
+    members: 215,
+    icon: 'hands',
+    symbolClass: 'bg-tree-bg',
+  },
+] as const
 
 const conversations = [
   {
-    name: '{name}',
-    text: '{text}',
-    time: '{last_time}',
-    initials: '{Initia}',
-    color: '{color_profile}',
+    name: 'Marina Costa',
+    preview: 'Você vai ao encontro dos calouros?',
+    time: 'Há 5 min',
+    initials: 'MC',
+    avatarClass: 'bg-s-coral',
   },
   {
-    name: '{group_name}',
-    text: '{last_chat}',
-    time: '{last_time}',
-    initials: '{initia}', // Initial tá
-    color: '{color}',
+    name: 'Grupo de estudos de Cálculo',
+    preview: 'Pedro: podemos revisar limites juntos.',
+    time: 'Há 20 min',
+    initials: 'GC',
+    avatarClass: 'bg-traceline',
   },
   {
-    name: '{name}',
-    text: '{text}',
-    time: '{last_time}',
-    initials: '{Initia}',
-    color: '{color}',
+    name: 'Rafael Lima',
+    preview: 'Obrigado pela dica da biblioteca!',
+    time: 'Há 1 h',
+    initials: 'RL',
+    avatarClass: 'bg-tree-bg',
   },
 ]
 </script>
 
 <template>
   <section
-    class="dashboard-content mx-auto w-full min-w-0 max-w-[1240px] px-[clamp(24px,5vw,70px)] pb-[60px] pt-[38px] max-[620px]:px-[18px] max-[620px]:py-[25px]"
+    class="dashboard-content flex w-full min-w-0 flex-col gap-3 px-[clamp(24px,5vw,76px)] pt-16 pb-16 max-[620px]:pt-8 max-[620px]:pb-10"
   >
     <div
-      class="dashboard-grid mt-[37px] grid min-w-0 grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)] gap-[22px] max-[960px]:grid-cols-1"
+      class="dashboard-grid grid min-w-0 grid-cols-2 gap-12 max-[900px]:grid-cols-1 max-[900px]:gap-10"
     >
-      <section class="dashboard-section community-section min-w-0" id="comunidades">
-        <div class="section-heading mb-[17px] flex items-end justify-between gap-4">
-          <div>
-            <p
-              class="section-kicker m-0 text-[10px] font-bold uppercase tracking-[1.1px] text-text-2"
-            >
-              Descubra
-            </p>
-            <h2
-              class="text-h2 mt-1"
-            >
+      <section class="dashboard-section community-section flex min-w-0 flex-col gap-9">
+        <header class="flex h-14 items-end justify-between gap-4">
+          <div class="flex flex-col gap-3">
+            <p class="m-0 text-[14px] leading-4 font-medium text-text-2">DESCUBRA</p>
+            <h2 class="m-0 text-[24px] leading-[28px] font-semibold text-text-1">
               Suas comunidades
             </h2>
           </div>
-          <a
-            class="section-link flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-text-2 no-underline"
-            href="#comunidades"
-            >Ver todas <font-awesome-icon :icon="faChevronRight"
-          /></a>
-        </div>
-        <div class="community-list flex flex-col gap-2">
-          <article
+          <AppLink to="/dashboard/communities" size="h6">Ver todas</AppLink>
+        </header>
+
+        <div class="flex flex-col gap-4">
+          <RouterLink
             v-for="community in communities"
             :key="community.name"
-            class="community-card flex items-center gap-3 rounded-xl border border-traceline bg-co-white p-[13px]"
+            to="/dashboard/communities"
+            class="community-card flex h-28 items-center gap-5 rounded-2xl border border-traceline bg-white p-6 no-underline transition-colors hover:border-s-blue"
           >
-            <div
-              class="community-symbol grid size-[42px] place-items-center rounded-[11px]"
-              :class="
-                community.color === 'coral'
-                  ? 'bg-s-coral text-co-coral'
-                  : community.color === 'blue'
-                    ? 'bg-s-blue text-co-blue'
-                    : 'bg-tree-bg text-text-2'
-              "
+            <span
+              class="community-symbol grid size-14 shrink-0 place-items-center rounded-2xl"
+              :class="community.symbolClass"
             >
-              <font-awesome-icon :icon="faUsers" />
-            </div>
-            <div class="community-copy min-w-0 flex-1">
-              <h3 class="text-h3 m-0">{{ community.name }}</h3>
-              <p class="mt-1 text-[10px] text-text-2">{{ community.members }}</p>
-            </div>
-            <button
-              class="small-icon-button grid size-[30px] place-items-center rounded-lg border-0 bg-traceline text-text-2"
-              :aria-label="`Abrir ${community.name}`"
-            >
-              <font-awesome-icon :icon="faArrowRight" />
-            </button>
-          </article>
+              <AppIcon :variant="community.icon" :width="24" class="text-co-blue" />
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <strong class="block truncate text-[18px] leading-[21px] font-medium text-text-1">
+                {{ community.name }}
+              </strong>
+              <span class="mt-2 block truncate text-[14px] leading-4 font-medium text-text-2">
+                {{ community.members }} membros
+              </span>
+            </span>
+
+            <AppDashboardIcon name="chevron-right" :size="18" class="text-text-2" />
+          </RouterLink>
         </div>
       </section>
-      <section class="dashboard-section conversation-section min-w-0">
-        <div class="section-heading mb-[17px] flex items-end justify-between gap-4">
-          <div>
-            <p
-              class="section-kicker m-0 text-[10px] font-bold uppercase tracking-[1.1px] text-text-2"
-            >
-              Agora
-            </p>
-            <h2
-              class="text-h2 mt-1"
-            >
+
+      <section class="dashboard-section conversation-section flex min-w-0 flex-col gap-9">
+        <header class="flex h-14 items-end justify-between gap-4">
+          <div class="flex flex-col gap-3">
+            <p class="m-0 text-[14px] leading-4 font-medium text-text-2">AGORA</p>
+            <h2 class="m-0 text-[24px] leading-[28px] font-semibold text-text-1">
               Conversas recentes
             </h2>
           </div>
-          <a
-            class="section-link flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-text-2 no-underline"
-            href="#conversas"
-            >Ver todas <font-awesome-icon :icon="faChevronRight"
-          /></a>
-        </div>
-        <div class="conversation-list flex flex-col gap-2" id="conversas">
-          <article
+          <AppLink to="/dashboard/chat" size="h6">Ver todas</AppLink>
+        </header>
+
+        <div class="flex flex-col gap-4">
+          <RouterLink
             v-for="conversation in conversations"
             :key="conversation.name"
-            class="conversation-item flex items-center gap-[11px] rounded-xl border border-traceline bg-co-white p-3"
+            to="/dashboard/chat"
+            class="conversation-item flex h-28 items-center gap-5 rounded-2xl border border-traceline bg-white p-6 no-underline transition-colors hover:border-s-blue"
           >
-            <div
-              class="profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full text-[10px] font-bold"
-              :class="
-                conversation.color === 'coral'
-                  ? 'bg-s-coral text-co-coral'
-                  : conversation.color === 'blue'
-                    ? 'bg-s-blue text-co-blue'
-                    : 'bg-s-green text-tree-green' //Tem que mudar depois as opções mas na base é isso
-              "
+            <span
+              class="profile-avatar grid size-12 shrink-0 place-items-center rounded-full text-[14px] leading-4 font-medium text-co-blue"
+              :class="conversation.avatarClass"
             >
               {{ conversation.initials }}
-            </div>
-            <div class="conversation-copy min-w-0 flex-1">
-              <h3 class="text-h3 m-0">{{ conversation.name }}</h3>
-              <p class="mt-1 truncate text-[10px] text-text-2">{{ conversation.text }}</p>
-            </div>
-            <time class="self-start text-[10px] text-text-2">{{ conversation.time }}</time>
-          </article>
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <span class="flex items-baseline justify-between gap-4">
+                <strong class="min-w-0 truncate text-[18px] leading-[21px] font-medium text-text-1">
+                  {{ conversation.name }}
+                </strong>
+                <time class="shrink-0 text-[14px] leading-4 font-medium text-text-2">
+                  {{ conversation.time }}
+                </time>
+              </span>
+              <span class="mt-2 block truncate text-[14px] leading-4 font-medium text-text-2">
+                {{ conversation.preview }}
+              </span>
+            </span>
+          </RouterLink>
         </div>
       </section>
     </div>
 
-    <section class="dashboard-section event-section mt-[37px]">
-      <div class="section-heading mb-[17px] flex items-end justify-between gap-4">
-        <div>
-          <p
-            class="section-kicker m-0 text-[10px] font-bold uppercase tracking-[1.1px] text-text-2"
-          >
-            Não perca
-          </p>
-          <h2 class="text-h2 mt-1">
+    <section class="dashboard-section event-section flex min-w-0 flex-col gap-9">
+      <header class="flex h-14 items-end justify-between gap-4">
+        <div class="flex flex-col gap-3">
+          <p class="m-0 text-[14px] leading-4 font-medium text-text-2">NÃO PERCA</p>
+          <h2 class="m-0 text-[24px] leading-[28px] font-semibold text-text-1">
             Próximos encontros
           </h2>
         </div>
-        <RouterLink
-          class="section-link flex items-center gap-0.5 whitespace-nowrap text-[11px] font-bold text-text-2 no-underline"
-          to="/dashboard/agenda"
-          >Ver agenda <font-awesome-icon :icon="faChevronRight"
-        /></RouterLink>
-      </div>
+        <AppLink to="/dashboard/agenda" size="h6">Ver agenda</AppLink>
+      </header>
+
       <div
-        v-if="agendaSummaryLoading"
-        class="rounded-xl border border-traceline bg-co-white p-5 text-sm text-text-2"
+        v-if="agendaLoading"
+        class="flex min-h-[148px] items-center rounded-2xl border border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
         role="status"
       >
         Carregando próximos encontros...
       </div>
+
       <div
-        v-else-if="agendaSummaryError"
-        class="rounded-xl border border-traceline bg-co-white p-5 text-sm text-text-2"
+        v-else-if="agendaError"
+        class="flex min-h-[148px] items-center rounded-2xl border border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
         role="status"
       >
         Não foi possível carregar a Agenda agora.
       </div>
+
       <div
-        v-else-if="upcomingAgendaItems.length === 0"
-        class="rounded-xl border border-dashed border-traceline bg-co-white p-5 text-sm text-text-2"
+        v-else-if="!nextEvent"
+        class="flex min-h-[148px] items-center rounded-2xl border border-dashed border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
       >
         Não há próximos encontros publicados.
       </div>
-      <div v-else class="space-y-2">
-        <article
-          v-for="entry in upcomingAgendaItems"
-          :key="entry.item.id"
-          class="flex min-w-0 items-start gap-3 rounded-xl border border-traceline bg-co-white p-4"
+
+      <article
+        v-else
+        class="event-card flex min-h-[148px] flex-wrap items-center gap-9 rounded-2xl border border-traceline bg-white p-6 max-[620px]:flex-col max-[620px]:items-stretch max-[620px]:gap-5"
+      >
+        <div
+          class="grid h-24 w-20 shrink-0 place-content-center gap-2 rounded-[10px] bg-s-coral text-center text-co-blue"
         >
-          <div
-            class="grid size-10 shrink-0 place-items-center rounded-lg bg-s-coral text-co-coral"
+          <span class="text-[32px] leading-[38px] font-semibold">{{ eventDay }}</span>
+          <span class="text-[14px] leading-4 font-medium uppercase">{{ eventMonth }}</span>
+        </div>
+
+        <div class="flex min-w-0 flex-1 flex-col gap-3">
+          <div class="flex items-center gap-2 text-co-blue">
+            <AppDashboardIcon
+              :name="nextEvent.item.format === 'online' ? 'video' : 'calendar-days'"
+              :size="16"
+            />
+            <span class="text-[14px] leading-4 font-medium uppercase">
+              {{ nextEvent.item.format === 'online' ? 'ENCONTRO ONLINE' : 'ENCONTRO PRESENCIAL' }}
+            </span>
+          </div>
+
+          <h3 class="m-0 text-[20px] leading-[23px] font-semibold text-text-1">
+            {{ nextEvent.item.title }}
+          </h3>
+
+          <div class="flex flex-wrap items-center gap-5 text-text-2">
+            <span class="flex items-center gap-2">
+              <AppDashboardIcon name="coletive" :size="16" />
+              <span class="text-[14px] leading-4 font-medium">
+                {{ nextEvent.item.kind === 'event' ? 'Evento' : 'Roda de conversa' }}
+              </span>
+            </span>
+
+            <span class="flex items-center gap-2">
+              <AppDashboardIcon name="clock" :size="16" />
+              <span class="text-[14px] leading-4 font-medium">{{ eventTimeRange }}</span>
+            </span>
+          </div>
+        </div>
+
+        <div
+          class="ml-auto flex shrink-0 flex-col items-end gap-1 max-[620px]:ml-0 max-[620px]:items-start"
+        >
+          <AppButton
+            :variant="interestVariant"
+            :width="218"
+            :padding-left="36"
+            :busy="savingInterest"
+            :aria-pressed="nextEvent.interested"
+            @click="toggleInterest"
           >
-            <font-awesome-icon :icon="faCalendarDays" />
-          </div>
-
-          <div class="min-w-0 flex-1">
-            <p class="text-[10px] font-semibold uppercase tracking-wide text-co-coral">
-              {{ entry.item.kind === 'event' ? 'Evento' : 'Roda de conversa' }}
-              · {{ entry.item.format === 'online' ? 'Online' : 'Presencial' }}
-            </p>
-
-            <h3 class="text-h6 mt-1 break-words text-co-blue">
-              {{ entry.item.title }}
-            </h3>
-
-            <p class="mt-1 text-xs text-text-2">
-              {{ formatAgendaStart(entry.item.startsAt) }}
-            </p>
-
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span
-                v-if="entry.confirmed"
-                class="inline-flex items-center gap-1 rounded-full bg-s-green px-2.5 py-1 text-[11px] font-semibold text-tree-green"
-              >
-                <font-awesome-icon :icon="faCheckCircle" />
-                Presença confirmada
-              </span>
-
-              <span
-                v-if="entry.interested"
-                class="inline-flex items-center gap-1 rounded-full bg-s-coral px-2.5 py-1 text-[11px] font-semibold text-co-coral"
-              >
-                <font-awesome-icon :icon="faHeart" />
-                Tenho interesse
-              </span>
-            </div>
-          </div>
-        </article>
-      </div>
+            {{ interestLabel }}
+          </AppButton>
+          <span v-if="interestError" class="text-[12px] leading-4 text-co-coral">
+            Não foi possível atualizar seu interesse.
+          </span>
+        </div>
+      </article>
     </section>
   </section>
 </template>
-
-<style scoped></style>

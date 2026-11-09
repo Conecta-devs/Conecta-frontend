@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import {
-  faArrowRight,
-  faCalendarDays,
-  faEllipsis,
-  faTableColumns,
-  faMessage,
-  faUsers,
-  faXmark,
-  faNewspaper,
-} from '@fortawesome/free-solid-svg-icons'
+import { computed, ref } from 'vue'
+import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useRoute, useRouter } from 'vue-router'
 
-import { computed, ref } from 'vue'
 import { clearSession, currentUser } from '../../../shared/services/session'
+import AppArrowIcon from '../../../shared/ui/AppArrowIcon.vue'
+import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
+import AppIcon from '../../../shared/ui/AppIcon.vue'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
+import AppLogoAnimated from '../../../shared/ui/AppLogoAnimated.vue'
+
+type DashboardIconName =
+  | 'layout-dashboard'
+  | 'messages-square'
+  | 'coletive'
+  | 'newspaper'
+  | 'calendar-days'
 
 const props = defineProps<{
   mobileOpen: boolean
@@ -25,19 +27,17 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const route = useRoute()
 const menuAberto = ref(false)
 const submenuAberto = ref(false)
 
-const course = computed(() => 'usuário')
-const menuItems = [
-  { label: 'Visão geral', icon: faTableColumns, path: '/dashboard' },
-  { label: 'Conversas', icon: faMessage, path: '/dashboard/chat', badge: '{notificações}' },
-  { label: 'Comunidades', icon: faUsers, path: '/dashboard/communities' },
-  { label: 'Publicações', icon: faNewspaper, path: '/dashboard/posts' },
-  { label: 'Agenda', icon: faCalendarDays, path: '/dashboard/agenda' },
+const menuItems: Array<{ label: string; icon: DashboardIconName; path: string }> = [
+  { label: 'Visão geral', icon: 'layout-dashboard', path: '/dashboard' },
+  { label: 'Conversas', icon: 'messages-square', path: '/dashboard/chat' },
+  { label: 'Comunidades', icon: 'coletive', path: '/dashboard/communities' },
+  { label: 'Publicações', icon: 'newspaper', path: '/dashboard/posts' },
+  { label: 'Agenda', icon: 'calendar-days', path: '/dashboard/agenda' },
 ]
-
-const route = useRoute()
 
 function isActive(path: string) {
   const [targetPath, targetHash] = path.split('#')
@@ -75,35 +75,32 @@ function abrirConfiguracaoPerfil() {
   emit('open-profile-config')
 }
 
-const profile = computed(() => ({
-  image: currentUser.user?.image || '{image}',
-  name: currentUser.user?.name || 'usuário',
-  curso: course.value,
-}))
+const profileImage = computed(() => {
+  const image = currentUser.user?.image ?? ''
+  return image && image !== '{image}' ? image : ''
+})
 </script>
 
 <template>
   <aside
     id="dashboard-sidebar"
-    class="dashboard-sidebar flex w-[260px] shrink-0 flex-col border-r border-traceline bg-co-white px-[18px] py-7 max-[850px]:w-[72px] max-[850px]:px-2.5 max-[620px]:hidden"
-    :class="props.mobileOpen
-      ? 'max-[620px]:!fixed max-[620px]:!inset-y-0 max-[620px]:!left-0 max-[620px]:!z-[51] max-[620px]:!flex max-[620px]:!w-[82vw] max-[620px]:!max-w-[300px] max-[620px]:overflow-y-auto max-[620px]:shadow-2xl'
-      : ''
-      ">
-    <div class="conecta-text flex h-8 items-end justify-between gap-2 select-none">
-      <span
-        class="brand-icon grid size-9 place-items-center rounded-xl bg-co-blue text-lg font-bold text-co-white"
-        >C</span
-      >
+    class="dashboard-sidebar sticky top-0 flex h-dvh w-[360px] shrink-0 flex-col gap-[15px] self-start overflow-y-auto border-r border-traceline bg-co-white px-[35px] pb-[22px] pt-[22px] max-[1100px]:w-[72px] max-[1100px]:items-center max-[1100px]:px-2.5 max-[620px]:hidden"
+    :class="props.mobileOpen ? 'is-drawer' : ''"
+  >
+    <div
+      class="sidebar-logo flex h-[55px] w-full shrink-0 items-center justify-between max-[1100px]:justify-center"
+    >
+      <AppLogoAnimated :width="209" class="sidebar-full-logo max-[1100px]:hidden" />
       <AppLogo
-        variant="conecta"
-        :font-size="21"
-        class="brand-name tracking-[-.7px] max-[850px]:hidden"
+        variant="logo-3"
+        :width="40"
+        :height="22"
+        class="sidebar-rail-logo hidden max-[1100px]:block"
       />
       <button
         v-if="props.mobileOpen"
         type="button"
-        class="grid size-9 shrink-0 place-items-center rounded-lg border border-traceline bg-co-white text-text-2 min-[621px]:hidden"
+        class="sidebar-close grid size-9 shrink-0 place-items-center rounded-lg border border-traceline bg-co-white text-text-2 min-[621px]:hidden"
         aria-label="Fechar navegação"
         @click="emit('close-mobile')"
       >
@@ -111,162 +108,213 @@ const profile = computed(() => ({
       </button>
     </div>
 
-    <nav class="sidebar-navigation mt-[66px] max-[850px]:mt-14" aria-label="Navegação do dashboard">
+    <nav class="sidebar-navigation w-full shrink-0" aria-label="Navegação do dashboard">
       <p
-        class="navigation-label mb-3 px-[13px] text-[10px] font-bold uppercase tracking-[1.1px] text-text-2 max-[850px]:hidden"
+        class="sidebar-label mb-5 text-[14px] leading-4 font-medium text-text-2 max-[1100px]:hidden"
       >
-        Menu principal
+        MENU PRINCIPAL
       </p>
 
-      <RouterLink
-        v-for="item in menuItems"
-        :key="item.label"
-        :to="item.path"
-        :aria-label="item.label"
-        :title="item.label"
-        class="navigation-item hover:bg-s-blue/30 transition-colors relative flex h-[46px] items-center gap-3 rounded-[11px] px-[13px] text-sm font-semibold text-text-2 no-underline [&+&]:mt-[5px] max-[850px]:justify-center max-[850px]:px-0"
-        :class="isActive(item.path) ? 'navigation-item-active bg-s-blue text-co-blue' : ''"
-        @click="emit('close-mobile')"
-      >
-        <font-awesome-icon :icon="item.icon" />
-        <span
-          class="max-[850px]:hidden"
-          :class="props.mobileOpen
-            ? 'max-[620px]:!flex max-[620px]:min-w-0 max-[620px]:flex-1 max-[620px]:truncate'
-            : ''
-            "
+      <div class="flex flex-col gap-3">
+        <RouterLink
+          v-for="item in menuItems"
+          :key="item.label"
+          :to="item.path"
+          :aria-label="item.label"
+          :title="item.label"
+          class="navigation-item flex h-16 w-full items-center gap-4 rounded-[10px] px-5 text-[14px] leading-4 font-medium no-underline transition-colors hover:bg-traceline/60 max-[1100px]:size-[52px] max-[1100px]:justify-center max-[1100px]:px-0"
+          :class="
+            isActive(item.path)
+              ? 'navigation-item-active bg-traceline text-co-blue'
+              : 'text-text-2'
+          "
+          @click="emit('close-mobile')"
         >
-          {{ item.label }}
-        </span>
-        <span
-          v-if="item.badge"
-          class="navigation-badge ml-auto min-w-[22px] rounded-full bg-co-coral px-1.5 py-[3px] text-center text-[10px] text-co-white max-[850px]:absolute max-[850px]:-right-0.5 max-[850px]:-top-1 max-[850px]:min-w-[17px] max-[850px]:px-1 max-[850px]:py-0.5"
-          :class="props.mobileOpen
-            ? 'max-[620px]:!static max-[620px]:!h-auto max-[620px]:!max-w-[90px] max-[620px]:!min-w-[22px] max-[620px]:truncate'
-            : ''
-            "
-          >{{ item.badge }}</span
-        >
-      </RouterLink>
+          <AppDashboardIcon :name="item.icon" :size="20" />
+          <span class="sidebar-item-label max-[1100px]:hidden">{{ item.label }}</span>
+        </RouterLink>
+      </div>
     </nav>
 
     <div
-      class="sidebar-invite mt-auto mb-6 rounded-[14px] bg-s-coral p-[17px] max-[850px]:hidden"
+      class="sidebar-invite mt-auto flex w-full shrink-0 flex-col gap-5 rounded-2xl bg-s-coral p-6 max-[1100px]:hidden"
     >
-      <div
-        class="invite-icon mb-[13px] grid size-[34px] place-items-center rounded-[10px] bg-s-coral text-co-coral"
-      >
-        <font-awesome-icon :icon="faUsers" />
+      <AppIcon variant="hands" :width="24" class="text-co-blue" />
+
+      <div class="flex flex-col gap-3">
+        <strong class="text-[18px] leading-[21px] font-medium text-text-1">
+          Faça novas conexões
+        </strong>
+        <p class="text-[14px] leading-4 font-medium text-text-2">
+          Encontre pessoas com os mesmos interesses que você.
+        </p>
       </div>
-      <strong class="block text-[13px] font-semibold"
-        >Faça novas conexões</strong
-      >
-      <p class="my-2 text-[11px] leading-[1.5] text-text-2">
-        Encontre pessoas com os mesmos interesses que você.
-      </p>
+
       <RouterLink
-        class="flex items-center gap-1 text-[11px] font-bold text-co-coral no-underline"
         to="/dashboard/communities"
+        class="inline-flex items-center gap-2 text-[14px] leading-4 font-medium text-co-blue no-underline transition-colors hover:text-co-coral"
         @click="emit('close-mobile')"
-        >Explorar comunidades <font-awesome-icon :icon="faArrowRight"
-      /></RouterLink>
+      >
+        Explorar comunidades
+        <AppArrowIcon />
+      </RouterLink>
     </div>
 
-    <div
-      class="sidebar-profile flex items-center gap-2.5 border-t border-traceline px-2 pt-[17px] max-[850px]:justify-center max-[850px]:px-0"
-    >
-      <div
-        v-if="profile.image && profile.image !== '{image}'"
-        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-s-blue text-[10px] font-bold text-co-blue"
+    <div class="sidebar-profile relative w-full shrink-0">
+      <div class="h-px w-full bg-traceline max-[1100px]:hidden"></div>
+
+      <button
+        type="button"
+        class="sidebar-profile-button mt-5 flex h-11 w-full items-center gap-3 text-left max-[1100px]:mt-0 max-[1100px]:justify-center"
+        aria-haspopup="menu"
+        :aria-expanded="menuAberto"
+        @click="menuAberto = !menuAberto; submenuAberto = false"
       >
-        <img :src="profile.image" alt="Avatar do usuário" class="h-full w-full object-cover" />
-      </div>
+        <span
+          class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-traceline text-text-2"
+        >
+          <img
+            v-if="profileImage"
+            :src="profileImage"
+            alt="Avatar do usuário"
+            class="h-full w-full object-cover"
+          />
+          <AppDashboardIcon v-else name="person" :size="14" />
+        </span>
+
+        <span class="sidebar-profile-details min-w-0 flex-1 max-[1100px]:hidden">
+          <strong class="block truncate text-[16px] leading-[19px] font-medium text-text-1">
+            Meu perfil
+          </strong>
+          <span class="mt-1 block truncate text-[14px] leading-4 font-medium text-text-2">
+            Seu espaço no Conecta
+          </span>
+        </span>
+
+        <AppDashboardIcon
+          name="chevron-right"
+          :size="16"
+          class="sidebar-profile-chevron text-text-2 max-[1100px]:hidden"
+        />
+      </button>
+
       <div
-        v-else
-        class="hover:cursor-pointer profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-s-blue text-[10px] font-bold text-co-blue"
+        v-if="menuAberto"
+        class="fixed bottom-[95px] left-[35px] z-[100] w-[290px] overflow-hidden rounded-2xl border border-traceline bg-co-white shadow-[0_12px_30px_rgba(17,24,39,0.12)] max-[1100px]:bottom-[80px] max-[1100px]:left-3 max-[1100px]:w-[220px] max-[620px]:left-4 max-[620px]:w-[240px]"
+        role="menu"
+        @click.stop
       >
-        {{ profile.image === '{image}' ? 'EU' : profile.image }}
-      </div>
-      <div class="profile-details hover:cursor-pointer min-w-0 flex-1 max-[850px]:hidden">
-        <strong class="block truncate text-xs">{{ profile.name }}</strong>
-        <span class="mt-0.5 block truncate text-[10px] text-text-2">{{ profile.curso }}</span>
-      </div>
+        <template v-if="!submenuAberto">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+            role="menuitem"
+            @click="abrirConfiguracaoPerfil"
+          >
+            <span>Perfil</span>
+          </button>
 
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+            role="menuitem"
+            @click="abrirOpcoes"
+          >
+            <span>Opções</span>
+            <span class="text-[11px] text-text-2">›</span>
+          </button>
 
-      <div class="relative flex items-center justify-center">
-        <button
-          type="button"
-          class="icon-button inline-flex cursor-pointer items-center justify-center border-0 bg-transparent text-text-2 transition-colors hover:text-co-blue max-[850px]:hidden"
-          :class="props.mobileOpen ? 'max-[620px]:!inline-flex' : ''"
-          aria-label="Mais opções"
-          :aria-expanded="menuAberto"
-          @click="menuAberto = !menuAberto; submenuAberto = false"
-        >
-          <font-awesome-icon :icon="faEllipsis" />
-        </button>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-co-coral transition-colors hover:bg-s-coral"
+            role="menuitem"
+            @click="logout"
+          >
+            <span>Sair</span>
+          </button>
+        </template>
 
-        <div
-          v-if="menuAberto"
-          class="fixed z-[100] w-[min(220px,calc(100vw-24px))] overflow-hidden rounded-[16px] border border-traceline bg-co-white shadow-[0_12px_30px_rgba(17,24,39,0.12)]"
-          :style="{
-            right: '12px',
-            bottom: '12px',
-            maxHeight: 'calc(100dvh - 24px)',
-          }"
-          @click.stop
-        >
-          <template v-if="!submenuAberto">
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-              @click="abrirConfiguracaoPerfil"
-            >
-              <span>Perfil</span>
-            </button>
-
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-              @click="abrirOpcoes"
-            >
-              <span>Opções</span>
-              <span class="text-[11px] text-text-2">›</span>
-            </button>
-
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-co-coral transition-colors hover:bg-s-coral"
-              @click="logout"
-            >
-              <span>Sair</span>
-            </button>
-          </template>
-
-          <template v-else>
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-              @click="submenuAberto = false; menuAberto = false"
-            >
-              <span>Conta</span>
-            </button>
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-              @click="submenuAberto = false; menuAberto = false"
-            >
-              <span>Preferências</span>
-            </button>
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
-              @click="submenuAberto = false; menuAberto = false"
-            >
-              <span>Privacidade</span>
-            </button>
-          </template>
-        </div>
+        <template v-else>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+            role="menuitem"
+            @click="submenuAberto = false; menuAberto = false"
+          >
+            <span>Conta</span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+            role="menuitem"
+            @click="submenuAberto = false; menuAberto = false"
+          >
+            <span>Preferências</span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-text-1 transition-colors hover:bg-s-blue/30"
+            role="menuitem"
+            @click="submenuAberto = false; menuAberto = false"
+          >
+            <span>Privacidade</span>
+          </button>
+        </template>
       </div>
     </div>
   </aside>
 </template>
+
+<style scoped>
+@media (max-width: 620px) {
+  .dashboard-sidebar.is-drawer {
+    display: flex;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 51;
+    width: 82vw;
+    max-width: 300px;
+    align-items: stretch;
+    padding: 22px 24px;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(17, 24, 39, 0.25);
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-logo {
+    justify-content: space-between;
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-full-logo {
+    display: block;
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-rail-logo {
+    display: none;
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-label,
+  .dashboard-sidebar.is-drawer .sidebar-item-label,
+  .dashboard-sidebar.is-drawer .sidebar-profile-details {
+    display: block;
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-profile-chevron {
+    display: block;
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-invite {
+    display: flex;
+  }
+
+  .dashboard-sidebar.is-drawer .navigation-item {
+    width: 100%;
+    height: 64px;
+    justify-content: flex-start;
+    padding: 0 20px;
+  }
+
+  .dashboard-sidebar.is-drawer .sidebar-profile-button {
+    justify-content: flex-start;
+  }
+}
+</style>

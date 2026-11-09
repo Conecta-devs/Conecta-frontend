@@ -1,71 +1,53 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { faBell, faSearch } from '@fortawesome/free-solid-svg-icons'
-import { currentUser } from '../../../shared/services/session'
 
-const name_user = computed(() => currentUser.user?.name ?? 'usuário')
+import { currentUser } from '../../../shared/services/session'
+import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
+
 const email_user = computed(() => currentUser.user?.email ?? '')
-const userImage = computed(() => currentUser.user?.image ?? '')
-const profileImage = computed(() => {
-  const image = userImage.value
-  return image || 'EU'
-})
 
 const today = new Date()
-const data = {
-  day: today.getDate(),
-  year: today.getFullYear(),
-  weekday: today.toLocaleDateString('pt-BR', { weekday: 'long' }),
-}
+const todayLabel = `${today.toLocaleDateString('pt-BR', { weekday: 'long' })}, ${today.getDate()} de ${today.toLocaleDateString('pt-BR', { month: 'long' })} de ${today.getFullYear()}`
 </script>
 
 <template>
   <header
-    class="header-top flex min-h-[157px] items-center justify-between gap-7 border-b border-traceline bg-co-white px-[clamp(24px,5vw,70px)] py-[30px] max-[620px]:flex-col max-[620px]:items-start max-[620px]:p-6"
+    class="flex min-h-[100px] items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,76px)] max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
   >
-    <div class="header-text">
-      <p class="header-eyebrow m-0 text-[10px] font-bold uppercase tracking-[1.1px] text-text-2">
-        {{ data.weekday }}, {{ data.day }} de
-        {{ today.toLocaleDateString('pt-BR', { month: 'long' }) }} de {{ data.year }}
+    <div class="header-text flex min-w-0 flex-1 flex-col gap-[5px]">
+      <p class="m-0 text-[14px] leading-4 font-medium text-text-2 uppercase">
+        {{ todayLabel }}
       </p>
       <h1
-        class="text-h2 my-2"
+        class="m-0 text-title leading-[38px] text-text-1 max-[1400px]:text-[28px] max-[1400px]:leading-[34px] max-[1100px]:text-[24px] max-[1100px]:leading-[30px]"
       >
-        Bom dia, {{ name_user }} <span>!</span>
+        Olá, que bom ter você aqui!
       </h1>
-      <p class="header-description m-0 text-[13px] text-text-2">
+      <p class="m-0 truncate text-[16px] leading-[19px] font-medium text-text-2">
         {{ email_user }}
       </p>
     </div>
-    <div class="header-actions flex w-auto items-center gap-[18px] max-[620px]:w-full">
+
+    <div class="header-actions flex shrink-0 items-center gap-5 max-[1000px]:w-full max-[620px]:gap-3">
       <label
-        class="search-box flex h-10 flex-1 items-center gap-2 rounded-[9px] border border-traceline px-[13px] text-text-2 min-[621px]:w-[225px] min-[621px]:flex-none"
-        ><font-awesome-icon :icon="faSearch" /><input
-          class="w-full border-0 bg-transparent text-xs text-text-1 outline-none placeholder:text-text-2"
+        class="flex h-14 w-[360px] shrink-0 items-center gap-3 rounded-[10px] border border-traceline bg-white px-4 text-text-2 max-[1400px]:w-[280px] max-[1100px]:w-[240px] max-[1000px]:w-full max-[1000px]:flex-1"
+      >
+        <AppDashboardIcon name="search" :size="20" />
+        <input
+          class="w-full min-w-0 border-0 bg-transparent text-[14px] leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
           type="search"
           placeholder="Buscar no Conecta"
           aria-label="Buscar no Conecta"
-      /></label>
+        />
+      </label>
+
       <button
-        class="notification-button relative border-0 bg-transparent p-1.5 text-text-2"
+        type="button"
+        class="relative grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 transition-colors before:absolute before:-inset-2.5 before:content-[''] hover:text-co-blue"
         aria-label="Notificações"
       >
-        <font-awesome-icon :icon="faBell" /><span
-          class="absolute right-1 top-0.5 size-1.5 rounded-full border border-co-white bg-co-coral"
-        ></span>
+        <AppDashboardIcon name="bell" :size="20" />
       </button>
-      <div
-        v-if="userImage"
-        class="profile-avatar grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-[10px] font-bold text-co-coral"
-      >
-        <img :src="userImage" alt="Foto do usuário" class="h-full w-full object-cover" />
-      </div>
-      <div
-        v-else
-        class="profile-avatar grid size-[34px] shrink-0 place-items-center rounded-full bg-s-coral text-[10px] font-bold text-co-coral"
-      >
-        {{ profileImage }}
-      </div>
     </div>
   </header>
 </template>
