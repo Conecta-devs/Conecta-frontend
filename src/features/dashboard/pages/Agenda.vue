@@ -6,18 +6,14 @@ import {
 import {
     cancelAgendaItem,
     createAgendaItem,
-    getAgendaItem,
-    getMyAgendaParticipation,
     listAgendaItems,
-    updateAgendaAttendance,
-    updateAgendaInterest,
     updateAgendaItem,
     type AgendaFormat,
     type AgendaItem,
     type AgendaItemInput,
     type AgendaKind,
-    type AgendaParticipation,
 } from '../services/agenda'
+import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
 import { getUserProfile } from '../../auth/services/auth'
 import { currentUser, saveSession } from '../../../shared/services/session'
 
@@ -49,16 +45,12 @@ const loadError = ref('')
 const identityWarning = ref('')
 const successMessage = ref('')
 const formError = ref('')
-const detailError = ref('')
 const formOpen = ref(false)
 const formSaving = ref(false)
 const editingAgendaId = ref<string | null>(null)
 const form = ref<AgendaForm>(emptyForm())
-const selectedAgenda = ref<AgendaItem | null>(null)
-const participation = ref<AgendaParticipation | null>(null)
-const detailsLoading = ref(false)
-const interestSaving = ref(false)
-const attendanceSaving = ref(false)
+const detailsOpen = ref(false)
+const detailsItems = ref<AgendaItem[]>([])
 const cancellingAgendaId = ref<string | null>(null)
 const agendaToCancel = ref<AgendaItem | null>(null)
 
@@ -124,32 +116,14 @@ async function loadAgenda() {
     }
 }
 
-async function openDetails(item: AgendaItem) {
-    selectedAgenda.value = item
-    participation.value = null
-    detailError.value = ''
-    detailsLoading.value = true
-
-    try {
-        const [details, myParticipation] = await Promise.all([
-            getAgendaItem(item.id),
-            getMyAgendaParticipation(item.id),
-        ])
-        if (selectedAgenda.value?.id !== item.id) return
-        selectedAgenda.value = details
-        participation.value = myParticipation
-    } catch (error) {
-        detailError.value =
-            error instanceof Error ? error.message : 'Não foi possível carregar os detalhes.'
-    } finally {
-        detailsLoading.value = false
-    }
+function openDetails(item: AgendaItem) {
+    detailsItems.value = [item]
+    detailsOpen.value = true
 }
 
 function closeDetails() {
-    selectedAgenda.value = null
-    participation.value = null
-    detailError.value = ''
+    detailsOpen.value = false
+    detailsItems.value = []
 }
 
 function beginCreate() {
@@ -254,37 +228,6 @@ async function saveAgendaItem() {
     }
 }
 
-async function setInterest(interested: boolean) {
-    if (!selectedAgenda.value || !participation.value || interestSaving.value) return
-
-    interestSaving.value = true
-    detailError.value = ''
-    try {
-        participation.value = await updateAgendaInterest(selectedAgenda.value.id, interested)
-    } catch (error) {
-        detailError.value =
-            error instanceof Error ? error.message : 'Não foi possível atualizar o interesse.'
-    } finally {
-        interestSaving.value = false
-    }
-}
-
-async function setAttendance(confirmed: boolean) {
-    if (!selectedAgenda.value || !participation.value || attendanceSaving.value) return
-
-    attendanceSaving.value = true
-    detailError.value = ''
-    try {
-        participation.value = await updateAgendaAttendance(selectedAgenda.value.id, confirmed)
-    } catch (error) {
-        detailError.value =
-            error instanceof Error ? error.message : 'Não foi possível atualizar a presença.'
-    } finally {
-        attendanceSaving.value = false
-    }
-}
-
-
 function cancelItem(item: AgendaItem) {
     if (!isOrganizer(item) || cancellingAgendaId.value) return
 
@@ -315,7 +258,7 @@ async function confirmCancelAgenda() {
 
         successMessage.value = 'Encontro cancelado com sucesso.'
 
-        if (selectedAgenda.value?.id === item.id) {
+        if (detailsItems.value.some((entry) => entry.id === item.id)) {
             closeDetails()
         }
 
@@ -519,117 +462,13 @@ onMounted(loadAgenda)
             </section>
         </div>
 
-        <div v-if="selectedAgenda"
-            class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-[#101827]/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            @click.self="closeDetails">
-            <section role="dialog" aria-modal="true" aria-labelledby="agenda-details-title"
-                class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-xl bg-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]">
-                <header class="flex items-start justify-between gap-4 border-b border-[#e8ebf0] px-5 py-4 sm:px-7">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-[#e8755f]">
-                            {{ selectedAgenda.kind === 'event' ? 'Evento' : 'Roda de conversa' }}
-                            · {{ selectedAgenda.format === 'online' ? 'Online' : 'Presencial' }}
-                        </p>
-                        <h2 id="agenda-details-title"
-                            class="mt-1 font-['Space_Grotesk',sans-serif] text-xl font-bold text-[#253b73]">
-                            {{ selectedAgenda.title }}
-                        </h2>
-                    </div>
-                    <button type="button"
-                        class="rounded-lg px-3 py-2 text-sm font-semibold text-[#53617a] hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
-                        aria-label="Fechar detalhes" @click="closeDetails">
-                        Fechar
-                    </button>
-                </header>
-
-                <div class="space-y-5 px-5 py-5 sm:px-7">
-                    <p class="text-sm text-[#53617a]">
-                        {{ formatDateTime(selectedAgenda.startsAt) }} –
-                        {{ formatDateTime(selectedAgenda.endsAt) }}
-                    </p>
-                    <p class="whitespace-pre-wrap break-words text-sm leading-7 text-[#374151]">
-                        {{ selectedAgenda.description }}
-                    </p>
-                    <a v-if="selectedAgenda.format === 'online' && selectedAgenda.meetingUrl"
-                        :href="selectedAgenda.meetingUrl" target="_blank" rel="noopener noreferrer"
-                        class="inline-block break-all text-sm font-semibold text-[#536bad] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]">
-                        Abrir link da reunião
-                    </a>
-                    <p v-if="selectedAgenda.format === 'in_person' && selectedAgenda.location"
-                        class="text-sm text-[#53617a]">
-                        Local: {{ selectedAgenda.location }}
-                    </p>
-                    <p v-if="detailsLoading" role="status" class="text-sm text-[#6f7a8d]">
-                        Carregando participação...
-                    </p>
-                    <p v-if="detailError" role="alert" class="text-sm text-red-700">
-                        {{ detailError }}
-                    </p>
-
-                    <div v-if="participation" class="grid gap-4 border-t border-[#edf0f4] pt-5 sm:grid-cols-2">
-                        <section class="rounded-lg bg-[#f8f9fc] p-4">
-                            <h3 class="font-semibold text-[#253b73]">Interesse</h3>
-                            <p class="mt-1 text-sm text-[#6f7a8d]">
-                                {{
-                                    participation.interested
-                                        ? 'Você tem interesse.'
-                                        : 'Você ainda não marcou interesse.'
-                                }}
-                            </p>
-                            <button type="button"
-                                class="mt-3 rounded-lg border border-[#dfe4ed] bg-white px-3 py-2 text-sm font-semibold text-[#536bad] hover:bg-[#eef1f9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad] disabled:opacity-50"
-                                :disabled="interestSaving || attendanceSaving || detailsLoading"
-                                @click="setInterest(!participation.interested)">
-                                {{
-                                    interestSaving
-                                        ? 'Atualizando...'
-                                        : participation.interested
-                                            ? 'Remover interesse'
-                                            : 'Tenho interesse'
-                                }}
-                            </button>
-                        </section>
-                        <section class="rounded-lg bg-[#f8f9fc] p-4">
-                            <h3 class="font-semibold text-[#253b73]">Presença</h3>
-                            <p class="mt-1 text-sm text-[#6f7a8d]">
-                                {{
-                                    participation.confirmed
-                                        ? 'Sua presença está confirmada.'
-                                        : 'Sua presença não está confirmada.'
-                                }}
-                            </p>
-                            <button type="button"
-                                class="mt-3 rounded-lg border border-[#dfe4ed] bg-white px-3 py-2 text-sm font-semibold text-[#536bad] hover:bg-[#eef1f9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad] disabled:opacity-50"
-                                :disabled="attendanceSaving || interestSaving || detailsLoading"
-                                @click="setAttendance(!participation.confirmed)">
-                                {{
-                                    attendanceSaving
-                                        ? 'Atualizando...'
-                                        : participation.confirmed
-                                            ? 'Retirar confirmação'
-                                            : 'Confirmar presença'
-                                }}
-                            </button>
-                        </section>
-                    </div>
-
-
-                    <footer v-if="isOrganizer(selectedAgenda)"
-                        class="flex flex-wrap justify-end gap-2 border-t border-[#edf0f4] pt-4">
-                        <button type="button"
-                            class="rounded-lg border border-[#dfe4ed] px-4 py-2 text-sm font-semibold text-[#536bad] hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
-                            @click="beginEdit(selectedAgenda)">
-                            Editar encontro
-                        </button>
-                        <button type="button"
-                            class="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
-                            :disabled="cancellingAgendaId === selectedAgenda.id" @click="cancelItem(selectedAgenda)">
-                            {{ cancellingAgendaId === selectedAgenda.id ? 'Cancelando...' : 'Cancelar encontro' }}
-                        </button>
-                    </footer>
-                </div>
-            </section>
-        </div>
+        <AgendaDetailsModal
+            v-if="detailsOpen"
+            :items="detailsItems"
+            show-organizer-actions
+            @close="closeDetails"
+            @edit="beginEdit"
+            @cancel="cancelItem" />
 
 
         <!-- Modal de confirmação de cancelamento -->

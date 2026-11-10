@@ -40,6 +40,8 @@ const props = withDefaults(
      * Usado nos estados de carregamento ("Enviando...", "Redefinindo...").
      */
     centered?: boolean
+    /** Exibe a seta à direita do label. Padrão: true. */
+    arrow?: boolean
     /** Anuncia o estado de carregamento (`aria-busy`). */
     busy?: boolean
   }>(),
@@ -49,6 +51,7 @@ const props = withDefaults(
     type: 'button',
     labelVariant: 'h5',
     centered: false,
+    arrow: true,
     busy: false,
   },
 )
@@ -145,7 +148,7 @@ const labelClasses: Record<NonNullable<typeof props.labelVariant>, string> = {
     >
       <span class="whitespace-nowrap" :class="labelClasses[labelVariant]"><slot>Text</slot></span>
 
-      <AppArrowIcon />
+      <AppArrowIcon v-if="arrow" />
     </span>
   </button>
 </template>

@@ -12,7 +12,7 @@ const todayLabel = `${today.toLocaleDateString('pt-BR', { weekday: 'long' })}, $
 
 <template>
   <header
-    class="flex min-h-[100px] items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,76px)] max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
+    class="flex min-h-[100px] items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,75px)] max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
   >
     <div class="header-text flex min-w-0 flex-1 flex-col gap-[5px]">
       <p class="m-0 text-[14px] leading-4 font-medium text-text-2 uppercase">
