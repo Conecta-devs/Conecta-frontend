@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { loginUser, registerUser } from '../services/auth'
-import { saveSession } from '../../../shared/services/session'
+import { saveSession, getLastEmail, saveLastEmail } from '../../../shared/services/session'
 import AuthField from '../components/AuthField.vue'
 import AuthFormColumn from '../components/AuthFormColumn.vue'
 import AuthIntro from '../components/AuthIntro.vue'
@@ -57,12 +57,19 @@ const props = withDefaults(
 
 const modo = ref<Modo>(props.estadoInicial === 'register' ? 'register' : 'login')
 const nome = ref('')
-const email = ref('')
+const email = ref(getLastEmail())
 const senha = ref('')
 const confirmarSenha = ref('')
 const erro = ref('')
 const erroSenha = ref('')
 const enviando = ref(false)
+
+/**
+ * Qualquer edição no e-mail descarta o valor guardado: se a pessoa apagar um
+ * caractere que seja, o próximo acesso à tela não abre mais preenchido.
+ * O valor volta a ser salvo ao enviar o formulário (ou ao deslogar).
+ */
+watch(email, () => saveLastEmail(null))
 
 /**
  * Marca deixada pelo CTA de "Senha redefinida com sucesso!" (ResetPassword).
@@ -168,6 +175,9 @@ async function enviar() {
   erro.value = ''
   erroSenha.value = ''
 
+  const emailNormalizado = email.value.trim()
+  saveLastEmail(emailNormalizado)
+
   if (modo.value === 'register' && senha.value !== confirmarSenha.value) {
     erroSenha.value = 'As senhas devem coincidir entre si.'
     return
@@ -179,7 +189,7 @@ async function enviar() {
     if (modo.value === 'register') {
       await registerUser({
         name: nome.value.trim(),
-        email: email.value.trim(),
+        email: emailNormalizado,
         password: senha.value,
       })
 
@@ -191,7 +201,7 @@ async function enviar() {
         transicionando.value = false
       }, 320)
     } else {
-      const resposta = await loginUser({ email: email.value.trim(), password: senha.value })
+      const resposta = await loginUser({ email: emailNormalizado, password: senha.value })
       saveSession(resposta.user, resposta.accessToken)
       router.push('/dashboard')
     }

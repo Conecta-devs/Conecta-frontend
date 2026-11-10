@@ -203,7 +203,9 @@ onUnmounted(() => {
 
           <!-- 380px no Figma: 30px de padding em cada lado + 150 + 20 + 150. -->
           <div class="flex shrink-0 items-center gap-5 px-[30px]">
-            <AppButton variant="coral-outline" @click="irParaAuth('login')">Entrar</AppButton>
+            <AppButton variant="coral-outline" @click="irParaAuth('login')">
+              Entrar
+            </AppButton>
             <AppButton variant="blue" :padding-left="15" @click="irParaAuth('register')">
               Inscreva-se
             </AppButton>
@@ -253,12 +255,7 @@ onUnmounted(() => {
         </nav>
 
         <div class="mt-5 flex flex-wrap items-center gap-3">
-          <AppButton
-            variant="coral-outline"
-            :width="140"
-            :padding-left="30"
-            @click="irParaAuth('login')"
-          >
+          <AppButton variant="coral-outline" :width="140" :padding-left="30" @click="irParaAuth('login')">
             Entrar
           </AppButton>
           <AppButton variant="blue" :width="150" :padding-left="30" @click="irParaAuth('register')">
@@ -278,9 +275,7 @@ onUnmounted(() => {
             BEM-VINDO AO <span class="text-co-blue">CONECTA.</span>
           </p>
 
-          <h1
-            class="text-[38px] leading-[0.98] tracking-[-2px] text-co-blue select-none sm:text-[52px] sm:tracking-[-3px] lg:text-h1"
-          >
+          <h1 class="text-[38px] leading-[0.98] tracking-[-2px] text-co-blue select-none sm:text-[52px] sm:tracking-[-3px] lg:text-h1">
             <BlurReveal as="span" text="Um Lugar Amigável" />
             <br />
             <BlurReveal as="span" class="hero-title-tail" text="para Aprender." :delay="0.5" />
@@ -291,23 +286,12 @@ onUnmounted(() => {
             jornada de estudos!
           </p>
 
-          <AppButton
-            variant="coral"
-            :width="170"
-            :padding-left="14"
-            :gap="13"
-            :gap-hover="21"
-            label-variant="h3"
-            @click="irParaAuth('login')"
-          >
+          <AppButton variant="coral" :width="170" :padding-left="14" :gap="13" :gap-hover="21" label-variant="h3" @click="irParaAuth('login')">
             Conecte-se
           </AppButton>
         </div>
 
-        <img
-          :src="heroTree"
-          alt=""
-          class="mx-auto block h-auto w-full max-w-[320px] shrink-0 sm:max-w-[420px] lg:max-w-[556px]"
+        <img :src="heroTree" alt="" class="mx-auto block h-auto w-full max-w-[320px] shrink-0 sm:max-w-[420px] lg:max-w-[556px]"
           draggable="false"
         />
       </section>
@@ -331,8 +315,7 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <!-- Cards: centralizados abaixo de lg (o terceiro card ocupa as duas
-               colunas no tablet para não ficar sozinho à esquerda). -->
+          <!-- Cards: centralizados abaixo de lg (o terceiro card ocupa as duas colunas no tablet para não ficar sozinho à esquerda). -->
           <div class="grid justify-items-center gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[30px]">
             <AppArticle
               v-for="(item, index) in beneficios"
@@ -340,9 +323,7 @@ onUnmounted(() => {
               :icon="item.icon"
               :title="item.title"
               :text="item.text"
-              :class="
-                index === beneficios.length - 1 ? 'sm:col-span-2 sm:w-full lg:col-span-1' : ''
-              "
+              :class="index === beneficios.length - 1 ? 'sm:col-span-2 sm:w-full lg:col-span-1' : ''"
             />
           </div>
         </div>
@@ -365,11 +346,7 @@ onUnmounted(() => {
               Você escolhe quando participar, com quem conversar e quais assuntos fazem sentido para
               você.
             </p>
-            <AppLink
-              href="/login?modo=register"
-              class="mt-2"
-              @click.prevent="irParaAuth('register')"
-            >
+            <AppLink href="/login?modo=register" class="mt-2" @click.prevent="irParaAuth('register')">
               Começar agora
             </AppLink>
           </div>

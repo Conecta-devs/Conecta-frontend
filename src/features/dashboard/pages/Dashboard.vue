@@ -197,7 +197,9 @@ const conversations = [
                 Suas comunidades
               </h2>
             </div>
-            <AppLink to="/dashboard/communities" size="h6">Ver todas</AppLink>
+            <AppLink to="/dashboard/communities" size="h6">
+              Ver todas
+            </AppLink>
           </header>
 
           <div class="flex flex-col gap-[10px]">
@@ -236,7 +238,9 @@ const conversations = [
                 Conversas recentes
               </h2>
             </div>
-            <AppLink to="/dashboard/chat" size="h6">Ver todas</AppLink>
+            <AppLink to="/dashboard/chat" size="h6">
+              Ver todas
+            </AppLink>
           </header>
 
           <div class="flex flex-col gap-[10px]">
@@ -282,7 +286,9 @@ const conversations = [
             Próximos encontros
           </h2>
         </div>
-        <AppLink to="/dashboard/agenda" size="h4">Ver agenda</AppLink>
+        <AppLink to="/dashboard/agenda" size="h6">
+          Ver agenda
+        </AppLink>
       </header>
 
       <div

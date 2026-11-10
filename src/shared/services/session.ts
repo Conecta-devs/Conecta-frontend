@@ -3,10 +3,11 @@ import type { AuthUser } from '../types/auth'
 
 const SESSION_KEY = 'conecta_session'
 const TOKEN_KEY = 'conecta_access_token'
+const LAST_EMAIL_KEY = 'conecta_last_email'
 
 /**
  * Chaves antigas gravadas separadamente. A sessão agora vive apenas em
- * `conecta_session`; mantemos a limpeza para migrar quem já usava o app.
+ * `conecta_session`.
  */
 const LEGACY_USER_KEYS = ['userName', 'userEmail', 'userImage'] as const
 
@@ -90,7 +91,28 @@ export function saveSession(user: AuthUser, accessToken?: string | null) {
   }
 }
 
+/**
+ * Último e-mail usado no login, preservado ao encerrar a sessão para a tela
+ * de login abrir preenchida. Nunca guarda senha nem token.
+ */
+export function getLastEmail(): string {
+  return localStorage.getItem(LAST_EMAIL_KEY) ?? ''
+}
+
+/** Salva o e-mail; `null`/vazio remove o valor guardado. */
+export function saveLastEmail(email?: string | null) {
+  const value = email?.trim() ?? ''
+
+  if (value) {
+    localStorage.setItem(LAST_EMAIL_KEY, value)
+  } else {
+    localStorage.removeItem(LAST_EMAIL_KEY)
+  }
+}
+
 export function clearSession() {
+  // Preserva o e-mail da conta para a tela de login abrir preenchida.
+  saveLastEmail(currentUser.user?.email)
   currentUser.user = null
   localStorage.removeItem(SESSION_KEY)
   saveAccessToken(null)
