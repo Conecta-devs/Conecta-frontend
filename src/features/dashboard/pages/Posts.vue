@@ -33,7 +33,9 @@ async function loadPosts() {
   errorMessage.value = ''
 
   try {
-    if (!currentUser.user?.sub) {
+    const hydrateIdentity = (async () => {
+      if (currentUser.user?.sub) return
+
       const profile = await getUserProfile()
       const user = currentUser.user
 
@@ -42,12 +44,13 @@ async function loadPosts() {
       }
 
       saveSession({ ...user, sub: profile.sub })
-    }
+    })()
 
-    posts.value = await listPosts()
+    const [loadedPosts] = await Promise.all([listPosts(), hydrateIdentity])
+    posts.value = loadedPosts
 
     console.log('Usuário conectado:', currentUser.user)
-    console.log('Publicações recebidas:', posts.value)   
+    console.log('Publicações recebidas:', posts.value)
   } catch (error) {
     errorMessage.value =
       error instanceof Error

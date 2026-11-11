@@ -103,12 +103,10 @@ async function loadAgenda() {
     loadError.value = ''
 
     try {
-        const items = await listAgendaItems()
+        const [items] = await Promise.all([listAgendaItems(), hydrateOrganizerIdentity()])
         agendaItems.value = items
             .filter((item) => item.cancelledAt === null)
             .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt))
-
-        await hydrateOrganizerIdentity()
     } catch (error) {
         loadError.value = error instanceof Error ? error.message : 'Não foi possível carregar a Agenda.'
     } finally {
