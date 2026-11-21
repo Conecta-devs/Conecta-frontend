@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://conecta-backend-eight.vercel.app/:path*"
+      "destination": "https://conecta-backend-qt41.onrender.com/:path*"
     },
     {
       "source": "/(.*)",
