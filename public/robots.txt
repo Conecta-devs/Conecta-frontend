@@ -1,0 +1,5 @@
+# Conecta - regras de rastreamento
+User-agent: *
+Allow: /
+
+# Sitemap: https://<dominio-de-producao>/sitemap.xml
