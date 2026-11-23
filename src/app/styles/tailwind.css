@@ -22,6 +22,10 @@
   --color-traceline: #dfe2eb;
   --color-text-1: #19253d;
   --color-text-2: #667087;
+  --color-overlay: #101827;
+  --color-danger: #b23b32;
+  --color-danger-hover: #972f28;
+  --color-feedback-success: var(--color-tree-green);
 
   /* Raio, espaçamento e largura — tokens do Figma */
   --radius-button: 10px;
