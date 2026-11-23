@@ -2002,11 +2002,11 @@ onUnmounted(() => {
         aria-label="Participantes do grupo"
       >
         <div class="mb-2 flex items-center justify-between gap-3">
-          <strong class="text-xs text-[#172238]">Participantes</strong>
+          <strong class="text-xs text-text-1">Participantes</strong>
           <div class="flex items-center gap-2">
             <button
               v-if="isCurrentUserAdmin"
-              class="border-0 bg-transparent text-[10px] font-semibold text-[#253b73] underline"
+              class="border-0 bg-transparent text-[10px] font-semibold text-co-blue underline"
               type="button"
               @click="openGroupDialog('add')"
             >
@@ -2029,10 +2029,10 @@ onUnmounted(() => {
           :key="member.userId"
           class="flex items-center justify-between gap-3 py-1.5"
         >
-          <span class="truncate text-[10px] text-[#53617a]">
+          <span class="truncate text-[10px] text-text-2">
             {{ member.name ?? 'Usuário' }}
-            <span v-if="member.role === 'admin'" class="ml-1 text-[#8c96a7]">· admin</span>
-            <span v-if="member.userId === currentUser.user?.sub" class="ml-1 text-[#8c96a7]">
+            <span v-if="member.role === 'admin'" class="ml-1 text-text-2">· admin</span>
+            <span v-if="member.userId === currentUser.user?.sub" class="ml-1 text-text-2">
               (você)
             </span>
           </span>
@@ -2192,7 +2192,7 @@ onUnmounted(() => {
 
     <div
       v-if="groupDialogMode"
-      class="absolute inset-0 z-20 flex items-center justify-center bg-[#172238]/35 p-4"
+      class="absolute inset-0 z-20 flex items-center justify-center bg-overlay/35 p-4"
       @click.self="closeGroupDialog"
     >
       <form
@@ -2201,10 +2201,10 @@ onUnmounted(() => {
       >
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 class="m-0 text-base font-semibold text-[#172238]">
+            <h2 class="m-0 text-base font-semibold text-text-1">
               {{ groupDialogMode === 'create' ? 'Criar grupo' : 'Adicionar participantes' }}
             </h2>
-            <p class="mt-1 text-[10px] text-[#8c96a7]">
+            <p class="mt-1 text-[10px] text-text-2">
               {{
                 groupDialogMode === 'create'
                   ? 'Escolha um nome e as pessoas que farão parte do grupo.'
@@ -2213,7 +2213,7 @@ onUnmounted(() => {
             </p>
           </div>
           <button
-            class="rounded-md border-0 bg-transparent px-2 py-1 text-xs text-[#53617a] hover:bg-[#f4f6fa]"
+            class="rounded-md border-0 bg-transparent px-2 py-1 text-xs text-text-2 hover:bg-co-white"
             type="button"
             aria-label="Fechar"
             @click="closeGroupDialog"
@@ -2223,24 +2223,24 @@ onUnmounted(() => {
         </div>
         <label
           v-if="groupDialogMode === 'create'"
-          class="mb-3 block text-[10px] font-semibold text-[#53617a]"
+          class="mb-3 block text-[10px] font-semibold text-text-2"
         >
           Nome do grupo
           <input
             v-model="groupName"
-            class="mt-1 w-full rounded-lg border border-[#e1e5ec] px-3 py-2 text-xs font-normal text-[#172238] outline-none focus:border-[#536bad]"
+            class="mt-1 w-full rounded-lg border border-traceline px-3 py-2 text-xs font-normal text-text-1 outline-none focus:border-co-blue"
             type="text"
             maxlength="80"
             required
           />
         </label>
         <label
-          class="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-[#e7eaf0] bg-white px-3 text-[#929aaa]"
+          class="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-traceline bg-white px-3 text-text-2"
         >
           <font-awesome-icon :icon="faSearch" class="text-xs" />
           <input
             v-model="groupSearch"
-            class="w-full border-0 bg-transparent text-xs text-[#172238] outline-none placeholder:text-[#a3aab6]"
+            class="w-full border-0 bg-transparent text-xs text-text-1 outline-none placeholder:text-text-2"
             type="search"
             placeholder="Buscar pessoas"
             @input="handleGroupSearchInput"
@@ -2252,7 +2252,7 @@ onUnmounted(() => {
         <div class="mt-2 min-h-0 flex-1 overflow-y-auto">
           <p
             v-if="groupCandidatesLoading && groupCandidates.length === 0"
-            class="py-6 text-center text-xs text-[#929aaa]"
+            class="py-6 text-center text-xs text-text-2"
           >
             Carregando pessoas...
           </p>
@@ -2265,7 +2265,7 @@ onUnmounted(() => {
               !groupSelectedIds.includes(user.id) &&
               groupSelectedIds.length >= (groupDialogMode === 'create' ? 49 : 50)
             "
-            class="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-[#f0f3fa] disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-co-white disabled:cursor-not-allowed disabled:opacity-50"
             @click="
               groupSelectedIds = groupSelectedIds.includes(user.id)
                 ? groupSelectedIds.filter((id) => id !== user.id)
@@ -2273,7 +2273,7 @@ onUnmounted(() => {
             "
           >
             <span
-              class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+              class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-co-white text-[10px] font-bold text-co-blue"
             >
               <img
                 v-if="user.image"
@@ -2283,20 +2283,20 @@ onUnmounted(() => {
               />
               <span v-else>{{ getInitials(user.name) }}</span>
             </span>
-            <span class="min-w-0 flex-1 truncate text-xs text-[#172238]">{{ user.name }}</span>
-            <span class="text-[10px] font-semibold text-[#536bad]">
+            <span class="min-w-0 flex-1 truncate text-xs text-text-1">{{ user.name }}</span>
+            <span class="text-[10px] font-semibold text-co-blue">
               {{ groupSelectedIds.includes(user.id) ? 'Selecionada' : 'Selecionar' }}
             </span>
           </button>
           <p
             v-if="!groupCandidatesLoading && !groupDialogError && groupCandidates.length === 0"
-            class="py-6 text-center text-xs text-[#929aaa]"
+            class="py-6 text-center text-xs text-text-2"
           >
             {{ groupSearch.trim() ? 'Nenhuma pessoa encontrada.' : 'Não há pessoas disponíveis.' }}
           </p>
           <button
             v-if="groupCandidatesHasMore"
-            class="mx-auto my-2 block rounded-full border-0 bg-[#f4f6fa] px-3 py-2 text-[10px] text-[#53617a] disabled:opacity-50"
+            class="mx-auto my-2 block rounded-full border-0 bg-co-white px-3 py-2 text-[10px] text-text-2 disabled:opacity-50"
             type="button"
             :disabled="groupCandidatesLoading"
             @click="loadGroupCandidates(false)"
@@ -2304,12 +2304,12 @@ onUnmounted(() => {
             {{ groupCandidatesLoading ? 'Carregando...' : 'Carregar mais pessoas' }}
           </button>
         </div>
-        <div class="mt-4 flex items-center justify-between gap-3 border-t border-[#e8ebf0] pt-3">
-          <span class="text-[10px] text-[#8c96a7]"
+        <div class="mt-4 flex items-center justify-between gap-3 border-t border-traceline pt-3">
+          <span class="text-[10px] text-text-2"
             >{{ groupSelectedIds.length }} selecionada(s)</span
           >
           <button
-            class="rounded-lg border-0 bg-[#253b73] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e305e] disabled:cursor-not-allowed disabled:opacity-50"
+            class="rounded-lg border-0 bg-co-blue px-4 py-2 text-xs font-semibold text-white hover:bg-co-blue hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
             type="submit"
             :disabled="groupDialogLoading || groupCandidatesLoading"
           >
@@ -2329,14 +2329,14 @@ onUnmounted(() => {
       v-if="contextMenu"
       ref="contextMenuElement"
       id="chat-context-menu"
-      class="fixed z-40 min-w-48 rounded-xl border border-[#e8ebf0] bg-white p-1.5 shadow-[0_12px_36px_rgba(23,34,56,.18)]"
+      class="fixed z-40 min-w-48 rounded-xl border border-traceline bg-white p-1.5 shadow-[0_12px_36px_rgba(23,34,56,.18)]"
       :style="{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }"
       role="menu"
       aria-label="Opções da conversa"
       @keydown="handleContextMenuKeydown"
     >
       <button
-        class="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-medium text-[#b23b32] outline-none transition-colors hover:bg-[#fff2ef] focus-visible:bg-[#fff2ef]"
+        class="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-medium text-danger outline-none transition-colors hover:bg-s-coral focus-visible:bg-s-coral"
         type="button"
         role="menuitem"
         @click="requestRemoveFromRecent"
@@ -2347,7 +2347,7 @@ onUnmounted(() => {
 
     <div
       v-if="removeRecentConfirmationConversation"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-[#172238]/40 p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-overlay/40 p-4"
       @click.self="closeRemoveRecentConfirmation"
     >
       <section
@@ -2358,10 +2358,10 @@ onUnmounted(() => {
         aria-describedby="remove-recent-description"
         @keydown="handleRemoveRecentDialogKeydown"
       >
-        <h2 id="remove-recent-title" class="m-0 text-base font-semibold text-[#172238]">
+        <h2 id="remove-recent-title" class="m-0 text-base font-semibold text-text-1">
           Remover conversa de Recentes?
         </h2>
-        <p id="remove-recent-description" class="mb-0 mt-2 text-xs leading-5 text-[#6f7a8d]">
+        <p id="remove-recent-description" class="mb-0 mt-2 text-xs leading-5 text-text-1">
           “{{ removeRecentConfirmationConversation.name }}” será ocultada da lista deste navegador.
           A conversa e as mensagens continuam no servidor. Para uma conversa individual, você pode
           restaurá-la ao iniciar uma conversa com essa pessoa novamente.
@@ -2372,7 +2372,7 @@ onUnmounted(() => {
         <div class="mt-5 flex justify-end gap-2">
           <button
             ref="removeRecentConfirmationButton"
-            class="rounded-lg border border-[#e1e5ec] bg-white px-3 py-2 text-xs font-semibold text-[#53617a] transition-colors hover:bg-[#f4f6fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+            class="rounded-lg border border-traceline bg-white px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:bg-co-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:opacity-50"
             type="button"
             :disabled="removeRecentConfirmationLoading"
             @click="closeRemoveRecentConfirmation"
@@ -2381,7 +2381,7 @@ onUnmounted(() => {
           </button>
           <button
             ref="removeRecentConfirmationSubmitButton"
-            class="rounded-lg border-0 bg-[#b23b32] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#972f28] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b23b32] disabled:cursor-wait disabled:opacity-60"
+            class="rounded-lg border-0 bg-danger px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-danger-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:cursor-wait disabled:opacity-60"
             type="button"
             :disabled="removeRecentConfirmationLoading"
             @click="confirmRemoveFromRecent"
@@ -2394,7 +2394,7 @@ onUnmounted(() => {
 
     <div
       v-if="leaveConfirmationConversation"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-[#172238]/40 p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-overlay/40 p-4"
       @click.self="closeLeaveConfirmation"
     >
       <section
@@ -2405,10 +2405,10 @@ onUnmounted(() => {
         aria-describedby="leave-conversation-description"
         @keydown="handleLeaveDialogKeydown"
       >
-        <h2 id="leave-conversation-title" class="m-0 text-base font-semibold text-[#172238]">
+        <h2 id="leave-conversation-title" class="m-0 text-base font-semibold text-text-1">
           Sair deste grupo?
         </h2>
-        <p id="leave-conversation-description" class="mb-0 mt-2 text-xs leading-5 text-[#6f7a8d]">
+        <p id="leave-conversation-description" class="mb-0 mt-2 text-xs leading-5 text-text-1">
           Você deixará “{{ leaveConfirmationConversation.name }}” e não terá mais acesso à conversa.
           Isso não apaga o grupo nem as mensagens. Um administrador poderá adicionar você novamente.
         </p>
@@ -2418,7 +2418,7 @@ onUnmounted(() => {
         <div class="mt-5 flex justify-end gap-2">
           <button
             ref="leaveConfirmationButton"
-            class="rounded-lg border border-[#e1e5ec] bg-white px-3 py-2 text-xs font-semibold text-[#53617a] transition-colors hover:bg-[#f4f6fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+            class="rounded-lg border border-traceline bg-white px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:bg-co-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:opacity-50"
             type="button"
             :disabled="leaveConfirmationLoading"
             @click="closeLeaveConfirmation"
@@ -2427,7 +2427,7 @@ onUnmounted(() => {
           </button>
           <button
             ref="leaveConfirmationSubmitButton"
-            class="rounded-lg border-0 bg-[#b23b32] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#972f28] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b23b32] disabled:cursor-wait disabled:opacity-60"
+            class="rounded-lg border-0 bg-danger px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-danger-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:cursor-wait disabled:opacity-60"
             type="button"
             :disabled="leaveConfirmationLoading"
             @click="confirmLeaveConversation"
