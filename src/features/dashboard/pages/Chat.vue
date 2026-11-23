@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Socket } from 'socket.io-client'
 import {
   faArrowLeft,
+  faBell,
   faEllipsis,
   faFaceSmile,
   faPaperclip,
@@ -273,6 +274,35 @@ const sectionOptions: { label: string; value: ChatSection }[] = [
   { label: 'Amigos', value: 'friend' },
   { label: 'Pessoas', value: 'people' },
 ]
+
+const todayLabel = new Date().toLocaleDateString('pt-BR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+const userEmail = computed(() => currentUser.user?.email ?? '')
+
+const messagesDateLabel = computed(() => {
+  const lastMessage = messages.value[messages.value.length - 1]
+  if (!lastMessage) return 'HOJE'
+  const messageDate = new Date(lastMessage.createdAt)
+  if (Number.isNaN(messageDate.getTime())) return 'HOJE'
+
+  const today = new Date()
+  if (messageDate.toDateString() === today.toDateString()) return 'HOJE'
+
+  return messageDate
+    .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+    .toUpperCase()
+})
+
+const conversationPresenceLabel = computed(() => {
+  if (chatSocketStatus.value === 'connected') return 'Online agora'
+  if (chatSocketStatus.value === 'connecting') return 'Conectando...'
+  if (chatSocketStatus.value === 'reconnecting') return 'Reconectando...'
+  return 'Offline'
+})
 
 const visibleConversations = computed(() => {
   const search = searchText.value.toLowerCase().trim()
@@ -1557,127 +1587,292 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="chat-page relative mx-auto flex h-screen max-w-full min-h-[560px] bg-white">
-    <aside
-      class="chat-list flex w-[330px] shrink-0 flex-col border-r border-[#e8ebf0] bg-[#fbfcfd] max-[850px]:w-[285px]"
-      :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
+  <section
+    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:h-auto max-[900px]:min-h-screen"
+  >
+    <header
+      class="flex h-[100px] shrink-0 items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,75px)] max-[1000px]:h-auto max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[1000px]:py-5 max-[620px]:gap-3"
     >
-      <div class="border-b border-traceline px-6 py-5">
-        <div class="mb-4 flex items-center justify-between">
-          <div class="min-w-0">
-            <p class="m-0 text-[10px] font-bold uppercase tracking-[1.1px] text-text-2">
-              Mensagens
-            </p>
-            <h1
-              class="text-h3 mt-1"
-            >
-              {{ sectionOptions.find((section) => section.value === activeSection)?.label }}
-            </h1>
-          </div>
-          <button
-            class="grid size-9 shrink-0 place-items-center rounded-lg border-0 bg-[#e9eefb] text-[#253b73] transition-colors hover:bg-[#dfe6f8]"
-            type="button"
-            aria-label="Criar grupo"
-            title="Criar grupo"
-            @click="openGroupDialog('create')"
-          >
-            <font-awesome-icon :icon="faUsers" class="text-xs" />
-          </button>
-        </div>
-        <div class="mb-4 grid grid-cols-4 gap-1 rounded-lg bg-[#f0f2f6] p-1">
-          <button
-            v-for="section in sectionOptions"
-            :key="section.value"
-            class="rounded-md border-0 px-1 py-2 text-[9px] font-bold text-[#8b94a6] transition-colors"
-            :class="
-              activeSection === section.value
-                ? 'bg-co-white text-co-blue shadow-sm'
-                : 'bg-transparent'
-            "
-            type="button"
-            @click="selectSection(section.value)"
-          >
-            {{ section.label }}
-            <span
-              v-if="sectionUnreadCounts[section.value] > 0"
-              class="ml-1 inline-grid min-w-4 place-items-center rounded-full bg-[#253b73] px-1 text-[8px] leading-4 text-white"
-              :aria-label="`${sectionUnreadCounts[section.value]} mensagens não lidas`"
-            >
-              {{
-                sectionUnreadCounts[section.value] > 99 ? '99+' : sectionUnreadCounts[section.value]
-              }}
-            </span>
-          </button>
-        </div>
-        <label
-          class="flex h-9 items-center gap-2 rounded-lg border border-traceline bg-co-white px-3 text-text-2"
+      <div class="flex min-w-0 flex-1 flex-col gap-[5px]">
+        <p class="m-0 text-[14px] leading-4 font-medium text-text-2">
+          {{ todayLabel }}
+        </p>
+        <h1
+          class="m-0 text-title leading-[38px] text-text-1 max-[1400px]:text-[28px] max-[1400px]:leading-[34px] max-[1100px]:text-[24px] max-[1100px]:leading-[30px]"
         >
-          <font-awesome-icon :icon="faSearch" class="text-xs" />
+          Olá, que bom ter você aqui!
+        </h1>
+        <p class="m-0 truncate text-[16px] leading-[19px] font-medium text-text-2">
+          {{ userEmail }}
+        </p>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-5 max-[1000px]:w-full max-[620px]:gap-3">
+        <label
+          class="flex h-14 w-[360px] shrink-0 items-center gap-3 rounded-[10px] border border-traceline bg-white px-4 text-text-2 max-[1400px]:w-[280px] max-[1100px]:w-[240px] max-[1000px]:w-full max-[1000px]:flex-1"
+        >
+          <font-awesome-icon :icon="faSearch" class="text-[20px]" />
           <input
             v-model="searchText"
-            class="w-full border-0 bg-transparent text-xs text-text-1 outline-none placeholder:text-text-2"
+            class="w-full min-w-0 border-0 bg-transparent text-[14px] leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
             type="search"
-            :placeholder="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
-            :aria-label="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
+            placeholder="Buscar no Conecta"
+            aria-label="Buscar no Conecta"
             @input="handleSearchInput"
           />
         </label>
-      </div>
 
-      <div v-if="activeSection === 'people'" class="flex-1 overflow-y-auto p-3">
-        <p v-if="usersLoading" class="px-3 py-8 text-center text-xs text-[#929aaa]">
-          Carregando pessoas...
-        </p>
-        <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-xs text-red-600">
-          {{ usersError }}
-          <button class="ml-1 underline" type="button" @click="loadPeople(true)">
-            Tentar novamente
-          </button>
-        </p>
-        <template v-else>
+        <button
+          type="button"
+          class="relative grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 transition-colors before:absolute before:-inset-2.5 before:content-[''] hover:text-co-blue"
+          aria-label="Notificações"
+        >
+          <font-awesome-icon :icon="faBell" class="text-[20px]" />
+        </button>
+      </div>
+    </header>
+
+    <div
+      class="flex min-h-0 flex-1 flex-col px-[clamp(24px,3.3vw,48px)] py-8 max-[620px]:px-4 max-[620px]:py-5"
+    >
+      <div class="flex min-h-0 flex-1 gap-6 max-[900px]:flex-col">
+        <aside
+          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-traceline bg-co-white p-5 max-[900px]:h-[520px] max-[900px]:w-full"
+          :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
+        >
+          <div class="flex shrink-0 flex-col gap-5">
+            <div>
+              <p class="m-0 text-[14px] leading-4 font-medium text-text-2">MENSAGENS</p>
+              <h2 class="text-h2 mt-1">
+                {{ sectionOptions.find((section) => section.value === activeSection)?.label }}
+              </h2>
+            </div>
+            <div class="flex items-start gap-1 rounded-[10px] bg-traceline p-[6px]">
+              <button
+                v-for="section in sectionOptions.slice(0, 3)"
+                :key="section.value"
+                class="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-[6px] border-0 py-[10px] text-[14px] leading-4 font-medium transition-colors"
+                :class="
+                  activeSection === section.value
+                    ? 'bg-co-white text-co-blue'
+                    : 'bg-transparent text-text-2 hover:text-co-blue'
+                "
+                type="button"
+                @click="selectSection(section.value)"
+              >
+                {{ section.label }}
+                <span
+                  v-if="sectionUnreadCounts[section.value] > 0"
+                  class="grid min-w-4 place-items-center rounded-full bg-co-blue px-1 text-[10px] leading-4 text-co-white"
+                  :aria-label="`${sectionUnreadCounts[section.value]} mensagens não lidas`"
+                >
+                  {{
+                    sectionUnreadCounts[section.value] > 99
+                      ? '99+'
+                      : sectionUnreadCounts[section.value]
+                  }}
+                </span>
+              </button>
+            </div>
+            <label
+              class="flex h-12 items-center gap-[10px] rounded-[10px] border border-traceline bg-co-white px-3 text-text-2"
+            >
+              <font-awesome-icon :icon="faSearch" />
+              <input
+                v-model="searchText"
+                class="w-full min-w-0 border-0 bg-transparent text-[14px] leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
+                type="search"
+                :placeholder="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
+                :aria-label="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
+                @input="handleSearchInput"
+              />
+            </label>
+            <div class="flex items-center justify-between gap-2">
+              <button
+                class="flex items-center gap-2 rounded-[6px] border-0 bg-transparent px-1 py-1 text-[14px] font-medium transition-colors"
+                :class="
+                  activeSection === 'people' ? 'text-co-blue' : 'text-text-2 hover:text-co-blue'
+                "
+                type="button"
+                aria-label="Buscar pessoas"
+                @click="selectSection('people')"
+              >
+                <font-awesome-icon :icon="faUsers" class="text-xs" />
+                Pessoas
+              </button>
+              <button
+                class="grid size-8 shrink-0 place-items-center rounded-[8px] border-0 bg-traceline text-co-blue transition-colors hover:bg-s-blue/50"
+                type="button"
+                aria-label="Criar grupo"
+                title="Criar grupo"
+                @click="openGroupDialog('create')"
+              >
+                <font-awesome-icon :icon="faUsers" class="text-xs" />
+              </button>
+            </div>
+          </div>
+
+        <div v-if="activeSection === 'people'" class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+          <p v-if="usersLoading" class="px-3 py-8 text-center text-[14px] text-text-2">
+            Carregando pessoas...
+          </p>
+          <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-[14px] text-red-600">
+            {{ usersError }}
+            <button class="ml-1 underline" type="button" @click="loadPeople(true)">
+              Tentar novamente
+            </button>
+          </p>
+          <template v-else>
+            <div
+              v-for="user in availableUsersNotInFriends"
+              :key="user.id"
+              class="group flex w-full items-center gap-1 rounded-[10px] transition-colors hover:bg-traceline/60"
+              @contextmenu="handleContextMenu($event, { type: 'user', user })"
+              @keydown="handleContextMenuKeyboard($event, { type: 'user', user })"
+            >
+              <button
+                class="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 py-4 text-left transition-colors hover:bg-traceline/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:cursor-wait disabled:opacity-60"
+                type="button"
+                :aria-label="`Iniciar conversa com ${user.name}`"
+                :disabled="creatingConversationFor !== null"
+                @click="startDirectConversation(user)"
+              >
+                <span
+                  class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-[14px] font-medium text-co-blue"
+                >
+                  <img
+                    v-if="user.image"
+                    :src="user.image"
+                    :alt="`Foto de ${user.name}`"
+                    class="size-full object-cover"
+                  />
+                  <span v-else>{{ getInitials(user.name) }}</span>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <strong class="block truncate text-[14px] font-medium text-co-blue">{{ user.name }}</strong>
+                  <span class="mt-1 block truncate text-[14px] text-text-2">
+                    {{
+                      creatingConversationFor === user.id ? 'Abrindo conversa...' : 'Iniciar conversa'
+                    }}
+                  </span>
+                </span>
+              </button>
+              <button
+                v-if="hasRecentConversationForUser(user)"
+                class="grid size-8 shrink-0 place-items-center rounded-[8px] border-0 bg-transparent text-text-2 transition-colors hover:bg-traceline hover:text-co-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                type="button"
+                :aria-label="`Mais opções para ${user.name}`"
+                aria-haspopup="menu"
+                aria-controls="chat-context-menu"
+                :aria-expanded="isContextMenuOpen({ type: 'user', user })"
+                @click.stop="handleContextMenuButton($event, { type: 'user', user })"
+                @keydown.enter.stop
+                @keydown.space.stop
+              >
+                <font-awesome-icon :icon="faEllipsis" />
+              </button>
+            </div>
+            <p
+              v-if="availableUsersNotInFriends.length === 0"
+              class="px-3 py-8 text-center text-[14px] text-text-2"
+            >
+              {{
+                searchText.trim()
+                  ? 'Nenhuma pessoa encontrada para essa pesquisa.'
+                  : 'Não há outras pessoas disponíveis para conversar.'
+              }}
+            </p>
+            <button
+              v-if="usersHasMore"
+              class="mx-auto mt-2 block rounded-[10px] border-0 bg-traceline px-3 py-2 text-[14px] text-text-2 disabled:opacity-50"
+              type="button"
+              :disabled="usersLoadingMore"
+              @click="loadPeople(false)"
+            >
+              {{ usersLoadingMore ? 'Carregando...' : 'Carregar mais pessoas' }}
+            </button>
+          </template>
+          <p v-if="startConversationError" role="alert" class="px-3 py-3 text-[14px] text-red-600">
+            {{ startConversationError }}
+          </p>
+        </div>
+
+        <div v-else class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+          <p v-if="conversationsLoading" class="px-3 py-8 text-center text-[14px] text-text-2">
+            Carregando conversas...
+          </p>
+          <p
+            v-else-if="conversationsError"
+            role="alert"
+            class="px-3 py-8 text-center text-[14px] text-red-600"
+          >
+            {{ conversationsError }}
+            <button class="ml-1 underline" type="button" @click="loadConversationList()">
+              Tentar novamente
+            </button>
+          </p>
           <div
-            v-for="user in availableUsersNotInFriends"
-            :key="user.id"
-            class="group flex w-full items-center gap-1 rounded-xl p-1 transition-colors hover:bg-[#f0f3fa]"
-            @contextmenu="handleContextMenu($event, { type: 'user', user })"
-            @keydown="handleContextMenuKeyboard($event, { type: 'user', user })"
+            v-else
+            v-for="conversation in visibleConversations"
+            :key="conversation.id"
+            class="group flex w-full items-center gap-1 rounded-[10px] transition-colors hover:bg-traceline/60"
+            :class="selectedConversation?.id === conversation.id ? 'bg-traceline' : ''"
+            @contextmenu="handleContextMenu($event, { type: 'conversation', conversation })"
+            @keydown="handleContextMenuKeyboard($event, { type: 'conversation', conversation })"
           >
             <button
-              class="flex min-w-0 flex-1 items-center gap-3 rounded-lg border-0 bg-transparent p-2 text-left transition-colors hover:bg-[#f0f3fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] disabled:cursor-wait disabled:opacity-60"
+              class="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 py-4 text-left transition-colors hover:bg-traceline/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue"
               type="button"
-              :aria-label="`Iniciar conversa com ${user.name}`"
-              :disabled="creatingConversationFor !== null"
-              @click="startDirectConversation(user)"
+              :aria-label="`Abrir conversa ${conversation.name}`"
+              @click="selectConversation(conversation)"
             >
               <span
-                class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e9eefb] text-[10px] font-bold text-[#536bad]"
+                class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full text-[14px] font-medium text-co-blue"
+                :class="
+                  conversation.category === 'community'
+                    ? 'bg-traceline'
+                    : conversation.category === 'friend'
+                      ? 'bg-tree-bg'
+                      : 'bg-s-coral'
+                "
               >
                 <img
-                  v-if="user.image"
-                  :src="user.image"
-                  :alt="`Foto de ${user.name}`"
+                  v-if="conversation.image"
+                  :src="conversation.image"
+                  :alt="`Foto de ${conversation.name}`"
                   class="size-full object-cover"
                 />
-                <span v-else>{{ getInitials(user.name) }}</span>
+                <span v-else>{{ getInitials(conversation.name) }}</span>
               </span>
               <span class="min-w-0 flex-1">
-                <strong class="block truncate text-xs text-[#172238]">{{ user.name }}</strong>
-                <span class="mt-1 block truncate text-[10px] text-[#8c96a7]">
-                  {{
-                    creatingConversationFor === user.id ? 'Abrindo conversa...' : 'Iniciar conversa'
-                  }}
+                <span class="flex items-center justify-between gap-1.5">
+                  <strong class="truncate text-[14px] font-medium text-co-blue">{{
+                    conversation.name
+                  }}</strong>
+                  <time class="shrink-0 text-[14px] text-text-2">{{
+                    formatTime(conversation.lastMessage?.createdAt ?? conversation.updatedAt)
+                  }}</time>
+                </span>
+                <span class="mt-2 flex min-w-0 items-center justify-between gap-1.5">
+                  <span class="block truncate text-[14px] text-text-2">{{
+                    conversation.preview
+                  }}</span>
+                  <span
+                    v-if="conversation.unreadCount > 0"
+                    class="grid min-w-4 shrink-0 place-items-center rounded-full bg-co-blue px-1 text-[10px] font-medium text-co-white"
+                    >{{ conversation.unreadCount }}</span
+                  >
                 </span>
               </span>
             </button>
             <button
-              v-if="hasRecentConversationForUser(user)"
-              class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-[#8c96a7] transition-colors hover:bg-[#e6eaf2] hover:text-[#253b73] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+              class="grid size-8 shrink-0 place-items-center rounded-[8px] border-0 bg-transparent text-text-2 transition-colors hover:bg-traceline hover:text-co-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
               type="button"
-              :aria-label="`Mais opções para ${user.name}`"
+              :aria-label="`Mais opções para ${conversation.name}`"
               aria-haspopup="menu"
               aria-controls="chat-context-menu"
-              :aria-expanded="isContextMenuOpen({ type: 'user', user })"
-              @click.stop="handleContextMenuButton($event, { type: 'user', user })"
+              :aria-expanded="isContextMenuOpen({ type: 'conversation', conversation })"
+              @click.stop="handleContextMenuButton($event, { type: 'conversation', conversation })"
               @keydown.enter.stop
               @keydown.space.stop
             >
@@ -1685,222 +1880,125 @@ onUnmounted(() => {
             </button>
           </div>
           <p
-            v-if="availableUsersNotInFriends.length === 0"
-            class="px-3 py-8 text-center text-xs text-[#929aaa]"
+            v-if="!conversationsLoading && !conversationsError && visibleConversations.length === 0"
+            class="px-3 py-8 text-center text-[14px] text-text-2"
           >
             {{
-              searchText.trim()
-                ? 'Nenhuma pessoa encontrada para essa pesquisa.'
-                : 'Não há outras pessoas disponíveis para conversar.'
+              conversations.length ? 'Nenhum resultado encontrado.' : 'Você ainda não tem conversas.'
             }}
           </p>
-          <button
-            v-if="usersHasMore"
-            class="mx-auto mt-2 block rounded-full border-0 bg-white px-3 py-2 text-[10px] text-[#53617a] disabled:opacity-50"
-            type="button"
-            :disabled="usersLoadingMore"
-            @click="loadPeople(false)"
-          >
-            {{ usersLoadingMore ? 'Carregando...' : 'Carregar mais pessoas' }}
-          </button>
-        </template>
-        <p v-if="startConversationError" role="alert" class="px-3 py-3 text-xs text-red-600">
-          {{ startConversationError }}
-        </p>
-      </div>
+        </div>
+        </aside>
 
-      <div v-else class="flex-1 overflow-y-auto p-3">
-        <p v-if="conversationsLoading" class="px-3 py-8 text-center text-xs text-[#929aaa]">
-          Carregando conversas...
-        </p>
-        <p
-          v-else-if="conversationsError"
-          role="alert"
-          class="px-3 py-8 text-center text-xs text-red-600"
+        <main
+          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-traceline bg-white max-[900px]:h-[620px] max-[900px]:flex-none"
+          :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
         >
-          {{ conversationsError }}
-          <button class="ml-1 underline" type="button" @click="loadConversationList()">
-            Tentar novamente
-          </button>
-        </p>
-        <div
-          v-else
-          v-for="conversation in visibleConversations"
-          :key="conversation.id"
-          class="group flex w-full items-center gap-1 rounded-xl p-1 transition-colors hover:bg-[#f0f3fa]"
-          :class="selectedConversation?.id === conversation.id ? 'bg-[#e9eefb]' : ''"
-          @contextmenu="handleContextMenu($event, { type: 'conversation', conversation })"
-          @keydown="handleContextMenuKeyboard($event, { type: 'conversation', conversation })"
-        >
-          <button
-            class="flex min-w-0 flex-1 items-center gap-3 rounded-lg border-0 bg-transparent p-2 text-left transition-colors hover:bg-[#f0f3fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad]"
-            type="button"
-            :aria-label="`Abrir conversa ${conversation.name}`"
-            @click="selectConversation(conversation)"
+          <div
+            v-if="chatNotice"
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-traceline bg-s-coral px-6 py-2 text-[14px] text-text-1"
+            role="alert"
           >
-            <span
-              class="relative grid size-10 shrink-0 place-items-center rounded-full text-[10px] font-bold"
-              :class="
-                conversation.category === 'community'
-                  ? 'bg-[#e9eefb] text-[#536bad]'
-                  : 'bg-[#ffe9e2] text-[#db6d57]'
-              "
+            <span>{{ chatNotice }}</span>
+            <button
+              class="shrink-0 border-0 bg-transparent text-co-blue underline"
+              type="button"
+              @click="refreshConversationList"
             >
-              {{ getInitials(conversation.name) }}
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="flex items-center justify-between gap-2">
-                <strong class="truncate text-xs text-[#172238]">{{ conversation.name }}</strong>
-                <time class="shrink-0 text-[9px] text-[#9aa3b2]">{{
-                  formatTime(conversation.lastMessage?.createdAt ?? conversation.updatedAt)
-                }}</time>
-              </span>
-              <span class="mt-1 flex min-w-0 items-center justify-between gap-2">
-                <span class="block truncate text-[10px] text-[#8c96a7]">{{
-                  conversation.preview
-                }}</span>
-                <span
-                  v-if="conversation.unreadCount > 0"
-                  class="grid min-w-4 place-items-center rounded-full bg-[#253b73] px-1 text-[9px] font-bold text-white"
-                  >{{ conversation.unreadCount }}</span
-                >
-              </span>
-            </span>
-          </button>
-          <button
-            class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-[#8c96a7] transition-colors hover:bg-[#e6eaf2] hover:text-[#253b73] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#536bad] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
-            type="button"
-            :aria-label="`Mais opções para ${conversation.name}`"
-            aria-haspopup="menu"
-            aria-controls="chat-context-menu"
-            :aria-expanded="isContextMenuOpen({ type: 'conversation', conversation })"
-            @click.stop="handleContextMenuButton($event, { type: 'conversation', conversation })"
-            @keydown.enter.stop
-            @keydown.space.stop
-          >
-            <font-awesome-icon :icon="faEllipsis" />
-          </button>
-        </div>
-        <p
-          v-if="!conversationsLoading && !conversationsError && visibleConversations.length === 0"
-          class="px-3 py-8 text-center text-xs text-[#929aaa]"
-        >
-          {{
-            conversations.length ? 'Nenhum resultado encontrado.' : 'Você ainda não tem conversas.'
-          }}
-        </p>
-      </div>
-    </aside>
-
-    <main
-      class="flex min-w-0 flex-1 flex-col bg-white"
-      :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
-    >
-      <div
-        v-if="chatNotice"
-        class="flex items-center justify-between gap-3 border-b border-[#e8ebf0] bg-[#fff4f1] px-5 py-2 text-[10px] text-[#a44234]"
-        role="alert"
-      >
-        <span>{{ chatNotice }}</span>
-        <button
-          class="shrink-0 border-0 bg-transparent underline"
-          type="button"
-          @click="refreshConversationList"
-        >
-          Atualizar lista
-        </button>
-      </div>
-      <div
-        v-if="chatSocketStatus !== 'connected' || chatSocketError"
-        class="flex items-center justify-between gap-3 border-b border-[#e8ebf0] bg-[#fff9eb] px-5 py-2 text-[10px] text-[#8b6820]"
-        role="status"
-      >
-        <span>
-          {{
-            chatSocketStatus === 'connecting'
-              ? 'Conectando ao chat...'
-              : chatSocketStatus === 'reconnecting'
-                ? 'Reconectando ao chat. As mensagens serão sincronizadas ao reconectar.'
-                : 'Conexão em tempo real indisponível.'
-          }}
-          <span v-if="chatSocketError" class="ml-1">{{ chatSocketError }}</span>
-        </span>
-        <button
-          v-if="chatSocketStatus === 'disconnected'"
-          class="shrink-0 border-0 bg-transparent underline"
-          type="button"
-          @click="retryChatSocket"
-        >
-          Tentar novamente
-        </button>
-      </div>
-      <header
-        class="flex min-h-[76px] items-center justify-between border-b border-traceline px-6 py-4 max-[620px]:px-4"
-      >
-        <div class="flex min-w-0 items-center gap-3">
-          <button
-            class="hidden size-8 place-items-center rounded-lg border-0 bg-s-blue/30 text-text-2 max-[620px]:grid"
-            type="button"
-            aria-label="Voltar para conversas"
-            @click="mobileConversationListVisible = true"
-          >
-            <font-awesome-icon :icon="faArrowLeft" />
-          </button>
-          <span
-            v-if="selectedConversation"
-            class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#ffe9e2] text-[10px] font-bold text-[#db6d57]"
-          >
-            <img
-              v-if="selectedConversation.image"
-              :src="selectedConversation.image"
-              :alt="`Foto de ${selectedConversation.name}`"
-              class="size-full object-cover"
-            />
-            <span v-else>{{ getInitials(selectedConversation.name) }}</span>
-          </span>
-          <div class="min-w-0">
-            <h2 class="truncate font-['Space_Grotesk',sans-serif] text-sm font-semibold">
-              {{ selectedConversation?.name ?? 'Conversas' }}
-            </h2>
-            <p v-if="selectedConversation" class="m-0 mt-0.5 text-[10px] text-[#8c96a7]">
-              {{
-                selectedConversation.category === 'community'
-                  ? `Grupo · ${selectedConversation.members.length} participantes`
-                  : 'Conversa individual'
-              }}
-            </p>
+              Atualizar lista
+            </button>
           </div>
-        </div>
-        <div v-if="selectedConversation" class="flex items-center gap-1 text-[#8c96a7]">
-          <button
-            class="grid size-8 place-items-center rounded-lg border-0 bg-transparent hover:bg-s-blue/30"
-            type="button"
-            aria-label="Iniciar chamada de voz"
+          <div
+            v-if="chatSocketStatus !== 'connected' || chatSocketError"
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-traceline bg-s-blue/30 px-6 py-2 text-[14px] text-text-1"
+            role="status"
           >
-            <font-awesome-icon :icon="faPhone" />
-          </button>
-          <button
-            class="grid size-8 place-items-center rounded-lg border-0 bg-transparent hover:bg-s-blue/30"
-            type="button"
-            aria-label="Iniciar chamada de vídeo"
+            <span>
+              {{
+                chatSocketStatus === 'connecting'
+                  ? 'Conectando ao chat...'
+                  : chatSocketStatus === 'reconnecting'
+                    ? 'Reconectando ao chat. As mensagens serão sincronizadas ao reconectar.'
+                    : 'Conexão em tempo real indisponível.'
+              }}
+              <span v-if="chatSocketError" class="ml-1">{{ chatSocketError }}</span>
+            </span>
+            <button
+              v-if="chatSocketStatus === 'disconnected'"
+              class="shrink-0 border-0 bg-transparent text-co-blue underline"
+              type="button"
+              @click="retryChatSocket"
+            >
+              Tentar novamente
+            </button>
+          </div>
+          <header
+            class="flex h-[90px] shrink-0 items-center justify-between gap-4 border-b border-traceline px-6 max-[620px]:px-4"
           >
-            <font-awesome-icon :icon="faVideo" />
-          </button>
-          <button
-            class="grid size-8 place-items-center rounded-lg border-0 bg-transparent hover:bg-s-blue/30"
-            type="button"
-            aria-label="Mais opções"
-            :aria-expanded="groupManagementOpen"
-            @click="groupManagementOpen = !groupManagementOpen"
-          >
-            <font-awesome-icon :icon="faEllipsis" />
-          </button>
-        </div>
-      </header>
+            <div class="flex min-w-0 items-center gap-4">
+              <button
+                class="hidden size-9 place-items-center rounded-[8px] border-0 bg-traceline text-text-2 max-[620px]:grid"
+                type="button"
+                aria-label="Voltar para conversas"
+                @click="mobileConversationListVisible = true"
+              >
+                <font-awesome-icon :icon="faArrowLeft" />
+              </button>
+              <span
+                v-if="selectedConversation"
+                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-[14px] font-medium text-co-blue"
+              >
+                <img
+                  v-if="selectedConversation.image"
+                  :src="selectedConversation.image"
+                  :alt="`Foto de ${selectedConversation.name}`"
+                  class="size-full object-cover"
+                />
+                <span v-else>{{ getInitials(selectedConversation.name) }}</span>
+              </span>
+              <div class="min-w-0">
+                <h2 class="text-h3 truncate">
+                  {{ selectedConversation?.name ?? 'Conversas' }}
+                </h2>
+                <p v-if="selectedConversation" class="m-0 mt-1.5 flex items-center gap-1.5 text-[14px] text-text-2">
+                  <span
+                    class="size-1.5 shrink-0 rounded-full"
+                    :class="chatSocketStatus === 'connected' ? 'bg-tree-green' : 'bg-traceline'"
+                  ></span>
+                  {{ conversationPresenceLabel }}
+                </p>
+              </div>
+            </div>
+            <div v-if="selectedConversation" class="flex shrink-0 items-center gap-3 text-text-2">
+              <button
+                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue"
+                type="button"
+                aria-label="Iniciar chamada de voz"
+              >
+                <font-awesome-icon :icon="faPhone" />
+              </button>
+              <button
+                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue"
+                type="button"
+                aria-label="Iniciar chamada de vídeo"
+              >
+                <font-awesome-icon :icon="faVideo" />
+              </button>
+              <button
+                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue"
+                type="button"
+                aria-label="Mais opções"
+                :aria-expanded="groupManagementOpen"
+                @click="groupManagementOpen = !groupManagementOpen"
+              >
+                <font-awesome-icon :icon="faEllipsis" />
+              </button>
+            </div>
+          </header>
 
       <section
         v-if="groupManagementOpen && selectedConversation?.category === 'community'"
-        class="max-h-56 overflow-y-auto border-b border-[#e8ebf0] bg-white px-5 py-3"
+        class="max-h-56 shrink-0 overflow-y-auto border-b border-traceline bg-white px-6 py-3"
         aria-label="Participantes do grupo"
       >
         <div class="mb-2 flex items-center justify-between gap-3">
@@ -1949,143 +2047,148 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <div
-        v-if="selectedConversation"
-        class="flex-1 space-y-4 overflow-y-auto bg-[#e9e8e7] px-[clamp(18px,5vw,70px)] py-6"
-      >
-        <button
-          v-if="nextCursor"
-          class="mx-auto block rounded-full border-0 bg-white px-3 py-2 text-[10px] text-[#53617a] disabled:opacity-50"
-          type="button"
-          :disabled="messagesLoading"
-          @click="loadMessages(selectedConversation.id, true)"
-        >
-          {{ messagesLoading ? 'Carregando...' : 'Carregar mensagens anteriores' }}
-        </button>
-        <p
-          v-if="messagesLoading && messages.length === 0"
-          class="text-center text-xs text-[#53617a]"
-        >
-          Carregando mensagens...
-        </p>
-        <p v-if="messagesError" role="alert" class="text-center text-xs text-red-700">
-          {{ messagesError }}
-          <button
-            class="ml-1 underline"
-            type="button"
-            @click="loadMessages(selectedConversation.id, messages.length > 0)"
-          >
-            Tentar novamente
-          </button>
-        </p>
-        <p
-          v-if="!messagesLoading && !messagesError && messages.length === 0"
-          class="text-center text-xs text-[#53617a]"
-        >
-          Nenhuma mensagem nesta conversa ainda.
-        </p>
-        <div
-          v-for="message in messages"
-          :key="message.clientMessageId"
-          class="flex"
-          :class="message.isMine ? 'justify-end' : 'justify-start'"
-        >
           <div
-            class="max-w-[min(70%,480px)] rounded-2xl px-4 py-3 text-xs leading-relaxed"
-            :class="
-              message.isMine
-                ? 'rounded-br-sm bg-[#253b73] text-white'
-                : 'rounded-bl-sm border border-[#e8ebf0] bg-white text-[#53617a]'
-            "
+            v-if="selectedConversation"
+            class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-white p-6 max-[620px]:p-4"
           >
-            <span
-              class="mb-1 block text-[10px] font-semibold"
-              :class="message.isMine ? 'text-[#d5def8]' : 'text-[#536bad]'"
+            <button
+              v-if="nextCursor"
+              class="mx-auto block shrink-0 rounded-[10px] border border-traceline bg-co-white px-3 py-2 text-[14px] text-text-2 disabled:opacity-50"
+              type="button"
+              :disabled="messagesLoading"
+              @click="loadMessages(selectedConversation.id, true)"
             >
-              {{ getMessageSenderName(message) }}
-            </span>
-            <p class="m-0">{{ message.content }}</p>
-            <time
-              class="mt-1 block text-right text-[9px]"
-              :class="message.isMine ? 'text-[#cbd5f3]' : 'text-[#a1a9b6]'"
-              >{{ formatTime(message.createdAt) }}</time
+              {{ messagesLoading ? 'Carregando...' : 'Carregar mensagens anteriores' }}
+            </button>
+            <p
+              v-if="messagesLoading && messages.length === 0"
+              class="text-center text-[14px] text-text-2"
             >
-            <div
-              v-if="message.deliveryStatus || isMessageRead(message)"
-              class="mt-1 flex items-center justify-end gap-2 text-[9px]"
-              :class="message.isMine ? 'text-[#cbd5f3]' : 'text-[#a1a9b6]'"
-            >
-              <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
-              <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
-              <span v-else-if="isMessageRead(message)">Lida</span>
+              Carregando mensagens...
+            </p>
+            <p v-if="messagesError" role="alert" class="text-center text-[14px] text-red-700">
+              {{ messagesError }}
               <button
-                v-if="message.deliveryStatus === 'failed'"
-                class="border-0 bg-transparent p-0 text-inherit underline"
+                class="ml-1 underline"
                 type="button"
-                :disabled="sendingMessage"
-                @click="retryMessage(message)"
+                @click="loadMessages(selectedConversation.id, messages.length > 0)"
               >
                 Tentar novamente
               </button>
+            </p>
+            <p
+              v-if="!messagesLoading && !messagesError && messages.length === 0"
+              class="text-center text-[14px] text-text-2"
+            >
+              Nenhuma mensagem nesta conversa ainda.
+            </p>
+            <p class="shrink-0 text-center text-[14px] font-medium text-text-2">
+              {{ messagesDateLabel }}
+            </p>
+            <div
+              v-for="message in messages"
+              :key="message.clientMessageId"
+              class="flex shrink-0"
+              :class="message.isMine ? 'justify-end' : 'justify-start'"
+            >
+              <div
+                class="flex flex-col gap-[10px] rounded-[14px] px-5 py-4"
+                :class="
+                  message.isMine
+                    ? 'w-[min(380px,85%)] bg-co-blue text-co-white'
+                    : 'w-[min(460px,85%)] border border-traceline bg-co-white text-text-1'
+                "
+              >
+                <span
+                  v-if="selectedConversation.category === 'community' && !message.isMine"
+                  class="text-[14px] font-medium text-co-blue"
+                >
+                  {{ getMessageSenderName(message) }}
+                </span>
+                <p class="m-0 text-[16px] leading-5 font-medium">{{ message.content }}</p>
+                <time
+                  class="block text-right text-[14px] font-medium"
+                  :class="message.isMine ? 'text-co-white' : 'text-text-2'"
+                  >{{ formatTime(message.createdAt) }}</time
+                >
+                <div
+                  v-if="message.deliveryStatus || isMessageRead(message)"
+                  class="flex items-center justify-end gap-2 text-[10px]"
+                  :class="message.isMine ? 'text-co-white' : 'text-text-2'"
+                >
+                  <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
+                  <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
+                  <span v-else-if="isMessageRead(message)">Lida</span>
+                  <button
+                    v-if="message.deliveryStatus === 'failed'"
+                    class="border-0 bg-transparent p-0 text-inherit underline"
+                    type="button"
+                    :disabled="sendingMessage"
+                    @click="retryMessage(message)"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      <div
-        v-else
-        class="flex flex-1 items-center justify-center bg-[#e9e8e7] px-6 text-center text-xs text-[#53617a]"
-      >
-        Selecione uma conversa para visualizar as mensagens.
-      </div>
+          <div
+            v-else
+            class="flex min-h-0 flex-1 items-center justify-center bg-white px-6 text-center text-[14px] text-text-2"
+          >
+            Selecione uma conversa para visualizar as mensagens.
+          </div>
 
-      <form
-        v-if="selectedConversation"
-        class="border-t border-[#e8ebf0] bg-white p-4"
-        @submit.prevent="sendMessage()"
-      >
-        <p v-if="sendError" role="alert" class="mb-2 text-xs text-red-600">
-          {{ sendError }}
-        </p>
-        <p v-if="sendingMessage" aria-live="polite" class="mb-2 text-xs text-[#8c96a7]">
-          Enviando mensagem...
-        </p>
-        <div
-          class="flex items-center gap-2 rounded-xl border border-traceline bg-co-white px-3 py-2"
-        >
-          <button
-            class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-text-2 hover:bg-s-blue/30"
-            type="button"
-            aria-label="Anexar arquivo"
+          <form
+            v-if="selectedConversation"
+            class="flex min-h-[84px] shrink-0 items-center gap-3 px-5 py-4 max-[620px]:px-4"
+            @submit.prevent="sendMessage()"
           >
-            <font-awesome-icon :icon="faPaperclip" />
-          </button>
-          <input
-            v-model="messageText"
-            class="min-w-0 flex-1 border-0 bg-transparent px-1 text-xs text-text-1 outline-none placeholder:text-text-2"
-            type="text"
-            placeholder="Escreva uma mensagem..."
-            aria-label="Mensagem"
-            maxlength="4000"
-            :disabled="sendingMessage"
-          />
-          <button
-            class="grid size-8 shrink-0 place-items-center rounded-lg border-0 bg-transparent text-text-2 hover:bg-s-blue/30"
-            type="button"
-            aria-label="Adicionar emoji"
-          >
-            <font-awesome-icon :icon="faFaceSmile" />
-          </button>
-          <button
-            class="grid size-8 shrink-0 place-items-center rounded-lg bg-co-blue text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
-            type="submit"
-            aria-label="Enviar mensagem"
-            :disabled="!messageText.trim() || sendingMessage"
-          >
-            <font-awesome-icon :icon="faPaperPlane" class="text-xs" />
-          </button>
-        </div>
-      </form>
-    </main>
+            <p v-if="sendError" role="alert" class="mb-2 text-[14px] text-red-600">
+              {{ sendError }}
+            </p>
+            <p v-if="sendingMessage" aria-live="polite" class="mb-2 text-[14px] text-text-2">
+              Enviando mensagem...
+            </p>
+            <div
+              class="flex h-[52px] min-w-0 flex-1 items-center gap-[14px] rounded-[10px] border border-traceline bg-co-white px-4"
+            >
+              <button
+                class="grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue"
+                type="button"
+                aria-label="Anexar arquivo"
+              >
+                <font-awesome-icon :icon="faPaperclip" />
+              </button>
+              <input
+                v-model="messageText"
+                class="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-text-1 outline-none placeholder:text-text-2"
+                type="text"
+                placeholder="Escreva uma mensagem..."
+                aria-label="Mensagem"
+                maxlength="4000"
+                :disabled="sendingMessage"
+              />
+              <button
+                class="grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue"
+                type="button"
+                aria-label="Adicionar emoji"
+              >
+                <font-awesome-icon :icon="faFaceSmile" />
+              </button>
+            </div>
+            <button
+              class="grid size-12 shrink-0 place-items-center rounded-[10px] border-0 bg-co-blue text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
+              type="submit"
+              aria-label="Enviar mensagem"
+              :disabled="!messageText.trim() || sendingMessage"
+            >
+              <font-awesome-icon :icon="faPaperPlane" />
+            </button>
+          </form>
+        </main>
+      </div>
+    </div>
 
     <div
       v-if="groupDialogMode"
