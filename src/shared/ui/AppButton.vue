@@ -44,6 +44,7 @@ const props = withDefaults(
     arrow?: boolean
     /** Anuncia o estado de carregamento (`aria-busy`). */
     busy?: boolean
+    disabled?: boolean
   }>(),
   {
     variant: 'coral',
@@ -53,6 +54,7 @@ const props = withDefaults(
     centered: false,
     arrow: true,
     busy: false,
+    disabled: false,
   },
 )
 
@@ -121,9 +123,10 @@ const labelClasses: Record<NonNullable<typeof props.labelVariant>, string> = {
 <template>
   <button
     :type="type"
-    class="relative shrink-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+    class="relative shrink-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:cursor-not-allowed disabled:opacity-60"
     :class="sizes[size].root"
     :style="{ width: rootWidth, height: rootHeight }"
+    :disabled="disabled || busy"
     :aria-busy="busy ? 'true' : undefined"
     @mouseenter="active = true"
     @mouseleave="active = false"
