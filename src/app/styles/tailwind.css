@@ -32,6 +32,7 @@
   --radius-icon: 12px;
   --radius-card: 16px;
   --spacing-gutter: 20px;
+  --spacing-page-gutter: clamp(24px, 5vw, 75px);
   --container-page: 1280px;
 
   --text-h1: 72px;

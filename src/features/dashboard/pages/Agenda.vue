@@ -288,7 +288,7 @@ onMounted(loadAgenda)
     <!-- Figma: Agenda Conecta > Encontros (873:609). Boas-vindas e Busca e perfil
          são renderizados pelo AppHeader do layout, conforme decidido na coordenação. -->
     <section
-        class="flex w-full min-w-0 flex-col gap-6 bg-co-white px-[clamp(24px,5vw,75px)] py-8"
+        class="flex w-full min-w-0 flex-col gap-6 bg-co-white px-page-gutter py-8"
         aria-labelledby="agenda-titulo"
     >
         <div class="flex flex-wrap items-end gap-6">

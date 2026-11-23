@@ -175,7 +175,7 @@ const conversations = [
 
 <template>
   <section
-    class="dashboard-content flex w-full min-w-0 flex-col gap-[10px] px-[clamp(24px,5vw,75px)] pt-[15px] pb-8 max-[620px]:pt-6 max-[620px]:pb-10"
+    class="dashboard-content flex w-full min-w-0 flex-col gap-[10px] px-page-gutter pt-[15px] pb-8 max-[620px]:pt-6 max-[620px]:pb-10"
   >
     <div
       class="dashboard-grid grid min-w-0 grid-cols-[minmax(0,680fr)_minmax(0,690fr)] gap-[30px] max-[1400px]:grid-cols-1 max-[1400px]:gap-6"

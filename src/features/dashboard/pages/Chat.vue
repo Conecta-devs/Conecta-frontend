@@ -1591,7 +1591,7 @@ onUnmounted(() => {
     class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:h-auto max-[900px]:min-h-screen"
   >
     <header
-      class="flex h-[100px] shrink-0 items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,75px)] max-[1000px]:h-auto max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[1000px]:py-5 max-[620px]:gap-3"
+      class="flex h-[100px] shrink-0 items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter max-[1000px]:h-auto max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[1000px]:py-5 max-[620px]:gap-3"
     >
       <div class="flex min-w-0 flex-1 flex-col gap-[5px]">
         <p class="m-0 text-h6 leading-4 font-medium text-text-2 uppercase">

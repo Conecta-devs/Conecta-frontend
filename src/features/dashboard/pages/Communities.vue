@@ -4,7 +4,7 @@
 
 <template>
   <section
-    class="flex w-full flex-col gap-6 bg-co-white px-[clamp(24px,5vw,75px)] py-8"
+    class="flex w-full flex-col gap-6 bg-co-white px-page-gutter py-8"
     aria-labelledby="comunidades-titulo"
   >
     <header class="flex flex-col items-start gap-[10px]">
