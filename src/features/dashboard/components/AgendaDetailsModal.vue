@@ -10,6 +10,7 @@ import {
   type AgendaParticipation,
 } from '../services/agenda'
 import { currentUser } from '../../../shared/services/session'
+import calendarEvent from '../assets/agenda/calendar-event.svg'
 
 /**
  * Popup de detalhes de encontros da Agenda.
@@ -163,27 +164,24 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
       role="dialog"
       aria-modal="true"
       aria-labelledby="agenda-details-title"
-      class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]"
+      class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-card border border-traceline bg-co-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]"
     >
       <header
-        class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-traceline bg-white px-5 py-4 sm:px-7"
+        class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-traceline bg-co-white px-5 py-4 sm:px-7"
       >
         <div class="min-w-0">
-          <p class="m-0 text-[12px] leading-4 font-medium tracking-wide text-co-coral uppercase">
+          <p class="m-0 text-h6 font-medium text-co-blue uppercase">
             Agenda
             <template v-if="items.length > 1"> · {{ items.length }} encontros</template>
           </p>
-          <h2
-            id="agenda-details-title"
-            class="m-0 mt-1 font-display text-[24px] leading-7 font-bold text-co-blue"
-          >
+          <h2 id="agenda-details-title" class="m-0 mt-1 text-h3 font-semibold text-co-blue">
             {{ heading ?? 'Detalhes do encontro' }}
           </h2>
         </div>
 
         <button
           type="button"
-          class="shrink-0 rounded-lg px-3 py-2 text-[14px] leading-4 font-medium text-text-2 transition-colors duration-200 hover:bg-co-white hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+          class="shrink-0 rounded-button px-3 py-2 text-h6 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
           aria-label="Fechar detalhes"
           @click="emit('close')"
         >
@@ -195,31 +193,37 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
         <article
           v-for="entry in entries"
           :key="entry.item.id"
-          class="flex min-w-0 flex-col gap-4 rounded-xl border border-traceline bg-co-white p-4 sm:p-5"
+          class="flex min-w-0 flex-col gap-4 rounded-card border border-traceline bg-co-white p-5"
         >
           <header class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
-              <p class="m-0 text-[12px] leading-4 font-medium tracking-wide text-co-coral uppercase">
+              <p class="m-0 text-h6 font-medium text-co-coral uppercase">
                 {{ entry.item.kind === 'event' ? 'Evento' : 'Roda de conversa' }}
                 · {{ entry.item.format === 'online' ? 'Online' : 'Presencial' }}
               </p>
-              <h3 class="m-0 mt-1 text-[20px] leading-[23px] font-semibold text-text-1">
+              <h3 class="m-0 mt-1 break-words text-h3 font-semibold text-text-1">
                 {{ entry.item.title }}
               </h3>
-              <p class="m-0 mt-1 text-[14px] leading-5 font-medium text-text-2">
-                {{ formatDateTime(entry.item.startsAt) }} – {{ formatDateTime(entry.item.endsAt) }}
-              </p>
+              <div class="mt-1 flex items-center gap-2.5">
+                <span class="relative block h-[15.804px] w-[14.222px] shrink-0 overflow-hidden">
+                  <img :src="calendarEvent" alt=""
+                    class="absolute inset-[-4.78%_-5.31%] block h-full w-full max-w-none" />
+                </span>
+                <p class="m-0 text-h6 font-medium text-text-2">
+                  {{ formatDateTime(entry.item.startsAt) }} – {{ formatDateTime(entry.item.endsAt) }}
+                </p>
+              </div>
             </div>
 
             <span
               v-if="isOrganizer(entry.item)"
-              class="shrink-0 rounded-md bg-s-coral px-2 py-1 text-[12px] leading-4 font-medium text-co-blue"
+              class="shrink-0 rounded-md bg-s-coral px-2.5 py-1.5 text-h6 font-medium text-co-blue"
             >
               Organizado por você
             </span>
           </header>
 
-          <p class="m-0 text-[14px] leading-6 break-words whitespace-pre-wrap text-text-1">
+          <p class="m-0 text-h6 font-medium leading-6 break-words whitespace-pre-wrap text-text-1">
             {{ entry.item.description }}
           </p>
 
@@ -228,30 +232,30 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
             :href="entry.item.meetingUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-[14px] leading-5 font-semibold break-all text-co-blue underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+            class="text-h6 font-medium break-all text-co-blue underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
           >
             Abrir link da reunião
           </a>
 
           <p
             v-if="entry.item.format === 'in_person' && entry.item.location"
-            class="m-0 text-[14px] leading-5 text-text-2"
+            class="m-0 text-h6 font-medium text-text-2"
           >
             Local: {{ entry.item.location }}
           </p>
 
-          <p v-if="entry.loading" role="status" class="m-0 text-[14px] leading-5 text-text-2">
+          <p v-if="entry.loading" role="status" class="m-0 text-h6 font-medium text-text-2">
             Carregando participação...
           </p>
 
-          <p v-if="entry.error" role="alert" class="m-0 text-[14px] leading-5 text-co-coral">
+          <p v-if="entry.error" role="alert" class="m-0 text-h6 font-medium text-co-coral">
             {{ entry.error }}
           </p>
 
           <div v-if="entry.participation" class="grid gap-3 sm:grid-cols-2">
-            <section class="flex flex-col rounded-lg border border-traceline bg-white p-4">
-              <h4 class="m-0 text-[16px] leading-5 font-semibold text-co-blue">Interesse</h4>
-              <p class="m-0 mt-1 text-[14px] leading-5 text-text-2">
+            <section class="flex flex-col rounded-button border border-traceline bg-white p-4">
+              <h4 class="m-0 text-h5 font-semibold text-co-blue">Interesse</h4>
+              <p class="m-0 mt-1 text-h6 font-medium text-text-2">
                 {{
                   entry.participation.interested
                     ? 'Você tem interesse.'
@@ -260,7 +264,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
               </p>
               <button
                 type="button"
-                class="mt-3 self-start rounded-lg border border-traceline bg-white px-3 py-2 text-[14px] leading-4 font-medium text-co-blue transition-colors duration-200 hover:border-s-blue hover:bg-co-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
+                class="mt-3 self-start rounded-button border border-traceline bg-co-white px-3 py-2 text-h6 font-medium text-co-blue transition-colors hover:border-s-blue hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
                 :disabled="entry.savingInterest || entry.savingAttendance"
                 @click="setInterest(entry, !entry.participation.interested)"
               >
@@ -274,9 +278,9 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
               </button>
             </section>
 
-            <section class="flex flex-col rounded-lg border border-traceline bg-white p-4">
-              <h4 class="m-0 text-[16px] leading-5 font-semibold text-co-blue">Presença</h4>
-              <p class="m-0 mt-1 text-[14px] leading-5 text-text-2">
+            <section class="flex flex-col rounded-button border border-traceline bg-white p-4">
+              <h4 class="m-0 text-h5 font-semibold text-co-blue">Presença</h4>
+              <p class="m-0 mt-1 text-h6 font-medium text-text-2">
                 {{
                   entry.participation.confirmed
                     ? 'Sua presença está confirmada.'
@@ -285,7 +289,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
               </p>
               <button
                 type="button"
-                class="mt-3 self-start rounded-lg border border-traceline bg-white px-3 py-2 text-[14px] leading-4 font-medium text-co-blue transition-colors duration-200 hover:border-s-blue hover:bg-co-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
+                class="mt-3 self-start rounded-button border border-traceline bg-co-white px-3 py-2 text-h6 font-medium text-co-blue transition-colors hover:border-s-blue hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
                 :disabled="entry.savingAttendance || entry.savingInterest"
                 @click="setAttendance(entry, !entry.participation.confirmed)"
               >
@@ -306,14 +310,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
           >
             <button
               type="button"
-              class="rounded-lg border border-traceline px-4 py-2 text-[14px] leading-4 font-medium text-co-blue transition-colors duration-200 hover:border-s-blue hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+              class="h-[50px] rounded-button border border-co-blue bg-co-white px-4 text-h6 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
               @click="emit('edit', entry.item)"
             >
               Editar encontro
             </button>
             <button
               type="button"
-              class="rounded-lg border border-co-coral/40 px-4 py-2 text-[14px] leading-4 font-medium text-co-coral transition-colors duration-200 hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral"
+              class="h-[50px] rounded-button border border-co-coral bg-co-white px-4 text-h6 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral"
               @click="emit('cancel', entry.item)"
             >
               Cancelar encontro
