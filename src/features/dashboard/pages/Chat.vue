@@ -38,6 +38,7 @@ import {
   type ChatSocketStatus,
 } from '../services/chatSocket'
 import { currentUser } from '../../../shared/services/session'
+import AsyncState from '../components/AsyncState.vue'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
@@ -1713,15 +1714,24 @@ onUnmounted(() => {
           </div>
 
         <div v-if="activeSection === 'people'" class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
-          <p v-if="usersLoading" class="px-3 py-8 text-center text-h6 leading-normal text-text-2">
-            Carregando pessoas...
-          </p>
-          <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-h6 leading-normal text-danger">
-            {{ usersError }}
-            <button class="ml-1 underline" type="button" @click="loadPeople(true)">
-              Tentar novamente
-            </button>
-          </p>
+          <AsyncState
+            v-if="usersLoading"
+            kind="loading"
+            message="Carregando pessoas..."
+            class="px-3 py-8 text-center text-h6 leading-normal"
+          />
+          <AsyncState
+            v-else-if="usersError"
+            kind="error"
+            :message="usersError"
+            class="px-3 py-8 text-center text-h6 leading-normal"
+          >
+            <template #action>
+              <button class="ml-1 underline" type="button" @click="loadPeople(true)">
+                Tentar novamente
+              </button>
+            </template>
+          </AsyncState>
           <template v-else>
             <div
               v-for="user in availableUsersNotInFriends"
@@ -1792,25 +1802,33 @@ onUnmounted(() => {
               {{ usersLoadingMore ? 'Carregando...' : 'Carregar mais pessoas' }}
             </button>
           </template>
-          <p v-if="startConversationError" role="alert" class="px-3 py-3 text-h6 leading-normal text-danger">
-            {{ startConversationError }}
-          </p>
+          <AsyncState
+            v-if="startConversationError"
+            kind="error"
+            :message="startConversationError"
+            class="px-3 py-3 text-h6 leading-normal"
+          />
         </div>
 
         <div v-else class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
-          <p v-if="conversationsLoading" class="px-3 py-8 text-center text-h6 leading-normal text-text-2">
-            Carregando conversas...
-          </p>
-          <p
+          <AsyncState
+            v-if="conversationsLoading"
+            kind="loading"
+            message="Carregando conversas..."
+            class="px-3 py-8 text-center text-h6 leading-normal"
+          />
+          <AsyncState
             v-else-if="conversationsError"
-            role="alert"
-            class="px-3 py-8 text-center text-h6 leading-normal text-danger"
+            kind="error"
+            :message="conversationsError"
+            class="px-3 py-8 text-center text-h6 leading-normal"
           >
-            {{ conversationsError }}
-            <button class="ml-1 underline" type="button" @click="loadConversationList()">
-              Tentar novamente
-            </button>
-          </p>
+            <template #action>
+              <button class="ml-1 underline" type="button" @click="loadConversationList()">
+                Tentar novamente
+              </button>
+            </template>
+          </AsyncState>
           <div
             v-else
             v-for="conversation in visibleConversations"
@@ -2060,28 +2078,34 @@ onUnmounted(() => {
             >
               {{ messagesLoading ? 'Carregando...' : 'Carregar mensagens anteriores' }}
             </button>
-            <p
+            <AsyncState
               v-if="messagesLoading && messages.length === 0"
-              class="text-center text-h6 leading-normal text-text-2"
+              kind="loading"
+              message="Carregando mensagens..."
+              class="text-center text-h6 leading-normal"
+            />
+            <AsyncState
+              v-if="messagesError"
+              kind="error"
+              :message="messagesError"
+              class="text-center text-h6 leading-normal"
             >
-              Carregando mensagens...
-            </p>
-            <p v-if="messagesError" role="alert" class="text-center text-h6 leading-normal text-danger">
-              {{ messagesError }}
-              <button
-                class="ml-1 underline"
-                type="button"
-                @click="loadMessages(selectedConversation.id, messages.length > 0)"
-              >
-                Tentar novamente
-              </button>
-            </p>
-            <p
+              <template #action>
+                <button
+                  class="ml-1 underline"
+                  type="button"
+                  @click="loadMessages(selectedConversation.id, messages.length > 0)"
+                >
+                  Tentar novamente
+                </button>
+              </template>
+            </AsyncState>
+            <AsyncState
               v-if="!messagesLoading && !messagesError && messages.length === 0"
-              class="text-center text-h6 leading-normal text-text-2"
-            >
-              Nenhuma mensagem nesta conversa ainda.
-            </p>
+              kind="empty"
+              message="Nenhuma mensagem nesta conversa ainda."
+              class="text-center text-h6 leading-normal"
+            />
             <p class="shrink-0 text-center text-h6 leading-normal font-medium text-text-2">
               {{ messagesDateLabel }}
             </p>
@@ -2250,12 +2274,12 @@ onUnmounted(() => {
           {{ groupDialogError }}
         </p>
         <div class="mt-2 min-h-0 flex-1 overflow-y-auto">
-          <p
+          <AsyncState
             v-if="groupCandidatesLoading && groupCandidates.length === 0"
-            class="py-6 text-center text-xs text-text-2"
-          >
-            Carregando pessoas...
-          </p>
+            kind="loading"
+            message="Carregando pessoas..."
+            class="py-6 text-center text-xs"
+          />
           <button
             v-for="user in groupCandidates"
             :key="user.id"
@@ -2288,12 +2312,12 @@ onUnmounted(() => {
               {{ groupSelectedIds.includes(user.id) ? 'Selecionada' : 'Selecionar' }}
             </span>
           </button>
-          <p
+          <AsyncState
             v-if="!groupCandidatesLoading && !groupDialogError && groupCandidates.length === 0"
-            class="py-6 text-center text-xs text-text-2"
-          >
-            {{ groupSearch.trim() ? 'Nenhuma pessoa encontrada.' : 'Não há pessoas disponíveis.' }}
-          </p>
+            kind="empty"
+            :message="groupSearch.trim() ? 'Nenhuma pessoa encontrada.' : 'Não há pessoas disponíveis.'"
+            class="py-6 text-center text-xs"
+          />
           <button
             v-if="groupCandidatesHasMore"
             class="mx-auto my-2 block rounded-full border-0 bg-co-white px-3 py-2 text-[10px] text-text-2 disabled:opacity-50"

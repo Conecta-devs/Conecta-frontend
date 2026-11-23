@@ -10,6 +10,7 @@ import {
 import { getUserProfile } from '../../auth/services/auth'
 import { currentUser, saveSession } from '../../../shared/services/session'
 import PageHeader from '../components/PageHeader.vue'
+import AsyncState from '../components/AsyncState.vue'
 
 interface PostComment {
   id: string
@@ -334,12 +335,12 @@ onMounted(loadPosts)
         </button>
       </div>
 
-      <div
+      <AsyncState
         v-if="loading"
-        class="rounded-card border border-traceline bg-co-white p-6 text-center text-h5 font-medium text-text-2"
-      >
-        Carregando publicações...
-      </div>
+        kind="loading"
+        message="Carregando publicações..."
+        class="rounded-card border border-traceline bg-co-white p-6 text-center text-h5 font-medium"
+      />
 
       <div
         v-else-if="posts.length === 0"

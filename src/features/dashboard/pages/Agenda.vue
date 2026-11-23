@@ -15,6 +15,7 @@ import {
 } from '../services/agenda'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
 import PageHeader from '../components/PageHeader.vue'
+import AsyncState from '../components/AsyncState.vue'
 import arrowRight from '../assets/agenda/arrow-right.svg'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
 import { getUserProfile } from '../../auth/services/auth'
@@ -332,11 +333,12 @@ onMounted(loadAgenda)
             </button>
         </div>
 
-        <div v-if="loading"
-            class="rounded-card border border-traceline bg-co-white p-8 text-center text-h6 font-medium text-text-2"
-            role="status">
-            Carregando encontros...
-        </div>
+        <AsyncState
+            v-if="loading"
+            kind="loading"
+            message="Carregando encontros..."
+            class="rounded-card border border-traceline bg-co-white p-8 text-center text-h6 font-medium"
+        />
 
         <div v-else-if="agendaItems.length === 0"
             class="rounded-card border border-dashed border-traceline bg-co-white p-8 text-center">

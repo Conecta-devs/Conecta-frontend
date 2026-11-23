@@ -11,6 +11,7 @@ import {
 } from '../services/agenda'
 import { currentUser } from '../../../shared/services/session'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
+import AsyncState from './AsyncState.vue'
 
 /**
  * Popup de detalhes de encontros da Agenda.
@@ -244,13 +245,19 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
             Local: {{ entry.item.location }}
           </p>
 
-          <p v-if="entry.loading" role="status" class="m-0 text-h6 font-medium text-text-2">
-            Carregando participação...
-          </p>
+          <AsyncState
+            v-if="entry.loading"
+            kind="loading"
+            message="Carregando participação..."
+            class="m-0 text-h6 font-medium"
+          />
 
-          <p v-if="entry.error" role="alert" class="m-0 text-h6 font-medium text-co-coral">
-            {{ entry.error }}
-          </p>
+          <AsyncState
+            v-if="entry.error"
+            kind="error"
+            :message="entry.error"
+            class="m-0 text-h6 font-medium"
+          />
 
           <div v-if="entry.participation" class="grid gap-3 sm:grid-cols-2">
             <section class="flex flex-col rounded-button border border-traceline bg-white p-4">
