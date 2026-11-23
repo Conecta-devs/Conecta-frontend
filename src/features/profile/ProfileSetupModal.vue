@@ -153,6 +153,7 @@ async function saveProfile() {
     })
 
     saveSession({
+      ...currentUser.user,
       name: updated.name || form.value.name,
       email: updated.email || currentUser.user?.email || '',
       bio: updated.bio || form.value.bio,
