@@ -171,7 +171,7 @@ function goToToday() {
 
 <template>
   <article
-    class="flex min-w-0 flex-col gap-6 self-start rounded-2xl border border-traceline bg-white p-6 max-[620px]:gap-5 max-[620px]:p-5"
+    class="flex min-w-0 flex-col gap-6 rounded-2xl border border-traceline bg-white p-6 max-[620px]:gap-5 max-[620px]:p-5"
   >
     <header class="flex min-h-16 items-center justify-between gap-4 max-[620px]:flex-wrap">
       <div class="flex min-w-0 flex-col gap-[5px]">
