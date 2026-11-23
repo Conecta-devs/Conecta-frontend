@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useRoute, useRouter } from 'vue-router'
 
+import { apiUrl, fetchApi } from '../services/api'
 import { clearSession, currentUser } from '../../../shared/services/session'
 import AppArrowIcon from '../../../shared/ui/AppArrowIcon.vue'
 import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
@@ -47,7 +48,7 @@ function isActive(path: string) {
 
 async function logout() {
   try {
-    await fetch('/api/auth/logout', {
+    await fetchApi(apiUrl('/auth/logout'), {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -60,7 +61,7 @@ async function logout() {
     clearSession()
     menuAberto.value = false
     submenuAberto.value = false
-    router.push('/login')
+    await router.push('/login')
   }
 }
 
