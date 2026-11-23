@@ -10,13 +10,7 @@ const route = useRoute()
 const profileSetupOpen = ref(false)
 const mobileMenuOpen = ref(false)
 
-function handleProfileSave(payload: {
-  image: string
-  gen: string
-  bio: string
-  name: string
-}) {
-  console.log('Perfil salvo:', payload)
+function handleProfileSave() {
   localStorage.setItem('conecta_profile_setup', 'true')
   profileSetupOpen.value = false
 }
@@ -29,7 +23,7 @@ function handleProfileSave(payload: {
     <button
       v-if="mobileMenuOpen"
       type="button"
-      class="fixed inset-0 z-50 bg-[#101827]/45 min-[621px]:hidden"
+      class="fixed inset-0 z-50 bg-overlay/45 min-[621px]:hidden"
       aria-label="Fechar menu de navegação"
       @click="mobileMenuOpen = false"
     ></button>

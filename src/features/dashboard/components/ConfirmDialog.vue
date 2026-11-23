@@ -59,9 +59,11 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>()
         <button
           type="button"
           class="h-[50px] rounded-button px-4 text-h5 font-medium text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          :class="danger
-            ? 'bg-danger hover:bg-danger focus-visible:outline-danger'
-            : 'bg-co-blue hover:bg-co-blue/90 focus-visible:outline-co-blue'"
+          :class="
+            danger
+              ? 'bg-danger hover:bg-danger focus-visible:outline-danger'
+              : 'bg-co-blue hover:bg-co-blue/90 focus-visible:outline-co-blue'
+          "
           :disabled="busy"
           @click="emit('confirm')"
         >
