@@ -218,13 +218,16 @@ onMounted(loadPosts)
 </script>
 
 <template>
-  <section class="mx-auto w-full max-w-[1060px] px-5 py-10 sm:px-8 lg:px-0">
+  <section
+    class="flex w-full flex-col gap-6 bg-co-white px-[clamp(24px,5vw,75px)] py-8"
+    aria-labelledby="publicacoes-titulo"
+  >
     <header class="flex flex-col gap-2.5">
       <p class="text-h6 font-medium text-co-blue">
-        CONECTA · COMUNIDADE
+        CONECTA · PUBLICAÇÕES
       </p>
 
-      <h1 class="text-title font-semibold text-co-blue">
+      <h1 id="publicacoes-titulo" class="text-title font-semibold text-co-blue">
         Feed estudantil
       </h1>
 
@@ -237,7 +240,7 @@ onMounted(loadPosts)
     <div
       v-if="errorMessage"
       role="alert"
-      class="mt-8 rounded-card border border-co-coral bg-s-coral/40 px-5 py-4 text-h6 text-text-1"
+      class="rounded-card border border-co-coral bg-s-coral/40 px-5 py-4 text-h6 text-text-1"
     >
       {{ errorMessage }}
     </div>
@@ -245,13 +248,13 @@ onMounted(loadPosts)
     <div
       v-if="successMessage"
       role="status"
-      class="mt-8 rounded-card border border-tree-green bg-tree-bg px-5 py-4 text-h6 text-text-1"
+      class="rounded-card border border-tree-green bg-tree-bg px-5 py-4 text-h6 text-text-1"
     >
       {{ successMessage }}
     </div>
 
     <form
-      class="mt-8 flex flex-col gap-6 rounded-card border border-traceline bg-co-white p-7"
+      class="flex flex-col gap-5 rounded-card border border-traceline bg-co-white p-6"
       @submit.prevent="submitPost"
     >
       <h2 class="text-h3 font-semibold text-co-blue">
@@ -322,7 +325,7 @@ onMounted(loadPosts)
       </div>
     </form>
 
-    <section class="mt-8 flex flex-col gap-5">
+    <section class="flex flex-col gap-5">
       <div class="flex items-center justify-between gap-4">
         <h2 class="text-h2 font-semibold text-co-blue">
           Publicações
@@ -340,14 +343,14 @@ onMounted(loadPosts)
 
       <div
         v-if="loading"
-        class="rounded-card border border-traceline bg-co-white p-7 text-center text-h5 font-medium text-text-2"
+        class="rounded-card border border-traceline bg-co-white p-6 text-center text-h5 font-medium text-text-2"
       >
         Carregando publicações...
       </div>
 
       <div
         v-else-if="posts.length === 0"
-        class="rounded-card border border-dashed border-traceline bg-co-white p-7 text-center"
+        class="rounded-card border border-dashed border-traceline bg-co-white p-6 text-center"
       >
         <h3 class="text-h3 font-semibold text-co-blue">
           O feed ainda está vazio
@@ -361,7 +364,7 @@ onMounted(loadPosts)
         <article
           v-for="post in posts"
           :key="post.id"
-          class="rounded-card border border-traceline bg-co-white p-7"
+          class="rounded-card border border-traceline bg-co-white p-6"
         >
           <div class="flex items-center gap-3.5">
             <div
