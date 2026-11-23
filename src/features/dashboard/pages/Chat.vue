@@ -1594,7 +1594,7 @@ onUnmounted(() => {
       class="flex h-[100px] shrink-0 items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,75px)] max-[1000px]:h-auto max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[1000px]:py-5 max-[620px]:gap-3"
     >
       <div class="flex min-w-0 flex-1 flex-col gap-[5px]">
-        <p class="m-0 text-[14px] leading-4 font-medium text-text-2">
+        <p class="m-0 text-[14px] leading-4 font-medium text-text-2 uppercase">
           {{ todayLabel }}
         </p>
         <h1
