@@ -14,6 +14,8 @@ import {
     type AgendaKind,
 } from '../services/agenda'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
+import arrowRight from '../assets/agenda/arrow-right.svg'
+import calendarEvent from '../assets/agenda/calendar-event.svg'
 import { getUserProfile } from '../../auth/services/auth'
 import { currentUser, saveSession } from '../../../shared/services/session'
 
@@ -55,6 +57,14 @@ const cancellingAgendaId = ref<string | null>(null)
 const agendaToCancel = ref<AgendaItem | null>(null)
 
 const isEditing = computed(() => editingAgendaId.value !== null)
+
+function kindLabel(item: AgendaItem): string {
+    return item.kind === 'conversation' ? 'Roda de conversa' : 'Evento'
+}
+
+function formatLabel(item: AgendaItem): string {
+    return item.format === 'in_person' ? 'Presencial' : 'Online'
+}
 
 function isOrganizer(item: AgendaItem): boolean {
     return Boolean(currentUser.user?.sub) && item.organizerId === currentUser.user?.sub
@@ -275,94 +285,110 @@ onMounted(loadAgenda)
 </script>
 
 <template>
-    <section class="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-        <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
-            <div>
-                <p class="mb-2 text-sm font-semibold text-[#e8755f]">CONECTA · COMUNIDADE</p>
-                <h1 class="font-['Space_Grotesk',sans-serif] text-3xl font-bold text-[#253b73]">Agenda</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-[#6f7a8d]">
+    <!-- Figma: Agenda Conecta > Encontros (873:609). Boas-vindas e Busca e perfil
+         são renderizados pelo AppHeader do layout, conforme decidido na coordenação. -->
+    <section class="flex w-full min-w-0 flex-col gap-6 bg-co-white px-6 py-8 lg:px-12">
+        <div class="flex flex-wrap items-end justify-between gap-6">
+            <div class="flex min-w-0 flex-col gap-2.5">
+                <p class="text-h6 font-medium text-co-blue">CONECTA · COMUNIDADE</p>
+                <h1 class="text-title font-semibold text-co-blue">Agenda</h1>
+                <p class="text-h5 font-medium text-text-2">
                     Encontros, eventos e conversas da comunidade estudantil.
                 </p>
             </div>
 
             <button type="button"
-                class="rounded-lg bg-[#253b73] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d2f61] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
+                class="inline-flex h-[50px] w-[210px] shrink-0 items-center justify-center gap-[15px] rounded-button bg-co-blue px-8 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
                 @click="beginCreate">
                 Criar encontro
+                <img :src="arrowRight" alt="" class="block h-[12px] w-4 max-w-none" />
             </button>
-        </header>
+        </div>
 
-        <p v-if="identityWarning" class="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+        <p v-if="identityWarning"
+            class="rounded-card border border-traceline bg-s-coral px-4 py-3 text-h6 font-medium text-co-blue"
+            role="status">
             {{ identityWarning }}
         </p>
-        <p v-if="successMessage" class="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800" role="status">
+        <p v-if="successMessage"
+            class="rounded-card border border-traceline bg-tree-bg px-4 py-3 text-h6 font-medium text-text-1"
+            role="status">
             {{ successMessage }}
         </p>
-        <p v-if="loadError" class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+        <p v-if="loadError" role="alert"
+            class="rounded-card border border-co-coral bg-s-coral px-4 py-3 text-h6 font-medium text-co-coral">
             {{ loadError }}
         </p>
 
-        <div class="mb-4 flex items-center justify-between gap-3">
-            <h2 class="text-lg font-bold text-[#253b73]">Próximos encontros</h2>
+        <div class="flex items-center justify-between gap-3">
+            <h2 class="text-h3 font-semibold text-co-blue">Próximos encontros</h2>
             <button type="button"
-                class="text-sm font-semibold text-[#536bad] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+                class="text-h4 font-medium text-co-blue transition-colors hover:text-co-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
                 :disabled="loading" @click="loadAgenda">
                 {{ loading ? 'Atualizando...' : 'Atualizar' }}
             </button>
         </div>
 
-        <div v-if="loading" class="rounded-xl border border-[#e8ebf0] bg-white p-8 text-center text-sm text-[#6f7a8d]"
+        <div v-if="loading"
+            class="rounded-card border border-traceline bg-co-white p-8 text-center text-h6 font-medium text-text-2"
             role="status">
             Carregando encontros...
         </div>
 
         <div v-else-if="agendaItems.length === 0"
-            class="rounded-xl border border-dashed border-[#d6dce7] bg-white p-8 text-center">
-            <h3 class="font-semibold text-[#253b73]">Nenhum encontro na Agenda</h3>
-            <p class="mt-2 text-sm text-[#6f7a8d]">Crie o primeiro encontro da comunidade.</p>
+            class="rounded-card border border-dashed border-traceline bg-co-white p-8 text-center">
+            <h3 class="text-h3 font-semibold text-co-blue">Nenhum encontro na Agenda</h3>
+            <p class="mt-2 text-h6 font-medium text-text-2">Crie o primeiro encontro da comunidade.</p>
         </div>
 
-        <div v-else class="space-y-3">
+        <div v-else class="flex flex-col gap-4">
             <article v-for="item in agendaItems" :key="item.id"
-                class="rounded-xl border border-[#e8ebf0] bg-white p-4 shadow-sm sm:p-5">
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div class="min-w-0 flex-1">
-                        <div class="mb-2 flex flex-wrap items-center gap-2">
-                            <span class="rounded-md bg-[#e3e9fa] px-2 py-1 text-xs font-semibold text-[#253b73]">
-                                {{ item.kind === 'event' ? 'Evento' : 'Roda de conversa' }}
-                            </span>
-                            <span class="rounded-md bg-[#fff0eb] px-2 py-1 text-xs font-semibold text-[#b94d39]">
-                                {{ item.format === 'online' ? 'Online' : 'Presencial' }}
-                            </span>
-                        </div>
-                        <h3 class="break-words font-['Space_Grotesk',sans-serif] text-lg font-semibold text-[#253b73]">
-                            {{ item.title }}
-                        </h3>
-                        <p class="mt-1 text-sm text-[#6f7a8d]">
+                class="flex w-full flex-wrap items-center justify-between gap-6 rounded-card border border-traceline bg-co-white p-6 max-[620px]:p-5">
+                <div class="flex min-w-0 flex-1 flex-col gap-2.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="rounded-md bg-traceline px-2.5 py-1.5 text-h6 font-medium text-co-blue">
+                            {{ kindLabel(item) }}
+                        </span>
+                        <span class="rounded-md bg-s-coral px-2.5 py-1.5 text-h6 font-medium text-co-blue">
+                            {{ formatLabel(item) }}
+                        </span>
+                    </div>
+
+                    <h3 class="break-words text-h3 font-semibold text-co-blue">
+                        {{ item.title }}
+                    </h3>
+
+                    <div class="flex items-center gap-2.5">
+                        <span class="relative block h-[15.804px] w-[14.222px] shrink-0 overflow-hidden">
+                            <img :src="calendarEvent" alt=""
+                                class="absolute inset-[-4.78%_-5.31%] block h-full w-full max-w-none" />
+                        </span>
+                        <p class="text-h6 font-medium text-text-2">
                             {{ formatDateTime(item.startsAt) }} – {{ formatDateTime(item.endsAt) }}
-                        </p>
-                        <p v-if="isOrganizer(item)" class="mt-1 text-xs font-medium text-[#8b94a6]">
-                            Organizado por você
                         </p>
                     </div>
 
-                    <div class="flex shrink-0 flex-wrap gap-2">
-                        <button type="button"
-                            class="rounded-lg border border-[#dfe4ed] px-3 py-2 text-sm font-semibold text-[#536bad] hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
-                            @click="openDetails(item)">
-                            Detalhes
-                        </button>
-                        <button v-if="isOrganizer(item)" type="button"
-                            class="rounded-lg border border-[#dfe4ed] px-3 py-2 text-sm font-semibold text-[#536bad] hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
-                            @click="beginEdit(item)">
-                            Editar
-                        </button>
-                        <button v-if="isOrganizer(item)" type="button"
-                            class="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
-                            :disabled="cancellingAgendaId === item.id" @click="cancelItem(item)">
-                            {{ cancellingAgendaId === item.id ? 'Cancelando...' : 'Cancelar' }}
-                        </button>
-                    </div>
+                    <p v-if="isOrganizer(item)" class="text-h6 font-medium text-text-2">
+                        Organizado por você
+                    </p>
+                </div>
+
+                <div class="flex shrink-0 flex-wrap items-center gap-2.5">
+                    <button type="button"
+                        class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+                        @click="openDetails(item)">
+                        Detalhes
+                    </button>
+                    <button v-if="isOrganizer(item)" type="button"
+                        class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+                        @click="beginEdit(item)">
+                        Editar
+                    </button>
+                    <button v-if="isOrganizer(item)" type="button"
+                        class="h-[50px] w-[150px] rounded-button border border-co-coral bg-co-white text-h5 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:opacity-50"
+                        :disabled="cancellingAgendaId === item.id" @click="cancelItem(item)">
+                        {{ cancellingAgendaId === item.id ? 'Cancelando...' : 'Cancelar' }}
+                    </button>
                 </div>
             </article>
         </div>
@@ -371,46 +397,45 @@ onMounted(loadAgenda)
             class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-[#101827]/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
             @click.self="closeForm">
             <section role="dialog" aria-modal="true" aria-labelledby="agenda-form-title"
-                class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-xl bg-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]">
-                <header class="flex items-center justify-between gap-4 border-b border-[#e8ebf0] px-5 py-4 sm:px-7">
-                    <h2 id="agenda-form-title"
-                        class="font-['Space_Grotesk',sans-serif] text-xl font-bold text-[#253b73]">
+                class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-card border border-traceline bg-co-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]">
+                <header class="flex items-center justify-between gap-4 border-b border-traceline px-5 py-4 sm:px-7">
+                    <h2 id="agenda-form-title" class="text-h3 font-semibold text-co-blue">
                         {{ isEditing ? 'Editar encontro' : 'Criar encontro' }}
                     </h2>
                     <button type="button"
-                        class="rounded-lg px-3 py-2 text-sm font-semibold text-[#53617a] hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
+                        class="rounded-button px-3 py-2 text-h6 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
                         :disabled="formSaving" @click="closeForm">
                         Fechar
                     </button>
                 </header>
 
-                <form class="space-y-4 px-5 py-5 sm:px-7" @submit.prevent="saveAgendaItem">
-                    <label for="agenda-title" class="block text-sm font-semibold text-[#374151]">
-                        Título <span aria-hidden="true" class="text-red-600">*</span>
+                <form class="flex flex-col gap-4 px-5 py-5 sm:px-7" @submit.prevent="saveAgendaItem">
+                    <label for="agenda-title" class="block text-h6 font-medium text-text-1">
+                        Título <span aria-hidden="true" class="text-co-coral">*</span>
                     </label>
                     <input id="agenda-title" v-model="form.title" required maxlength="150"
-                        class="-mt-3 h-11 w-full rounded-lg border border-[#dfe4ed] px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15" />
+                        class="-mt-3 h-11 w-full rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
 
-                    <label for="agenda-description" class="block text-sm font-semibold text-[#374151]">
-                        Descrição <span aria-hidden="true" class="text-red-600">*</span>
+                    <label for="agenda-description" class="block text-h6 font-medium text-text-1">
+                        Descrição <span aria-hidden="true" class="text-co-coral">*</span>
                     </label>
                     <textarea id="agenda-description" v-model="form.description" required maxlength="5000" rows="4"
-                        class="-mt-3 w-full rounded-lg border border-[#dfe4ed] px-3 py-2 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15" />
+                        class="-mt-3 w-full rounded-button border border-traceline bg-white px-3 py-2 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="block text-sm font-semibold text-[#374151]" for="agenda-kind">
+                        <label class="block text-h6 font-medium text-text-1" for="agenda-kind">
                             Tipo
                             <select id="agenda-kind" v-model="form.kind"
-                                class="mt-2 h-11 w-full rounded-lg border border-[#dfe4ed] bg-white px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15">
+                                class="mt-2 h-11 w-full rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30">
                                 <option value="event">Evento</option>
                                 <option value="conversation">Roda de conversa</option>
                             </select>
                         </label>
 
-                        <label class="block text-sm font-semibold text-[#374151]" for="agenda-format">
+                        <label class="block text-h6 font-medium text-text-1" for="agenda-format">
                             Modalidade
                             <select id="agenda-format" v-model="form.format"
-                                class="mt-2 h-11 w-full rounded-lg border border-[#dfe4ed] bg-white px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15">
+                                class="mt-2 h-11 w-full rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30">
                                 <option value="online">Online</option>
                                 <option value="in_person">Presencial</option>
                             </select>
@@ -418,40 +443,40 @@ onMounted(loadAgenda)
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="block text-sm font-semibold text-[#374151]" for="agenda-starts-at">
+                        <label class="block text-h6 font-medium text-text-1" for="agenda-starts-at">
                             Início
                             <input id="agenda-starts-at" v-model="form.startsAt" type="datetime-local" required
-                                class="mt-2 h-11 w-full min-w-0 rounded-lg border border-[#dfe4ed] px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15" />
+                                class="mt-2 h-11 w-full min-w-0 rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
                         </label>
-                        <label class="block text-sm font-semibold text-[#374151]" for="agenda-ends-at">
+                        <label class="block text-h6 font-medium text-text-1" for="agenda-ends-at">
                             Término
                             <input id="agenda-ends-at" v-model="form.endsAt" type="datetime-local" required
-                                class="mt-2 h-11 w-full min-w-0 rounded-lg border border-[#dfe4ed] px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15" />
+                                class="mt-2 h-11 w-full min-w-0 rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
                         </label>
                     </div>
 
-                    <label v-if="form.format === 'online'" class="block text-sm font-semibold text-[#374151]"
+                    <label v-if="form.format === 'online'" class="block text-h6 font-medium text-text-1"
                         for="agenda-meeting-url">
-                        URL da reunião <span class="font-normal text-[#8b94a6]">(opcional)</span>
+                        URL da reunião <span class="font-normal text-text-2">(opcional)</span>
                         <input id="agenda-meeting-url" v-model="form.meetingUrl" type="url" maxlength="2048"
-                            class="mt-2 h-11 w-full rounded-lg border border-[#dfe4ed] px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15" />
+                            class="mt-2 h-11 w-full rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
                     </label>
-                    <label v-else class="block text-sm font-semibold text-[#374151]" for="agenda-location">
-                        Localização <span aria-hidden="true" class="text-red-600">*</span>
+                    <label v-else class="block text-h6 font-medium text-text-1" for="agenda-location">
+                        Localização <span aria-hidden="true" class="text-co-coral">*</span>
                         <input id="agenda-location" v-model="form.location" required maxlength="250"
-                            class="mt-2 h-11 w-full rounded-lg border border-[#dfe4ed] px-3 text-sm outline-none focus:border-[#536bad] focus:ring-2 focus:ring-[#536bad]/15" />
+                            class="mt-2 h-11 w-full rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
                     </label>
 
-                    <p v-if="formError" role="alert" class="text-sm text-red-700">{{ formError }}</p>
+                    <p v-if="formError" role="alert" class="text-h6 font-medium text-co-coral">{{ formError }}</p>
 
-                    <footer class="flex flex-wrap justify-end gap-2 border-t border-[#edf0f4] pt-4">
+                    <footer class="flex flex-wrap justify-end gap-2 border-t border-traceline pt-4">
                         <button type="button"
-                            class="rounded-lg border border-[#dfe4ed] px-4 py-2.5 text-sm font-semibold text-[#53617a] hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad]"
+                            class="h-[50px] rounded-button border border-traceline bg-co-white px-4 text-h5 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
                             :disabled="formSaving" @click="closeForm">
                             Cancelar
                         </button>
                         <button type="submit"
-                            class="rounded-lg bg-[#253b73] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1d2f61] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+                            class="h-[50px] rounded-button bg-co-blue px-4 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
                             :disabled="formSaving">
                             {{ formSaving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Criar encontro' }}
                         </button>
@@ -468,45 +493,40 @@ onMounted(loadAgenda)
             @edit="beginEdit"
             @cancel="cancelItem" />
 
-
-        <!-- Modal de confirmação de cancelamento -->
         <div v-if="agendaToCancel"
             class="fixed inset-0 z-[70] flex items-center justify-center bg-[#101827]/55 p-4 backdrop-blur-sm"
             @click.self="closeCancelModal">
             <section role="alertdialog" aria-modal="true" aria-labelledby="cancel-agenda-title"
                 aria-describedby="cancel-agenda-description"
-                class="w-full max-w-md rounded-2xl bg-white p-6 shadow-[0_30px_90px_rgba(22,31,55,0.22)]">
-
-
-                <div class="mb-4 grid size-12 place-items-center rounded-xl bg-[#fff0eb] text-[#e8755f]">
+                class="w-full max-w-md rounded-card border border-traceline bg-co-white p-6 shadow-[0_30px_90px_rgba(22,31,55,0.22)]">
+                <div class="mb-4 grid size-12 place-items-center rounded-icon bg-s-coral text-co-coral">
                     <font-awesome-icon :icon="faExclamationCircle" size="lg" />
                 </div>
 
-                <h2 id="cancel-agenda-title" class="font-['Space_Grotesk',sans-serif] text-xl font-bold text-[#253b73]">
+                <h2 id="cancel-agenda-title" class="text-h3 font-semibold text-co-blue">
                     Cancelar encontro?
                 </h2>
 
-                <p id="cancel-agenda-description" class="mt-3 break-words text-sm leading-6 text-[#6f7a8d]">
+                <p id="cancel-agenda-description" class="mt-3 break-words text-h6 font-medium leading-6 text-text-2">
                     Tem certeza de que deseja cancelar
-                    <strong class="text-[#253b73]">{{ agendaToCancel.title }}</strong>?
+                    <strong class="text-co-blue">{{ agendaToCancel.title }}</strong>?
                     Essa ação não poderá ser desfeita por esta tela.
                 </p>
 
                 <footer class="mt-6 flex flex-wrap justify-end gap-3">
                     <button type="button"
-                        class="rounded-lg border border-[#dfe4ed] px-4 py-2.5 text-sm font-semibold text-[#53617a] transition hover:bg-[#f6f8fc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#536bad] disabled:opacity-50"
+                        class="h-[50px] rounded-button border border-traceline bg-co-white px-4 text-h5 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
                         :disabled="cancellingAgendaId !== null" @click="closeCancelModal">
                         Voltar
                     </button>
 
                     <button type="button"
-                        class="rounded-lg bg-[#e8755f] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d9624c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e8755f] disabled:cursor-not-allowed disabled:opacity-50"
+                        class="h-[50px] rounded-button bg-co-coral px-4 text-h5 font-medium text-co-white transition-colors hover:bg-co-coral/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:cursor-not-allowed disabled:opacity-50"
                         :disabled="cancellingAgendaId !== null" @click="confirmCancelAgenda">
                         {{ cancellingAgendaId === agendaToCancel.id ? 'Cancelando...' : 'Sim, cancelar' }}
                     </button>
                 </footer>
             </section>
         </div>
-
     </section>
 </template>
