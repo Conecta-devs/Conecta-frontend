@@ -40,6 +40,7 @@ import {
 import { currentUser } from '../../../shared/services/session'
 import { getInitials } from '../utils/format'
 import AsyncState from '../components/AsyncState.vue'
+import AppHeader from '../components/AppHeader.vue'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
@@ -276,14 +277,6 @@ const sectionOptions: { label: string; value: ChatSection }[] = [
   { label: 'Amigos', value: 'friend' },
   { label: 'Pessoas', value: 'people' },
 ]
-
-const todayLabel = new Date().toLocaleDateString('pt-BR', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
-const userEmail = computed(() => currentUser.user?.email ?? '')
 
 const messagesDateLabel = computed(() => {
   const lastMessage = messages.value[messages.value.length - 1]
@@ -1582,47 +1575,18 @@ onUnmounted(() => {
   <section
     class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:h-auto max-[900px]:min-h-screen"
   >
-    <header
-      class="flex h-[100px] shrink-0 items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter max-[1000px]:h-auto max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[1000px]:py-5 max-[620px]:gap-3"
+    <AppHeader
+      v-model:search-value="searchText"
+      variant="chat"
+      @search-input="handleSearchInput"
     >
-      <div class="flex min-w-0 flex-1 flex-col gap-[5px]">
-        <p class="m-0 text-h6 leading-4 font-medium text-text-2 uppercase">
-          {{ todayLabel }}
-        </p>
-        <h1
-          class="m-0 text-title leading-[38px] text-text-1 max-[1400px]:text-[28px] max-[1400px]:leading-[34px] max-[1100px]:text-h2 max-[1100px]:leading-[30px]"
-        >
-          Olá, que bom ter você aqui!
-        </h1>
-        <p class="m-0 truncate text-h5 leading-[19px] font-medium text-text-2">
-          {{ userEmail }}
-        </p>
-      </div>
-
-      <div class="flex shrink-0 items-center gap-5 max-[1000px]:w-full max-[620px]:gap-3">
-        <label
-          class="flex h-14 w-[360px] shrink-0 items-center gap-3 rounded-button border border-traceline bg-white px-4 text-text-2 max-[1400px]:w-[280px] max-[1100px]:w-[240px] max-[1000px]:w-full max-[1000px]:flex-1"
-        >
-          <font-awesome-icon :icon="faSearch" class="text-[20px]" />
-          <input
-            v-model="searchText"
-            class="w-full min-w-0 border-0 bg-transparent text-h6 leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
-            type="search"
-            placeholder="Buscar no Conecta"
-            aria-label="Buscar no Conecta"
-            @input="handleSearchInput"
-          />
-        </label>
-
-        <button
-          type="button"
-          class="relative grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 transition-colors before:absolute before:-inset-2.5 before:content-[''] hover:text-co-blue"
-          aria-label="Notificações"
-        >
-          <font-awesome-icon :icon="faBell" class="text-[20px]" />
-        </button>
-      </div>
-    </header>
+      <template #search-icon>
+        <font-awesome-icon :icon="faSearch" class="text-[20px]" />
+      </template>
+      <template #notification-icon>
+        <font-awesome-icon :icon="faBell" class="text-[20px]" />
+      </template>
+    </AppHeader>
 
     <div
       class="flex min-h-0 flex-1 flex-col px-[clamp(24px,3.3vw,48px)] py-8 max-[620px]:px-4 max-[620px]:py-5"
