@@ -1594,27 +1594,27 @@ onUnmounted(() => {
       class="flex h-[100px] shrink-0 items-center justify-between gap-12 border-b border-traceline bg-co-white px-[clamp(24px,5vw,75px)] max-[1000px]:h-auto max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[1000px]:py-5 max-[620px]:gap-3"
     >
       <div class="flex min-w-0 flex-1 flex-col gap-[5px]">
-        <p class="m-0 text-[14px] leading-4 font-medium text-text-2 uppercase">
+        <p class="m-0 text-h6 leading-4 font-medium text-text-2 uppercase">
           {{ todayLabel }}
         </p>
         <h1
-          class="m-0 text-title leading-[38px] text-text-1 max-[1400px]:text-[28px] max-[1400px]:leading-[34px] max-[1100px]:text-[24px] max-[1100px]:leading-[30px]"
+          class="m-0 text-title leading-[38px] text-text-1 max-[1400px]:text-[28px] max-[1400px]:leading-[34px] max-[1100px]:text-h2 max-[1100px]:leading-[30px]"
         >
           Olá, que bom ter você aqui!
         </h1>
-        <p class="m-0 truncate text-[16px] leading-[19px] font-medium text-text-2">
+        <p class="m-0 truncate text-h5 leading-[19px] font-medium text-text-2">
           {{ userEmail }}
         </p>
       </div>
 
       <div class="flex shrink-0 items-center gap-5 max-[1000px]:w-full max-[620px]:gap-3">
         <label
-          class="flex h-14 w-[360px] shrink-0 items-center gap-3 rounded-[10px] border border-traceline bg-white px-4 text-text-2 max-[1400px]:w-[280px] max-[1100px]:w-[240px] max-[1000px]:w-full max-[1000px]:flex-1"
+          class="flex h-14 w-[360px] shrink-0 items-center gap-3 rounded-button border border-traceline bg-white px-4 text-text-2 max-[1400px]:w-[280px] max-[1100px]:w-[240px] max-[1000px]:w-full max-[1000px]:flex-1"
         >
           <font-awesome-icon :icon="faSearch" class="text-[20px]" />
           <input
             v-model="searchText"
-            class="w-full min-w-0 border-0 bg-transparent text-[14px] leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
+            class="w-full min-w-0 border-0 bg-transparent text-h6 leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
             type="search"
             placeholder="Buscar no Conecta"
             aria-label="Buscar no Conecta"
@@ -1637,21 +1637,21 @@ onUnmounted(() => {
     >
       <div class="flex min-h-0 flex-1 gap-6 max-[900px]:flex-col">
         <aside
-          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-traceline bg-co-white p-5 max-[900px]:h-[520px] max-[900px]:w-full"
+          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:h-[520px] max-[900px]:w-full"
           :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
         >
           <div class="flex shrink-0 flex-col gap-5">
             <div>
-              <p class="m-0 text-[14px] leading-4 font-medium text-text-2">MENSAGENS</p>
+              <p class="m-0 text-h6 leading-4 font-medium text-text-2">MENSAGENS</p>
               <h2 class="text-h2 mt-1">
                 {{ sectionOptions.find((section) => section.value === activeSection)?.label }}
               </h2>
             </div>
-            <div class="flex items-start gap-1 rounded-[10px] bg-traceline p-[6px]">
+            <div class="flex items-start gap-1 rounded-button bg-traceline p-[6px]">
               <button
                 v-for="section in sectionOptions.slice(0, 3)"
                 :key="section.value"
-                class="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-[6px] border-0 py-[10px] text-[14px] leading-4 font-medium transition-colors"
+                class="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-[6px] border-0 py-[10px] text-h6 leading-4 font-medium transition-colors"
                 :class="
                   activeSection === section.value
                     ? 'bg-co-white text-co-blue'
@@ -1675,12 +1675,12 @@ onUnmounted(() => {
               </button>
             </div>
             <label
-              class="flex h-12 items-center gap-[10px] rounded-[10px] border border-traceline bg-co-white px-3 text-text-2"
+              class="flex h-12 items-center gap-[10px] rounded-button border border-traceline bg-co-white px-3 text-text-2"
             >
               <font-awesome-icon :icon="faSearch" />
               <input
                 v-model="searchText"
-                class="w-full min-w-0 border-0 bg-transparent text-[14px] leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
+                class="w-full min-w-0 border-0 bg-transparent text-h6 leading-4 font-medium text-text-1 outline-none placeholder:text-text-2"
                 type="search"
                 :placeholder="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
                 :aria-label="activeSection === 'people' ? 'Buscar pessoa' : 'Buscar conversa'"
@@ -1689,7 +1689,7 @@ onUnmounted(() => {
             </label>
             <div class="flex items-center justify-between gap-2">
               <button
-                class="flex items-center gap-2 rounded-[6px] border-0 bg-transparent px-1 py-1 text-[14px] font-medium transition-colors"
+                class="flex items-center gap-2 rounded-[6px] border-0 bg-transparent px-1 py-1 text-h6 leading-normal font-medium transition-colors"
                 :class="
                   activeSection === 'people' ? 'text-co-blue' : 'text-text-2 hover:text-co-blue'
                 "
@@ -1713,10 +1713,10 @@ onUnmounted(() => {
           </div>
 
         <div v-if="activeSection === 'people'" class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
-          <p v-if="usersLoading" class="px-3 py-8 text-center text-[14px] text-text-2">
+          <p v-if="usersLoading" class="px-3 py-8 text-center text-h6 leading-normal text-text-2">
             Carregando pessoas...
           </p>
-          <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-[14px] text-red-600">
+          <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-h6 leading-normal text-red-600">
             {{ usersError }}
             <button class="ml-1 underline" type="button" @click="loadPeople(true)">
               Tentar novamente
@@ -1726,19 +1726,19 @@ onUnmounted(() => {
             <div
               v-for="user in availableUsersNotInFriends"
               :key="user.id"
-              class="group flex w-full items-center gap-1 rounded-[10px] transition-colors hover:bg-traceline/60"
+              class="group flex w-full items-center gap-1 rounded-button transition-colors hover:bg-traceline/60"
               @contextmenu="handleContextMenu($event, { type: 'user', user })"
               @keydown="handleContextMenuKeyboard($event, { type: 'user', user })"
             >
               <button
-                class="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 py-4 text-left transition-colors hover:bg-traceline/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:cursor-wait disabled:opacity-60"
+                class="flex min-w-0 flex-1 items-center gap-3 rounded-button border-0 bg-transparent px-3 py-4 text-left transition-colors hover:bg-traceline/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:cursor-wait disabled:opacity-60"
                 type="button"
                 :aria-label="`Iniciar conversa com ${user.name}`"
                 :disabled="creatingConversationFor !== null"
                 @click="startDirectConversation(user)"
               >
                 <span
-                  class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-[14px] font-medium text-co-blue"
+                  class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-h6 leading-normal font-medium text-co-blue"
                 >
                   <img
                     v-if="user.image"
@@ -1749,8 +1749,8 @@ onUnmounted(() => {
                   <span v-else>{{ getInitials(user.name) }}</span>
                 </span>
                 <span class="min-w-0 flex-1">
-                  <strong class="block truncate text-[14px] font-medium text-co-blue">{{ user.name }}</strong>
-                  <span class="mt-1 block truncate text-[14px] text-text-2">
+                  <strong class="block truncate text-h6 leading-normal font-medium text-co-blue">{{ user.name }}</strong>
+                  <span class="mt-1 block truncate text-h6 leading-normal text-text-2">
                     {{
                       creatingConversationFor === user.id ? 'Abrindo conversa...' : 'Iniciar conversa'
                     }}
@@ -1774,7 +1774,7 @@ onUnmounted(() => {
             </div>
             <p
               v-if="availableUsersNotInFriends.length === 0"
-              class="px-3 py-8 text-center text-[14px] text-text-2"
+              class="px-3 py-8 text-center text-h6 leading-normal text-text-2"
             >
               {{
                 searchText.trim()
@@ -1784,7 +1784,7 @@ onUnmounted(() => {
             </p>
             <button
               v-if="usersHasMore"
-              class="mx-auto mt-2 block rounded-[10px] border-0 bg-traceline px-3 py-2 text-[14px] text-text-2 disabled:opacity-50"
+              class="mx-auto mt-2 block rounded-button border-0 bg-traceline px-3 py-2 text-h6 leading-normal text-text-2 disabled:opacity-50"
               type="button"
               :disabled="usersLoadingMore"
               @click="loadPeople(false)"
@@ -1792,19 +1792,19 @@ onUnmounted(() => {
               {{ usersLoadingMore ? 'Carregando...' : 'Carregar mais pessoas' }}
             </button>
           </template>
-          <p v-if="startConversationError" role="alert" class="px-3 py-3 text-[14px] text-red-600">
+          <p v-if="startConversationError" role="alert" class="px-3 py-3 text-h6 leading-normal text-red-600">
             {{ startConversationError }}
           </p>
         </div>
 
         <div v-else class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
-          <p v-if="conversationsLoading" class="px-3 py-8 text-center text-[14px] text-text-2">
+          <p v-if="conversationsLoading" class="px-3 py-8 text-center text-h6 leading-normal text-text-2">
             Carregando conversas...
           </p>
           <p
             v-else-if="conversationsError"
             role="alert"
-            class="px-3 py-8 text-center text-[14px] text-red-600"
+            class="px-3 py-8 text-center text-h6 leading-normal text-red-600"
           >
             {{ conversationsError }}
             <button class="ml-1 underline" type="button" @click="loadConversationList()">
@@ -1815,19 +1815,19 @@ onUnmounted(() => {
             v-else
             v-for="conversation in visibleConversations"
             :key="conversation.id"
-            class="group flex w-full items-center gap-1 rounded-[10px] transition-colors hover:bg-traceline/60"
+            class="group flex w-full items-center gap-1 rounded-button transition-colors hover:bg-traceline/60"
             :class="selectedConversation?.id === conversation.id ? 'bg-traceline' : ''"
             @contextmenu="handleContextMenu($event, { type: 'conversation', conversation })"
             @keydown="handleContextMenuKeyboard($event, { type: 'conversation', conversation })"
           >
             <button
-              class="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border-0 bg-transparent px-3 py-4 text-left transition-colors hover:bg-traceline/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue"
+              class="flex min-w-0 flex-1 items-center gap-3 rounded-button border-0 bg-transparent px-3 py-4 text-left transition-colors hover:bg-traceline/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue"
               type="button"
               :aria-label="`Abrir conversa ${conversation.name}`"
               @click="selectConversation(conversation)"
             >
               <span
-                class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full text-[14px] font-medium text-co-blue"
+                class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full text-h6 leading-normal font-medium text-co-blue"
                 :class="
                   conversation.category === 'community'
                     ? 'bg-traceline'
@@ -1846,15 +1846,15 @@ onUnmounted(() => {
               </span>
               <span class="min-w-0 flex-1">
                 <span class="flex items-center justify-between gap-1.5">
-                  <strong class="truncate text-[14px] font-medium text-co-blue">{{
+                  <strong class="truncate text-h6 leading-normal font-medium text-co-blue">{{
                     conversation.name
                   }}</strong>
-                  <time class="shrink-0 text-[14px] text-text-2">{{
+                  <time class="shrink-0 text-h6 leading-normal text-text-2">{{
                     formatTime(conversation.lastMessage?.createdAt ?? conversation.updatedAt)
                   }}</time>
                 </span>
                 <span class="mt-2 flex min-w-0 items-center justify-between gap-1.5">
-                  <span class="block truncate text-[14px] text-text-2">{{
+                  <span class="block truncate text-h6 leading-normal text-text-2">{{
                     conversation.preview
                   }}</span>
                   <span
@@ -1881,7 +1881,7 @@ onUnmounted(() => {
           </div>
           <p
             v-if="!conversationsLoading && !conversationsError && visibleConversations.length === 0"
-            class="px-3 py-8 text-center text-[14px] text-text-2"
+            class="px-3 py-8 text-center text-h6 leading-normal text-text-2"
           >
             {{
               conversations.length ? 'Nenhum resultado encontrado.' : 'Você ainda não tem conversas.'
@@ -1891,12 +1891,12 @@ onUnmounted(() => {
         </aside>
 
         <main
-          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-traceline bg-white max-[900px]:h-[620px] max-[900px]:flex-none"
+          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white max-[900px]:h-[620px] max-[900px]:flex-none"
           :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
         >
           <div
             v-if="chatNotice"
-            class="flex shrink-0 items-center justify-between gap-3 border-b border-traceline bg-s-coral px-6 py-2 text-[14px] text-text-1"
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-traceline bg-s-coral px-6 py-2 text-h6 leading-normal text-text-1"
             role="alert"
           >
             <span>{{ chatNotice }}</span>
@@ -1910,7 +1910,7 @@ onUnmounted(() => {
           </div>
           <div
             v-if="chatSocketStatus !== 'connected' || chatSocketError"
-            class="flex shrink-0 items-center justify-between gap-3 border-b border-traceline bg-s-blue/30 px-6 py-2 text-[14px] text-text-1"
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-traceline bg-s-blue/30 px-6 py-2 text-h6 leading-normal text-text-1"
             role="status"
           >
             <span>
@@ -1946,7 +1946,7 @@ onUnmounted(() => {
               </button>
               <span
                 v-if="selectedConversation"
-                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-[14px] font-medium text-co-blue"
+                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-h6 leading-normal font-medium text-co-blue"
               >
                 <img
                   v-if="selectedConversation.image"
@@ -1960,7 +1960,7 @@ onUnmounted(() => {
                 <h2 class="text-h3 truncate">
                   {{ selectedConversation?.name ?? 'Conversas' }}
                 </h2>
-                <p v-if="selectedConversation" class="m-0 mt-1.5 flex items-center gap-1.5 text-[14px] text-text-2">
+                <p v-if="selectedConversation" class="m-0 mt-1.5 flex items-center gap-1.5 text-h6 leading-normal text-text-2">
                   <span
                     class="size-1.5 shrink-0 rounded-full"
                     :class="chatSocketStatus === 'connected' ? 'bg-tree-green' : 'bg-traceline'"
@@ -2053,7 +2053,7 @@ onUnmounted(() => {
           >
             <button
               v-if="nextCursor"
-              class="mx-auto block shrink-0 rounded-[10px] border border-traceline bg-co-white px-3 py-2 text-[14px] text-text-2 disabled:opacity-50"
+              class="mx-auto block shrink-0 rounded-button border border-traceline bg-co-white px-3 py-2 text-h6 leading-normal text-text-2 disabled:opacity-50"
               type="button"
               :disabled="messagesLoading"
               @click="loadMessages(selectedConversation.id, true)"
@@ -2062,11 +2062,11 @@ onUnmounted(() => {
             </button>
             <p
               v-if="messagesLoading && messages.length === 0"
-              class="text-center text-[14px] text-text-2"
+              class="text-center text-h6 leading-normal text-text-2"
             >
               Carregando mensagens...
             </p>
-            <p v-if="messagesError" role="alert" class="text-center text-[14px] text-red-700">
+            <p v-if="messagesError" role="alert" class="text-center text-h6 leading-normal text-red-700">
               {{ messagesError }}
               <button
                 class="ml-1 underline"
@@ -2078,11 +2078,11 @@ onUnmounted(() => {
             </p>
             <p
               v-if="!messagesLoading && !messagesError && messages.length === 0"
-              class="text-center text-[14px] text-text-2"
+              class="text-center text-h6 leading-normal text-text-2"
             >
               Nenhuma mensagem nesta conversa ainda.
             </p>
-            <p class="shrink-0 text-center text-[14px] font-medium text-text-2">
+            <p class="shrink-0 text-center text-h6 leading-normal font-medium text-text-2">
               {{ messagesDateLabel }}
             </p>
             <div
@@ -2092,7 +2092,7 @@ onUnmounted(() => {
               :class="message.isMine ? 'justify-end' : 'justify-start'"
             >
               <div
-                class="flex flex-col gap-[10px] rounded-[14px] px-5 py-4"
+                class="flex flex-col gap-[10px] rounded-card px-5 py-4"
                 :class="
                   message.isMine
                     ? 'w-[min(380px,85%)] bg-co-blue text-co-white'
@@ -2101,13 +2101,13 @@ onUnmounted(() => {
               >
                 <span
                   v-if="selectedConversation.category === 'community' && !message.isMine"
-                  class="text-[14px] font-medium text-co-blue"
+                  class="text-h6 leading-normal font-medium text-co-blue"
                 >
                   {{ getMessageSenderName(message) }}
                 </span>
-                <p class="m-0 text-[16px] leading-5 font-medium">{{ message.content }}</p>
+                <p class="m-0 text-h5 leading-5 font-medium">{{ message.content }}</p>
                 <time
-                  class="block text-right text-[14px] font-medium"
+                  class="block text-right text-h6 leading-normal font-medium"
                   :class="message.isMine ? 'text-co-white' : 'text-text-2'"
                   >{{ formatTime(message.createdAt) }}</time
                 >
@@ -2134,7 +2134,7 @@ onUnmounted(() => {
           </div>
           <div
             v-else
-            class="flex min-h-0 flex-1 items-center justify-center bg-white px-6 text-center text-[14px] text-text-2"
+            class="flex min-h-0 flex-1 items-center justify-center bg-white px-6 text-center text-h6 leading-normal text-text-2"
           >
             Selecione uma conversa para visualizar as mensagens.
           </div>
@@ -2144,14 +2144,14 @@ onUnmounted(() => {
             class="flex min-h-[84px] shrink-0 items-center gap-3 px-5 py-4 max-[620px]:px-4"
             @submit.prevent="sendMessage()"
           >
-            <p v-if="sendError" role="alert" class="mb-2 text-[14px] text-red-600">
+            <p v-if="sendError" role="alert" class="mb-2 text-h6 leading-normal text-red-600">
               {{ sendError }}
             </p>
-            <p v-if="sendingMessage" aria-live="polite" class="mb-2 text-[14px] text-text-2">
+            <p v-if="sendingMessage" aria-live="polite" class="mb-2 text-h6 leading-normal text-text-2">
               Enviando mensagem...
             </p>
             <div
-              class="flex h-[52px] min-w-0 flex-1 items-center gap-[14px] rounded-[10px] border border-traceline bg-co-white px-4"
+              class="flex h-[52px] min-w-0 flex-1 items-center gap-[14px] rounded-button border border-traceline bg-co-white px-4"
             >
               <button
                 class="grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue"
@@ -2162,7 +2162,7 @@ onUnmounted(() => {
               </button>
               <input
                 v-model="messageText"
-                class="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-text-1 outline-none placeholder:text-text-2"
+                class="min-w-0 flex-1 border-0 bg-transparent text-h6 leading-normal font-medium text-text-1 outline-none placeholder:text-text-2"
                 type="text"
                 placeholder="Escreva uma mensagem..."
                 aria-label="Mensagem"
@@ -2178,7 +2178,7 @@ onUnmounted(() => {
               </button>
             </div>
             <button
-              class="grid size-12 shrink-0 place-items-center rounded-[10px] border-0 bg-co-blue text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
+              class="grid size-12 shrink-0 place-items-center rounded-button border-0 bg-co-blue text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
               type="submit"
               aria-label="Enviar mensagem"
               :disabled="!messageText.trim() || sendingMessage"
@@ -2196,7 +2196,7 @@ onUnmounted(() => {
       @click.self="closeGroupDialog"
     >
       <form
-        class="flex max-h-[min(90vh,620px)] w-full max-w-md flex-col rounded-2xl bg-white p-5 shadow-xl"
+        class="flex max-h-[min(90vh,620px)] w-full max-w-md flex-col rounded-card bg-white p-5 shadow-xl"
         @submit.prevent="submitGroupDialog"
       >
         <div class="mb-4 flex items-start justify-between gap-4">
@@ -2265,7 +2265,7 @@ onUnmounted(() => {
               !groupSelectedIds.includes(user.id) &&
               groupSelectedIds.length >= (groupDialogMode === 'create' ? 49 : 50)
             "
-            class="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-co-white disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex w-full items-center gap-3 rounded-icon p-3 text-left hover:bg-co-white disabled:cursor-not-allowed disabled:opacity-50"
             @click="
               groupSelectedIds = groupSelectedIds.includes(user.id)
                 ? groupSelectedIds.filter((id) => id !== user.id)
@@ -2329,7 +2329,7 @@ onUnmounted(() => {
       v-if="contextMenu"
       ref="contextMenuElement"
       id="chat-context-menu"
-      class="fixed z-40 min-w-48 rounded-xl border border-traceline bg-white p-1.5 shadow-[0_12px_36px_rgba(23,34,56,.18)]"
+      class="fixed z-40 min-w-48 rounded-icon border border-traceline bg-white p-1.5 shadow-[0_12px_36px_rgba(23,34,56,.18)]"
       :style="{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }"
       role="menu"
       aria-label="Opções da conversa"
@@ -2351,7 +2351,7 @@ onUnmounted(() => {
       @click.self="closeRemoveRecentConfirmation"
     >
       <section
-        class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+        class="w-full max-w-sm rounded-card bg-white p-5 shadow-2xl"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="remove-recent-title"
@@ -2398,7 +2398,7 @@ onUnmounted(() => {
       @click.self="closeLeaveConfirmation"
     >
       <section
-        class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+        class="w-full max-w-sm rounded-card bg-white p-5 shadow-2xl"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="leave-conversation-title"
