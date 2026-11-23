@@ -9,6 +9,7 @@ import {
 } from '../services/posts'
 import { getUserProfile } from '../../auth/services/auth'
 import { currentUser, saveSession } from '../../../shared/services/session'
+import PageHeader from '../components/PageHeader.vue'
 
 interface PostComment {
   id: string
@@ -222,20 +223,12 @@ onMounted(loadPosts)
     class="flex w-full flex-col gap-6 bg-co-white px-page-gutter py-8"
     aria-labelledby="publicacoes-titulo"
   >
-    <header class="flex flex-col gap-2.5">
-      <p class="text-h6 font-medium text-co-blue">
-        CONECTA · PUBLICAÇÕES
-      </p>
-
-      <h1 id="publicacoes-titulo" class="text-title font-semibold text-co-blue">
-        Feed estudantil
-      </h1>
-
-      <p class="text-h5 font-medium text-text-2">
-        Compartilhe ideias, tire dúvidas e descubra o que outros estudantes
-        estão fazendo.
-      </p>
-    </header>
+    <PageHeader
+      eyebrow="PUBLICAÇÕES"
+      title="Feed estudantil"
+      description="Compartilhe ideias, tire dúvidas e descubra o que outros estudantes estão fazendo."
+      id="publicacoes-titulo"
+    />
 
     <div
       v-if="errorMessage"

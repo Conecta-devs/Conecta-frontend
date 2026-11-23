@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // O estado "em breve" é deliberado: não há endpoint de comunidades no backend.
+import PageHeader from '../components/PageHeader.vue'
 </script>
 
 <template>
@@ -7,18 +8,12 @@
     class="flex w-full flex-col gap-6 bg-co-white px-page-gutter py-8"
     aria-labelledby="comunidades-titulo"
   >
-    <header class="flex flex-col items-start gap-[10px]">
-      <p class="m-0 text-h6 leading-4 font-medium text-co-blue">CONECTA · COMUNIDADES</p>
-
-      <h1 id="comunidades-titulo" class="m-0 text-title font-semibold text-co-blue">
-        Comunidades
-      </h1>
-
-      <p class="m-0 text-h5 font-medium text-text-2">
-        Encontre estudantes com interesses em comum, compartilhe conhecimentos e participe de
-        comunidades de estudo.
-      </p>
-    </header>
+    <PageHeader
+      eyebrow="COMUNIDADES"
+      title="Comunidades"
+      description="Encontre estudantes com interesses em comum, compartilhe conhecimentos e participe de comunidades de estudo."
+      id="comunidades-titulo"
+    />
 
     <section
       class="flex h-[180px] w-full flex-col items-center justify-center gap-4 rounded-card border border-traceline bg-co-white p-6 text-center"

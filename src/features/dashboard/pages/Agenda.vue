@@ -14,6 +14,7 @@ import {
     type AgendaKind,
 } from '../services/agenda'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
+import PageHeader from '../components/PageHeader.vue'
 import arrowRight from '../assets/agenda/arrow-right.svg'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
 import { getUserProfile } from '../../auth/services/auth'
@@ -291,22 +292,21 @@ onMounted(loadAgenda)
         class="flex w-full min-w-0 flex-col gap-6 bg-co-white px-page-gutter py-8"
         aria-labelledby="agenda-titulo"
     >
-        <div class="flex flex-wrap items-end gap-6">
-            <div class="flex min-w-0 flex-1 flex-col gap-2.5">
-                <p class="text-h6 font-medium text-co-blue">CONECTA · AGENDA</p>
-                <h1 id="agenda-titulo" class="text-title font-semibold text-co-blue">Agenda</h1>
-                <p class="text-h5 font-medium text-text-2">
-                    Encontros, eventos e conversas da comunidade estudantil.
-                </p>
-            </div>
-
-            <button type="button"
-                class="inline-flex h-[50px] w-[210px] shrink-0 items-center justify-center gap-[15px] rounded-button bg-co-blue px-10 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
-                @click="beginCreate">
-                Criar encontro
-                <img :src="arrowRight" alt="" class="block h-[12px] w-4 max-w-none" />
-            </button>
-        </div>
+        <PageHeader
+            eyebrow="AGENDA"
+            title="Agenda"
+            description="Encontros, eventos e conversas da comunidade estudantil."
+            id="agenda-titulo"
+        >
+            <template #actions>
+                <button type="button"
+                    class="inline-flex h-[50px] w-[210px] shrink-0 items-center justify-center gap-[15px] rounded-button bg-co-blue px-10 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+                    @click="beginCreate">
+                    Criar encontro
+                    <img :src="arrowRight" alt="" class="block h-[12px] w-4 max-w-none" />
+                </button>
+            </template>
+        </PageHeader>
 
         <p v-if="identityWarning"
             class="rounded-card border border-traceline bg-s-coral px-4 py-3 text-h6 font-medium text-co-blue"
