@@ -22,6 +22,7 @@ import arrowRight from '../assets/agenda/arrow-right.svg'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
 import { getUserProfile } from '../../auth/services/auth'
 import { currentUser, saveSession } from '../../../shared/services/session'
+import { formatDateTime, isOrganizer } from '../utils/format'
 
 interface AgendaForm {
     title: string
@@ -68,20 +69,6 @@ function kindLabel(item: AgendaItem): string {
 
 function formatLabel(item: AgendaItem): string {
     return item.format === 'in_person' ? 'Presencial' : 'Online'
-}
-
-function isOrganizer(item: AgendaItem): boolean {
-    return Boolean(currentUser.user?.sub) && item.organizerId === currentUser.user?.sub
-}
-
-function formatDateTime(value: string): string {
-    const date = new Date(value)
-    if (!Number.isFinite(date.getTime())) return 'Data indisponível'
-
-    return new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(date)
 }
 
 function toDateTimeLocal(value: string): string {
@@ -147,7 +134,7 @@ function beginCreate() {
 }
 
 function beginEdit(item: AgendaItem) {
-    if (!isOrganizer(item)) return
+    if (!isOrganizer(item, currentUser.user?.sub)) return
 
     form.value = {
         title: item.title,
@@ -241,7 +228,7 @@ async function saveAgendaItem() {
 }
 
 function cancelItem(item: AgendaItem) {
-    if (!isOrganizer(item) || cancellingAgendaId.value) return
+    if (!isOrganizer(item, currentUser.user?.sub) || cancellingAgendaId.value) return
 
     agendaToCancel.value = item
 }
@@ -255,7 +242,7 @@ function closeCancelModal() {
 async function confirmCancelAgenda() {
     const item = agendaToCancel.value
 
-    if (!item || !isOrganizer(item) || cancellingAgendaId.value) return
+    if (!item || !isOrganizer(item, currentUser.user?.sub) || cancellingAgendaId.value) return
 
     cancellingAgendaId.value = item.id
     loadError.value = ''
@@ -375,7 +362,7 @@ onMounted(loadAgenda)
                         </p>
                     </div>
 
-                    <p v-if="isOrganizer(item)" class="text-h6 font-medium text-text-2">
+                    <p v-if="isOrganizer(item, currentUser.user?.sub)" class="text-h6 font-medium text-text-2">
                         Organizado por você
                     </p>
                 </div>
@@ -386,12 +373,12 @@ onMounted(loadAgenda)
                         @click="openDetails(item)">
                         Detalhes
                     </button>
-                    <button v-if="isOrganizer(item)" type="button"
+                    <button v-if="isOrganizer(item, currentUser.user?.sub)" type="button"
                         class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
                         @click="beginEdit(item)">
                         Editar
                     </button>
-                    <button v-if="isOrganizer(item)" type="button"
+                    <button v-if="isOrganizer(item, currentUser.user?.sub)" type="button"
                         class="h-[50px] w-[150px] rounded-button border border-co-coral bg-co-white text-h5 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:opacity-50"
                         :disabled="cancellingAgendaId === item.id" @click="cancelItem(item)">
                         {{ cancellingAgendaId === item.id ? 'Cancelando...' : 'Cancelar' }}

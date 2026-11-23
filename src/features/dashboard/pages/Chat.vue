@@ -38,6 +38,7 @@ import {
   type ChatSocketStatus,
 } from '../services/chatSocket'
 import { currentUser } from '../../../shared/services/session'
+import { getInitials } from '../utils/format'
 import AsyncState from '../components/AsyncState.vue'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
@@ -324,16 +325,6 @@ const availableUsersNotInFriends = computed(() =>
     return !conversation || hiddenRecentConversationIds.value.includes(conversation.id)
   }),
 )
-
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toUpperCase()
-}
 
 function formatTime(value: string): string {
   const date = new Date(value)

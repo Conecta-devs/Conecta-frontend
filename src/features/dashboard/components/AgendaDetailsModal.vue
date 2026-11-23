@@ -10,6 +10,7 @@ import {
   type AgendaParticipation,
 } from '../services/agenda'
 import { currentUser } from '../../../shared/services/session'
+import { formatDateTime, isOrganizer } from '../utils/format'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
 import AsyncState from './AsyncState.vue'
 import AppModal from './AppModal.vue'
@@ -55,20 +56,6 @@ type Entry = {
 }
 
 const entries = ref<Entry[]>([])
-
-function isOrganizer(item: AgendaItem): boolean {
-  return Boolean(currentUser.user?.sub) && item.organizerId === currentUser.user?.sub
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value)
-  if (!Number.isFinite(date.getTime())) return 'Data indisponível'
-
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
-}
 
 let loadToken = 0
 
@@ -213,7 +200,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
             </div>
 
             <span
-              v-if="isOrganizer(entry.item)"
+              v-if="isOrganizer(entry.item, currentUser.user?.sub)"
               class="shrink-0 rounded-md bg-s-coral px-2.5 py-1.5 text-h6 font-medium text-co-blue"
             >
               Organizado por você
@@ -308,7 +295,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
           </div>
 
           <footer
-            v-if="showOrganizerActions && isOrganizer(entry.item)"
+            v-if="showOrganizerActions && isOrganizer(entry.item, currentUser.user?.sub)"
             class="flex flex-wrap justify-end gap-2 border-t border-traceline pt-4"
           >
             <button
