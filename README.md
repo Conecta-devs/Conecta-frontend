@@ -54,6 +54,8 @@ API_PROXY_TARGET=http://localhost:3000
 
 `VITE_API_BASE_URL` é pública e incluída no bundle; informe somente a URL base da API. O valor padrão usa o proxy local do Vite. `API_PROXY_TARGET` configura apenas o destino desse proxy e não é exposta ao navegador. Tokens privados, credenciais do MongoDB e chaves administrativas devem permanecer no back-end.
 
+Na hospedagem em produção no Vercel, `vercel.json` encaminha `/api/*` e `/socket.io/*` ao backend configurado no Render. Essas duas rotas são necessárias para o REST do chat e para as mensagens em tempo real.
+
 Para iniciar o ambiente de desenvolvimento web, utilize:
 
 ```bash
