@@ -314,12 +314,12 @@ onMounted(loadAgenda)
             {{ identityWarning }}
         </p>
         <p v-if="successMessage"
-            class="rounded-card border border-traceline bg-tree-bg px-4 py-3 text-h6 font-medium text-text-1"
+            class="rounded-card border border-feedback-success bg-feedback-success/10 px-4 py-3 text-h6 font-medium text-feedback-success"
             role="status">
             {{ successMessage }}
         </p>
         <p v-if="loadError" role="alert"
-            class="rounded-card border border-co-coral bg-s-coral px-4 py-3 text-h6 font-medium text-co-coral">
+            class="rounded-card border border-danger bg-danger/10 px-4 py-3 text-h6 font-medium text-danger">
             {{ loadError }}
         </p>
 

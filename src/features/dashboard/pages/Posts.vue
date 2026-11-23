@@ -240,7 +240,7 @@ onMounted(loadPosts)
     <div
       v-if="errorMessage"
       role="alert"
-      class="rounded-card border border-co-coral bg-s-coral/40 px-5 py-4 text-h6 text-text-1"
+      class="rounded-card border border-danger bg-danger/10 px-5 py-4 text-h6 text-danger"
     >
       {{ errorMessage }}
     </div>
@@ -248,7 +248,7 @@ onMounted(loadPosts)
     <div
       v-if="successMessage"
       role="status"
-      class="rounded-card border border-tree-green bg-tree-bg px-5 py-4 text-h6 text-text-1"
+      class="rounded-card border border-feedback-success bg-feedback-success/10 px-5 py-4 text-h6 text-feedback-success"
     >
       {{ successMessage }}
     </div>

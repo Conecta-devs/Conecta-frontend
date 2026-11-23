@@ -1716,7 +1716,7 @@ onUnmounted(() => {
           <p v-if="usersLoading" class="px-3 py-8 text-center text-h6 leading-normal text-text-2">
             Carregando pessoas...
           </p>
-          <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-h6 leading-normal text-red-600">
+          <p v-else-if="usersError" role="alert" class="px-3 py-8 text-center text-h6 leading-normal text-danger">
             {{ usersError }}
             <button class="ml-1 underline" type="button" @click="loadPeople(true)">
               Tentar novamente
@@ -1792,7 +1792,7 @@ onUnmounted(() => {
               {{ usersLoadingMore ? 'Carregando...' : 'Carregar mais pessoas' }}
             </button>
           </template>
-          <p v-if="startConversationError" role="alert" class="px-3 py-3 text-h6 leading-normal text-red-600">
+          <p v-if="startConversationError" role="alert" class="px-3 py-3 text-h6 leading-normal text-danger">
             {{ startConversationError }}
           </p>
         </div>
@@ -1804,7 +1804,7 @@ onUnmounted(() => {
           <p
             v-else-if="conversationsError"
             role="alert"
-            class="px-3 py-8 text-center text-h6 leading-normal text-red-600"
+            class="px-3 py-8 text-center text-h6 leading-normal text-danger"
           >
             {{ conversationsError }}
             <button class="ml-1 underline" type="button" @click="loadConversationList()">
@@ -2013,7 +2013,7 @@ onUnmounted(() => {
               Adicionar
             </button>
             <button
-              class="border-0 bg-transparent text-[10px] text-red-600 underline"
+              class="border-0 bg-transparent text-[10px] text-danger underline"
               type="button"
               @click="requestLeaveCurrentGroup"
             >
@@ -2021,7 +2021,7 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
-        <p v-if="groupManagementError" role="alert" class="mb-2 text-[10px] text-red-600">
+        <p v-if="groupManagementError" role="alert" class="mb-2 text-[10px] text-danger">
           {{ groupManagementError }}
         </p>
         <div
@@ -2038,7 +2038,7 @@ onUnmounted(() => {
           </span>
           <button
             v-if="isCurrentUserAdmin && member.userId !== currentUser.user?.sub"
-            class="shrink-0 border-0 bg-transparent text-[10px] text-red-600 underline"
+            class="shrink-0 border-0 bg-transparent text-[10px] text-danger underline"
             type="button"
             @click="removeGroupMember(member)"
           >
@@ -2066,7 +2066,7 @@ onUnmounted(() => {
             >
               Carregando mensagens...
             </p>
-            <p v-if="messagesError" role="alert" class="text-center text-h6 leading-normal text-red-700">
+            <p v-if="messagesError" role="alert" class="text-center text-h6 leading-normal text-danger">
               {{ messagesError }}
               <button
                 class="ml-1 underline"
@@ -2144,7 +2144,7 @@ onUnmounted(() => {
             class="flex min-h-[84px] shrink-0 items-center gap-3 px-5 py-4 max-[620px]:px-4"
             @submit.prevent="sendMessage()"
           >
-            <p v-if="sendError" role="alert" class="mb-2 text-h6 leading-normal text-red-600">
+            <p v-if="sendError" role="alert" class="mb-2 text-h6 leading-normal text-danger">
               {{ sendError }}
             </p>
             <p v-if="sendingMessage" aria-live="polite" class="mb-2 text-h6 leading-normal text-text-2">
@@ -2246,7 +2246,7 @@ onUnmounted(() => {
             @input="handleGroupSearchInput"
           />
         </label>
-        <p v-if="groupDialogError" role="alert" class="my-2 text-xs text-red-600">
+        <p v-if="groupDialogError" role="alert" class="my-2 text-xs text-danger">
           {{ groupDialogError }}
         </p>
         <div class="mt-2 min-h-0 flex-1 overflow-y-auto">
@@ -2366,7 +2366,7 @@ onUnmounted(() => {
           A conversa e as mensagens continuam no servidor. Para uma conversa individual, você pode
           restaurá-la ao iniciar uma conversa com essa pessoa novamente.
         </p>
-        <p v-if="removeRecentConfirmationError" class="mb-0 mt-3 text-xs text-red-600" role="alert">
+        <p v-if="removeRecentConfirmationError" class="mb-0 mt-3 text-xs text-danger" role="alert">
           {{ removeRecentConfirmationError }}
         </p>
         <div class="mt-5 flex justify-end gap-2">
@@ -2412,7 +2412,7 @@ onUnmounted(() => {
           Você deixará “{{ leaveConfirmationConversation.name }}” e não terá mais acesso à conversa.
           Isso não apaga o grupo nem as mensagens. Um administrador poderá adicionar você novamente.
         </p>
-        <p v-if="leaveConfirmationError" class="mb-0 mt-3 text-xs text-red-600" role="alert">
+        <p v-if="leaveConfirmationError" class="mb-0 mt-3 text-xs text-danger" role="alert">
           {{ leaveConfirmationError }}
         </p>
         <div class="mt-5 flex justify-end gap-2">
