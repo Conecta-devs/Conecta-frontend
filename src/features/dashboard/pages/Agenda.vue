@@ -14,6 +14,8 @@ import {
     type AgendaKind,
 } from '../services/agenda'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
+import AppModal from '../components/AppModal.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import PageHeader from '../components/PageHeader.vue'
 import AsyncState from '../components/AsyncState.vue'
 import arrowRight from '../assets/agenda/arrow-right.svg'
@@ -398,21 +400,20 @@ onMounted(loadAgenda)
             </article>
         </div>
 
-        <div v-if="formOpen"
-            class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-[#101827]/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-            @click.self="closeForm">
-            <section role="dialog" aria-modal="true" aria-labelledby="agenda-form-title"
-                class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-card border border-traceline bg-co-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]">
-                <header class="flex items-center justify-between gap-4 border-b border-traceline px-5 py-4 sm:px-7">
-                    <h2 id="agenda-form-title" class="text-h3 font-semibold text-co-blue">
-                        {{ isEditing ? 'Editar encontro' : 'Criar encontro' }}
-                    </h2>
-                    <button type="button"
-                        class="rounded-button px-3 py-2 text-h6 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
-                        :disabled="formSaving" @click="closeForm">
-                        Fechar
-                    </button>
-                </header>
+        <AppModal
+            v-if="formOpen"
+            :title="isEditing ? 'Editar encontro' : 'Criar encontro'"
+            labelled-by="agenda-form-title"
+            max-width="2xl"
+            @backdrop="closeForm"
+        >
+            <template #header-actions>
+                <button type="button"
+                    class="rounded-button px-3 py-2 text-h6 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+                    :disabled="formSaving" @click="closeForm">
+                    Fechar
+                </button>
+            </template>
 
                 <form class="flex flex-col gap-4 px-5 py-5 sm:px-7" @submit.prevent="saveAgendaItem">
                     <label for="agenda-title" class="block text-h6 font-medium text-text-1">
@@ -487,8 +488,7 @@ onMounted(loadAgenda)
                         </button>
                     </footer>
                 </form>
-            </section>
-        </div>
+        </AppModal>
 
         <AgendaDetailsModal
             v-if="detailsOpen"
@@ -498,40 +498,26 @@ onMounted(loadAgenda)
             @edit="beginEdit"
             @cancel="cancelItem" />
 
-        <div v-if="agendaToCancel"
-            class="fixed inset-0 z-[70] flex items-center justify-center bg-[#101827]/55 p-4 backdrop-blur-sm"
-            @click.self="closeCancelModal">
-            <section role="alertdialog" aria-modal="true" aria-labelledby="cancel-agenda-title"
-                aria-describedby="cancel-agenda-description"
-                class="w-full max-w-md rounded-card border border-traceline bg-co-white p-6 shadow-[0_30px_90px_rgba(22,31,55,0.22)]">
-                <div class="mb-4 grid size-12 place-items-center rounded-icon bg-s-coral text-co-coral">
-                    <font-awesome-icon :icon="faExclamationCircle" size="lg" />
-                </div>
-
-                <h2 id="cancel-agenda-title" class="text-h3 font-semibold text-co-blue">
-                    Cancelar encontro?
-                </h2>
-
-                <p id="cancel-agenda-description" class="mt-3 break-words text-h6 font-medium leading-6 text-text-2">
-                    Tem certeza de que deseja cancelar
-                    <strong class="text-co-blue">{{ agendaToCancel.title }}</strong>?
-                    Essa ação não poderá ser desfeita por esta tela.
-                </p>
-
-                <footer class="mt-6 flex flex-wrap justify-end gap-3">
-                    <button type="button"
-                        class="h-[50px] rounded-button border border-traceline bg-co-white px-4 text-h5 font-medium text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue disabled:opacity-50"
-                        :disabled="cancellingAgendaId !== null" @click="closeCancelModal">
-                        Voltar
-                    </button>
-
-                    <button type="button"
-                        class="h-[50px] rounded-button bg-co-coral px-4 text-h5 font-medium text-co-white transition-colors hover:bg-co-coral/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:cursor-not-allowed disabled:opacity-50"
-                        :disabled="cancellingAgendaId !== null" @click="confirmCancelAgenda">
-                        {{ cancellingAgendaId === agendaToCancel.id ? 'Cancelando...' : 'Sim, cancelar' }}
-                    </button>
-                </footer>
-            </section>
-        </div>
+        <ConfirmDialog
+            v-if="agendaToCancel"
+            title="Cancelar encontro?"
+            cancel-label="Voltar"
+            :confirm-label="cancellingAgendaId === agendaToCancel.id ? 'Cancelando...' : 'Sim, cancelar'"
+            labelled-by="cancel-agenda-title"
+            described-by="cancel-agenda-description"
+            danger
+            :busy="cancellingAgendaId !== null"
+            @cancel="closeCancelModal"
+            @confirm="confirmCancelAgenda"
+        >
+            <template #icon>
+                <font-awesome-icon :icon="faExclamationCircle" size="lg" />
+            </template>
+            <template #description>
+                Tem certeza de que deseja cancelar
+                <strong class="text-co-blue">{{ agendaToCancel.title }}</strong>?
+                Essa ação não poderá ser desfeita por esta tela.
+            </template>
+        </ConfirmDialog>
     </section>
 </template>

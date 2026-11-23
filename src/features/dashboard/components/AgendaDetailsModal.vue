@@ -12,6 +12,7 @@ import {
 import { currentUser } from '../../../shared/services/session'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
 import AsyncState from './AsyncState.vue'
+import AppModal from './AppModal.vue'
 
 /**
  * Popup de detalhes de encontros da Agenda.
@@ -157,16 +158,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-[#101827]/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-    @click.self="emit('close')"
+  <AppModal
+    labelled-by="agenda-details-title"
+    max-width="2xl"
+    @backdrop="emit('close')"
   >
-    <section
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="agenda-details-title"
-      class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-card border border-traceline bg-co-white shadow-[0_30px_90px_rgba(22,31,55,0.22)] sm:max-h-[calc(100dvh-2rem)]"
-    >
       <header
         class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-traceline bg-co-white px-5 py-4 sm:px-7"
       >
@@ -332,6 +328,5 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
           </footer>
         </article>
       </div>
-    </section>
-  </div>
+  </AppModal>
 </template>
