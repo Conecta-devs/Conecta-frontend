@@ -224,9 +224,9 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 
 async function requestJson(path: `/${string}`, init: RequestInit): Promise<unknown> {
   const response = await fetchProtected(apiUrl(path), {
+    ...init,
     credentials: 'include',
     headers: { Accept: 'application/json', ...init.headers },
-    ...init,
   })
   await ensureSuccessfulResponse(response)
   if (response.status === 204) return null
