@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/socket.io/",
+      "destination": "https://conecta-backend-qt41.onrender.com/socket.io/"
+    },
+    {
       "source": "/socket.io/:path*",
       "destination": "https://conecta-backend-qt41.onrender.com/socket.io/:path*"
     },
