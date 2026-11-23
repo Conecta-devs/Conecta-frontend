@@ -2,15 +2,15 @@
   "rewrites": [
     {
       "source": "/socket.io/",
-      "destination": "https://conecta-backend-qt41.onrender.com/socket.io/"
+      "destination": "https://conecta-backend-eight.vercel.app/socket.io/"
     },
     {
       "source": "/socket.io/:path*",
-      "destination": "https://conecta-backend-qt41.onrender.com/socket.io/:path*"
+      "destination": "https://conecta-backend-eight.vercel.app/socket.io/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://conecta-backend-qt41.onrender.com/:path*"
+      "destination": "https://conecta-backend-eight.vercel.app/:path*"
     },
     {
       "source": "/(.*)",
