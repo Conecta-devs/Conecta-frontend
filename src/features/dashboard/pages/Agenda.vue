@@ -13,6 +13,7 @@ import {
     type AgendaItemInput,
     type AgendaKind,
 } from '../services/agenda'
+import AgendaDetailsButton from '../components/AgendaDetailsButton.vue'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
 import AppModal from '../components/AppModal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -376,11 +377,7 @@ onMounted(loadAgenda)
                 </div>
 
                 <div class="flex shrink-0 flex-wrap items-center gap-2.5">
-                    <button type="button"
-                        class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
-                        @click="openDetails(item)">
-                        Detalhes
-                    </button>
+                    <AgendaDetailsButton @click="openDetails(item)" />
                     <button v-if="isOrganizer(item, currentUser.user?.sub)" type="button"
                         class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
                         @click="beginEdit(item)">

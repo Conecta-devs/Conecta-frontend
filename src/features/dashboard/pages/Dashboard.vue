@@ -7,9 +7,9 @@ import {
   type AgendaItem,
   type AgendaParticipation,
 } from '../services/agenda'
+import AgendaDetailsButton from '../components/AgendaDetailsButton.vue'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
 import DashboardCalendar from '../components/DashboardCalendar.vue'
-import AppButton from '../../../shared/ui/AppButton.vue'
 import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
 import AppIcon from '../../../shared/ui/AppIcon.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
@@ -360,16 +360,7 @@ const conversations = [
           </div>
 
           <div class="ml-auto shrink-0 max-[620px]:ml-0">
-            <AppButton
-              variant="coral"
-              :width="218"
-              :height="50"
-              centered
-              :arrow="false"
-              @click="openEventDetails(item)"
-            >
-              Detalhes
-            </AppButton>
+            <AgendaDetailsButton @click="openEventDetails(item)" />
           </div>
         </article>
       </div>
