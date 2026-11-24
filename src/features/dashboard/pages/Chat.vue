@@ -2417,7 +2417,7 @@ onUnmounted(() => {
             </div>
             <div
               v-if="isOtherTyping"
-              class="sticky bottom-0 z-10 flex shrink-0 justify-start bg-white py-1 text-h6 leading-normal text-text-2"
+              class="flex shrink-0 justify-start py-1 text-h6 leading-normal text-text-2"
               role="status"
               aria-live="polite"
             >
