@@ -59,10 +59,10 @@ const availableUsers = ref<ChatUserSuggestion[]>([])
 const selectedConversation = ref<ChatConversation | null>(null)
 const messageText = ref('')
 const TYPING_TTL_MS = 2_000
-const TYPING_EMIT_INTERVAL_MS = 1_000
+const TYPING_EMIT_INTERVAL_MS = 500
 const typingByConversation = ref<Record<string, Record<string, boolean>>>({})
 const typingTimers = new Map<string, ReturnType<typeof setTimeout>>()
-let lastTypingEmitAt = 0
+let typingHeartbeat: ReturnType<typeof setInterval> | null = null
 const searchText = ref('')
 const activeSection = ref<ChatSection>('recent')
 const conversationsLoading = ref(false)
@@ -282,6 +282,7 @@ function clearChatState() {
   conversations.value = []
   messages.value = []
   clearTyping()
+  stopTypingHeartbeat()
   availableUsers.value = []
   hiddenRecentConversationIds.value = []
   selectedConversation.value = null
@@ -332,6 +333,7 @@ function disposeCurrentChatSocket() {
   disposeChatSocket = null
   chatSocket = null
   clearTyping()
+  stopTypingHeartbeat()
   refreshChatSocketAuthentication = null
   joinedConversationIds.clear()
   joiningConversationIds.clear()
@@ -701,14 +703,29 @@ function handleSocketTyping(value: unknown) {
   markTyping(value.conversationId, value.userId)
 }
 
-function handleTypingInput() {
+function emitTyping() {
   const conversation = selectedConversation.value
   if (!conversation || !messageText.value.trim() || !chatSocket?.connected) return
-
-  const now = Date.now()
-  if (now - lastTypingEmitAt < TYPING_EMIT_INTERVAL_MS) return
-  lastTypingEmitAt = now
   chatSocket.emit('chat:typing', { conversationId: conversation.id })
+}
+
+function stopTypingHeartbeat() {
+  if (!typingHeartbeat) return
+  clearInterval(typingHeartbeat)
+  typingHeartbeat = null
+}
+
+function handleTypingInput() {
+  const conversation = selectedConversation.value
+  if (!conversation || !messageText.value.trim() || !chatSocket?.connected) {
+    stopTypingHeartbeat()
+    return
+  }
+
+  emitTyping()
+  if (!typingHeartbeat) {
+    typingHeartbeat = setInterval(emitTyping, TYPING_EMIT_INTERVAL_MS)
+  }
 }
 
 const isOtherTyping = computed(() => {
@@ -1775,8 +1792,15 @@ watch(
 
 watch(
   () => selectedConversation.value?.id,
-  () => clearTyping(),
+  () => {
+    clearTyping()
+    stopTypingHeartbeat()
+  },
 )
+
+watch(messageText, (value) => {
+  if (!value.trim()) stopTypingHeartbeat()
+})
 
 onMounted(() => {
   const requested = route.query.conversation
@@ -1811,6 +1835,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleContextMenuViewportChange, true)
   stopMessagePolling()
   clearTyping()
+  stopTypingHeartbeat()
   conversationsController?.abort()
   messagesController?.abort()
   usersController?.abort()
