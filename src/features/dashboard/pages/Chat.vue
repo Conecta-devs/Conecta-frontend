@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { Socket } from 'socket.io-client'
 import {
   faArrowLeft,
@@ -47,6 +48,10 @@ type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
   | { type: 'conversation'; conversation: ChatConversation }
   | { type: 'user'; user: ChatUserSuggestion }
+
+const route = useRoute()
+const router = useRouter()
+const requestedConversationId = ref<string | null>(null)
 
 const conversations = ref<ChatConversation[]>([])
 const messages = ref<ChatMessage[]>([])
@@ -1139,6 +1144,19 @@ async function loadConversationList(preserveSelection = false) {
     if (chatSocket?.connected) {
       for (const conversation of result) void joinConversationRoom(conversation.id)
     }
+    if (requestedConversationId.value) {
+      const requested = result.find(
+        (conversation) =>
+          conversation.id === requestedConversationId.value &&
+          !hiddenRecentConversationIds.value.includes(conversation.id),
+      )
+      requestedConversationId.value = null
+      await router.replace({ query: {} })
+      if (requested) {
+        selectConversation(requested)
+        return
+      }
+    }
     if (
       preserveSelection &&
       selectedConversation.value &&
@@ -1667,6 +1685,10 @@ watch(
 )
 
 onMounted(() => {
+  const requested = route.query.conversation
+  if (typeof requested === 'string' && requested) {
+    requestedConversationId.value = requested
+  }
   try {
     loadHiddenRecentConversations(currentUser.user?.sub ?? null)
   } catch (error) {

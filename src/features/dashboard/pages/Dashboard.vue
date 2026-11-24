@@ -7,18 +7,22 @@ import {
   type AgendaItem,
   type AgendaParticipation,
 } from '../services/agenda'
+import { listChatConversations, type ChatConversation } from '../services/chat'
 import AgendaDetailsButton from '../components/AgendaDetailsButton.vue'
 import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
 import DashboardCalendar from '../components/DashboardCalendar.vue'
 import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
-import AppIcon from '../../../shared/ui/AppIcon.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
+import { getInitials } from '../utils/format'
 
 const agendaItems = ref<AgendaItem[]>([])
 const participations = ref<Record<string, AgendaParticipation>>({})
 const upcomingEvents = ref<AgendaItem[]>([])
 const agendaLoading = ref(true)
 const agendaError = ref(false)
+const chatConversations = ref<ChatConversation[]>([])
+const chatLoading = ref(true)
+const chatError = ref(false)
 const detailsOpen = ref(false)
 const detailsItems = ref<AgendaItem[]>([])
 const detailsHeading = ref<string | undefined>()
@@ -48,33 +52,52 @@ async function loadParticipations(items: AgendaItem[], skipId?: string) {
 }
 
 onMounted(async () => {
-  try {
-    const items = await listAgendaItems()
+  const loadAgenda = async () => {
+    try {
+      const items = await listAgendaItems()
 
-    agendaItems.value = items
+      agendaItems.value = items
 
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
 
-    upcomingEvents.value = items
-      .filter((item) => {
-        const start = Date.parse(item.startsAt)
+      upcomingEvents.value = items
+        .filter((item) => {
+          const start = Date.parse(item.startsAt)
 
-        return (
-          item.cancelledAt == null &&
-          Number.isFinite(start) &&
-          start >= startOfToday.getTime()
-        )
-      })
-      .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt))
+          return (
+            item.cancelledAt == null &&
+            Number.isFinite(start) &&
+            start >= startOfToday.getTime()
+          )
+        })
+        .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt))
 
-    void loadParticipations(items)
-  } catch (error) {
-    console.error('Erro ao carregar os próximos encontros:', error)
-    agendaError.value = true
-  } finally {
-    agendaLoading.value = false
+      void loadParticipations(items)
+    } catch (error) {
+      console.error('Erro ao carregar os próximos encontros:', error)
+      agendaError.value = true
+    } finally {
+      agendaLoading.value = false
+    }
   }
+
+  const loadConversations = async () => {
+    try {
+      const result = await listChatConversations()
+
+      chatConversations.value = [...result]
+        .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+        .slice(0, 2)
+    } catch (error) {
+      console.error('Erro ao carregar as conversas recentes:', error)
+      chatError.value = true
+    } finally {
+      chatLoading.value = false
+    }
+  }
+
+  await Promise.allSettled([loadAgenda(), loadConversations()])
 })
 
 function openEventDetails(item: AgendaItem) {
@@ -140,37 +163,27 @@ function eventTimeRange(item: AgendaItem): string {
   return `${formatHour(item.startsAt)} às ${formatHour(item.endsAt)}`
 }
 
-const communities = [
-  {
-    name: 'Calouros que se ajudam',
-    members: 128,
-    icon: 'coletive',
-    symbolClass: 'bg-s-coral',
-  },
-  {
-    name: 'Grupo de estudos de Cálculo',
-    members: 64,
-    icon: 'book',
-    symbolClass: 'bg-traceline',
-  },
-] as const
+function relativeTime(value: string): string {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return ''
 
-const conversations = [
-  {
-    name: 'Marina Costa',
-    preview: 'Você vai ao encontro dos calouros?',
-    time: 'Há 5 min',
-    initials: 'MC',
-    avatarClass: 'bg-s-coral',
-  },
-  {
-    name: 'Grupo de estudos de Cálculo',
-    preview: 'Pedro: podemos revisar limites juntos.',
-    time: 'Há 20 min',
-    initials: 'GC',
-    avatarClass: 'bg-traceline',
-  },
-]
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60_000)
+  if (minutes < 1) return 'Agora'
+  if (minutes < 60) return `Há ${minutes} min`
+
+  const today = new Date()
+  if (date.toDateString() === today.toDateString()) return formatHour(value)
+
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) return 'Ontem'
+
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')
+}
+
+function conversationPreview(conversation: ChatConversation): string {
+  return conversation.lastMessage?.content?.trim() || 'Nenhuma mensagem ainda'
+}
 </script>
 
 <template>
@@ -203,30 +216,11 @@ const conversations = [
           </header>
 
           <div class="flex flex-col gap-[10px]">
-            <RouterLink
-              v-for="community in communities"
-              :key="community.name"
-              to="/dashboard/communities"
-              class="community-card flex h-28 items-center gap-5 rounded-2xl border border-traceline bg-white p-6 no-underline transition-colors hover:border-s-blue"
+            <p
+              class="rounded-2xl border border-dashed border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
             >
-              <span
-                class="community-symbol grid size-14 shrink-0 place-items-center rounded-2xl"
-                :class="community.symbolClass"
-              >
-                <AppIcon :variant="community.icon" :width="24" class="text-co-blue" />
-              </span>
-
-              <span class="min-w-0 flex-1">
-                <strong class="block truncate text-[18px] leading-[21px] font-medium text-text-1">
-                  {{ community.name }}
-                </strong>
-                <span class="mt-2 block truncate text-[14px] leading-4 font-medium text-text-2">
-                  {{ community.members }} membros
-                </span>
-              </span>
-
-              <AppDashboardIcon name="chevron-right" :size="18" class="text-text-2" />
-            </RouterLink>
+              Ainda não há comunidades por aqui.
+            </p>
           </div>
         </section>
 
@@ -244,35 +238,55 @@ const conversations = [
           </header>
 
           <div class="flex flex-col gap-[10px]">
-            <RouterLink
-              v-for="conversation in conversations"
-              :key="conversation.name"
-              to="/dashboard/chat"
-              class="conversation-item flex h-28 items-center gap-5 rounded-2xl border border-traceline bg-white p-6 no-underline transition-colors hover:border-s-blue"
+            <p
+              v-if="chatLoading"
+              class="rounded-2xl border border-dashed border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
             >
-              <span
-                class="profile-avatar grid size-12 shrink-0 place-items-center rounded-full text-[14px] leading-4 font-medium text-co-blue"
-                :class="conversation.avatarClass"
+              Carregando conversas...
+            </p>
+            <p
+              v-else-if="chatError"
+              class="rounded-2xl border border-dashed border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
+            >
+              Não foi possível carregar as conversas.
+            </p>
+            <p
+              v-else-if="chatConversations.length === 0"
+              class="rounded-2xl border border-dashed border-traceline bg-white p-6 text-[14px] leading-4 font-medium text-text-2"
+            >
+              Nenhuma conversa ainda.
+            </p>
+            <template v-else>
+              <RouterLink
+                v-for="conversation in chatConversations"
+                :key="conversation.id"
+                :to="{ path: '/dashboard/chat', query: { conversation: conversation.id } }"
+                class="conversation-item flex h-28 items-center gap-5 rounded-2xl border border-traceline bg-white p-6 no-underline transition-colors hover:border-s-blue"
               >
-                {{ conversation.initials }}
-              </span>
+                <span
+                  class="profile-avatar grid size-12 shrink-0 place-items-center rounded-full text-[14px] leading-4 font-medium text-co-blue"
+                  :class="conversation.category === 'friend' ? 'bg-s-coral' : 'bg-traceline'"
+                >
+                  {{ getInitials(conversation.name) }}
+                </span>
 
-              <span class="min-w-0 flex-1">
-                <span class="flex items-baseline justify-between gap-4">
-                  <strong
-                    class="min-w-0 truncate text-[18px] leading-[21px] font-medium text-text-1"
-                  >
-                    {{ conversation.name }}
-                  </strong>
-                  <time class="shrink-0 text-[14px] leading-4 font-medium text-text-2">
-                    {{ conversation.time }}
-                  </time>
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-baseline justify-between gap-4">
+                    <strong
+                      class="min-w-0 truncate text-[18px] leading-[21px] font-medium text-text-1"
+                    >
+                      {{ conversation.name }}
+                    </strong>
+                    <time class="shrink-0 text-[14px] leading-4 font-medium text-text-2">
+                      {{ relativeTime(conversation.updatedAt) }}
+                    </time>
+                  </span>
+                  <span class="mt-2 block truncate text-[14px] leading-4 font-medium text-text-2">
+                    {{ conversationPreview(conversation) }}
+                  </span>
                 </span>
-                <span class="mt-2 block truncate text-[14px] leading-4 font-medium text-text-2">
-                  {{ conversation.preview }}
-                </span>
-              </span>
-            </RouterLink>
+              </RouterLink>
+            </template>
           </div>
         </section>
       </div>
