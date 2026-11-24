@@ -3,11 +3,34 @@ import { apiUrl } from './api'
 
 const API_URL = apiUrl('/posts')
 
+export interface PostAuthor {
+  id: string | null
+  name: string | null
+  image: string | null
+}
+
+export interface PostComment {
+  id: string
+  postId: string
+  author: PostAuthor
+  content: string
+  createdAt: string
+}
+
 export interface Post {
   id: string
   title: string
   content: string | null
   authorId: string
+  author?: PostAuthor | null
+  likeCount?: number
+  likedByMe?: boolean
+  comments?: PostComment[]
+}
+
+export interface PostLikeResponse {
+  liked: boolean
+  likeCount: number
 }
 
 export interface CreatePostInput {
@@ -29,13 +52,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function isPostAuthor(value: unknown): value is PostAuthor {
+  return (
+    isRecord(value) &&
+    (typeof value.id === 'string' || value.id === null) &&
+    (typeof value.name === 'string' || value.name === null) &&
+    (typeof value.image === 'string' || value.image === null)
+  )
+}
+
+function isPostComment(value: unknown): value is PostComment {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.postId === 'string' &&
+    isPostAuthor(value.author) &&
+    typeof value.content === 'string' &&
+    typeof value.createdAt === 'string'
+  )
+}
+
 function isPost(value: unknown): value is Post {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.title === 'string' &&
     (typeof value.content === 'string' || value.content === null) &&
-    typeof value.authorId === 'string'
+    typeof value.authorId === 'string' &&
+    (value.author === undefined ||
+      value.author === null ||
+      isPostAuthor(value.author)) &&
+    (value.likeCount === undefined || typeof value.likeCount === 'number') &&
+    (value.likedByMe === undefined || typeof value.likedByMe === 'boolean') &&
+    (value.comments === undefined ||
+      (Array.isArray(value.comments) && value.comments.every(isPostComment)))
   )
 }
 
@@ -147,4 +197,41 @@ export async function deletePost(postId: string): Promise<DeletePostResponse> {
     message: data.message,
     id: data.id,
   }
+}
+
+export async function setPostLike(postId: string): Promise<PostLikeResponse> {
+  const response = await fetchProtected(`${API_URL}/${encodeURIComponent(postId)}/like`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  })
+  await ensureSuccessfulResponse(response)
+
+  const data = await readJsonResponse(response)
+  if (!isRecord(data) || typeof data.liked !== 'boolean' || typeof data.likeCount !== 'number') {
+    throw new Error('A resposta da curtida é inválida.')
+  }
+
+  return {
+    liked: data.liked,
+    likeCount: data.likeCount,
+  }
+}
+
+export async function addPostComment(
+  postId: string,
+  content: string,
+): Promise<PostComment> {
+  const response = await fetchProtected(
+    `${API_URL}/${encodeURIComponent(postId)}/comments`,
+    postRequest('POST', { content }),
+  )
+  await ensureSuccessfulResponse(response)
+
+  const data = await readJsonResponse(response)
+  if (!isPostComment(data)) {
+    throw new Error('A resposta do comentário é inválida.')
+  }
+
+  return data
 }

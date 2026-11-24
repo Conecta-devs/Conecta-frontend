@@ -145,10 +145,13 @@ async function saveProfile() {
   const enviarGen = genDisponivel.value || genAlterado.value
 
   try {
+    // `image` vazia não é uma URL válida para a API — omitir o campo evita o 400.
+    const imagem = form.value.image?.trim()
+
     const updated = await updateUserProfile({
       name: form.value.name,
       bio: form.value.bio,
-      image: form.value.image,
+      ...(imagem ? { image: imagem } : {}),
       ...(enviarGen ? { gen: normalizeGenderValue(form.value.gen) } : {}),
     })
 

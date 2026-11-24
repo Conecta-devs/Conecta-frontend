@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import {
+  addPostComment,
   createPost,
   deletePost,
   listPosts,
+  setPostLike,
   updatePost,
   type Post,
 } from '../services/posts'
@@ -34,9 +36,8 @@ const title = ref('')
 const content = ref('')
 const editingPostId = ref<string | null>(null)
 
-// O backend de /posts não expõe curtidas nem comentários. Enquanto não há
-// endpoints, estas interações vivem apenas no cliente desta tela.
 const interactions = ref<Record<string, PostInteraction>>({})
+const pendingInteractions = ref<Record<string, boolean>>({})
 const openCommentsId = ref<string | null>(null)
 const commentDraft = ref('')
 
@@ -47,39 +48,79 @@ function isMyPost(post: Post): boolean {
     post.authorId === currentUser.user?.sub
 }
 
+function authorName(post: Post): string {
+  return post.author?.name?.trim() || 'Estudante'
+}
+
+function authorInitials(post: Post): string {
+  const parts = authorName(post).split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'ES'
+
+  const initials =
+    parts.length > 1
+      ? `${parts[0]?.charAt(0) ?? ''}${parts[parts.length - 1]?.charAt(0) ?? ''}`
+      : (parts[0]?.slice(0, 2) ?? '')
+
+  return initials.toUpperCase() || 'ES'
+}
+
 function syncInteractions(loadedPosts: Post[]) {
   const next: Record<string, PostInteraction> = {}
 
   for (const post of loadedPosts) {
-    next[post.id] = interactions.value[post.id] ?? {
-      liked: false,
-      likeCount: 0,
-      comments: [],
+    next[post.id] = {
+      liked: post.likedByMe ?? false,
+      likeCount: post.likeCount ?? 0,
+      comments: (post.comments ?? []).map((comment) => ({
+        id: comment.id,
+        author: comment.author.name?.trim() || 'Estudante',
+        text: comment.content,
+      })),
     }
   }
 
   interactions.value = next
 }
 
-function ensureInteraction(postId: string): PostInteraction {
-  if (!interactions.value[postId]) {
-    interactions.value[postId] = {
-      liked: false,
-      likeCount: 0,
-      comments: [],
-    }
-  }
-
-  return interactions.value[postId]
+function isInteractionPending(key: string): boolean {
+  return Boolean(pendingInteractions.value[key])
 }
 
-function toggleLike(post: Post) {
-  const interaction = ensureInteraction(post.id)
-  interaction.liked = !interaction.liked
-  interaction.likeCount = Math.max(
-    0,
-    interaction.likeCount + (interaction.liked ? 1 : -1),
+async function withPendingInteraction<T>(
+  key: string,
+  action: () => Promise<T>,
+): Promise<T | null> {
+  if (isInteractionPending(key)) return null
+
+  pendingInteractions.value = { ...pendingInteractions.value, [key]: true }
+  errorMessage.value = ''
+
+  try {
+    return await action()
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Não foi possível concluir a interação. Tente novamente.'
+    return null
+  } finally {
+    const next = { ...pendingInteractions.value }
+    delete next[key]
+    pendingInteractions.value = next
+  }
+}
+
+async function toggleLike(post: Post) {
+  const result = await withPendingInteraction(`like:${post.id}`, () =>
+    setPostLike(post.id),
   )
+  if (!result) return
+
+  const interaction = interactions.value[post.id]
+  if (!interaction) return
+
+  interaction.liked = result.liked
+  interaction.likeCount = result.likeCount
 }
 
 function toggleComments(postId: string) {
@@ -87,14 +128,27 @@ function toggleComments(postId: string) {
   commentDraft.value = ''
 }
 
-function addComment(post: Post) {
+async function addComment(post: Post) {
   const text = commentDraft.value.trim()
   if (!text) return
 
-  ensureInteraction(post.id).comments.push({
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-    author: currentUser.user?.name?.trim() || 'Você',
-    text,
+  const comment = await withPendingInteraction(`comment:${post.id}`, () =>
+    addPostComment(post.id, text),
+  )
+  if (!comment) return
+
+  if (!interactions.value[post.id]) {
+    interactions.value[post.id] = {
+      liked: false,
+      likeCount: 0,
+      comments: [],
+    }
+  }
+
+  interactions.value[post.id]?.comments.push({
+    id: comment.id,
+    author: comment.author.name?.trim() || 'Estudante',
+    text: comment.content,
   })
   commentDraft.value = ''
 }
@@ -362,15 +416,23 @@ onMounted(loadPosts)
         >
           <div class="flex items-center gap-3.5">
             <div
-              class="grid size-11 shrink-0 place-items-center rounded-full bg-traceline text-h6 font-medium text-co-blue"
+              class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-traceline text-h6 font-medium text-co-blue"
               aria-hidden="true"
             >
-              ES
+              <img
+                v-if="post.author?.image"
+                :src="post.author.image"
+                alt=""
+                class="size-full object-cover"
+              />
+              <template v-else>
+                {{ authorInitials(post) }}
+              </template>
             </div>
 
             <div class="flex flex-col gap-1">
               <p class="text-h6 font-medium text-co-blue">
-                Estudante
+                {{ authorName(post) }}
               </p>
               <p class="text-h6 font-medium text-text-2">
                 Comunidade Conecta
@@ -395,9 +457,10 @@ onMounted(loadPosts)
             <div class="flex items-center gap-5">
               <button
                 type="button"
-                class="text-h6 font-medium transition-colors hover:underline"
+                class="text-h6 font-medium transition-colors hover:underline disabled:cursor-not-allowed disabled:opacity-60"
                 :class="interactions[post.id]?.liked ? 'text-co-coral' : 'text-co-blue'"
                 :aria-pressed="interactions[post.id]?.liked ?? false"
+                :disabled="isInteractionPending(`like:${post.id}`)"
                 @click="toggleLike(post)"
               >
                 {{ interactions[post.id]?.liked ? 'Curtido' : 'Curtir' }}
@@ -453,7 +516,7 @@ onMounted(loadPosts)
               <input
                 v-model="commentDraft"
                 type="text"
-                maxlength="500"
+                maxlength="2000"
                 aria-label="Escrever comentário"
                 placeholder="Escreva um comentário..."
                 class="h-11 w-full rounded-button border border-traceline bg-co-white px-4 text-h6 font-medium text-text-1 outline-none transition-colors placeholder:text-text-2 focus:border-co-blue"
@@ -461,7 +524,7 @@ onMounted(loadPosts)
 
               <button
                 type="submit"
-                :disabled="!commentDraft.trim()"
+                :disabled="!commentDraft.trim() || isInteractionPending(`comment:${post.id}`)"
                 class="h-11 shrink-0 rounded-button bg-co-blue px-5 text-h6 font-medium text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Enviar
