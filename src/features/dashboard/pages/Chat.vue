@@ -1812,6 +1812,8 @@ watch(messageText, (value) => {
 })
 
 let lastMessageScrollTop = 0
+let messageTouchStartY = 0
+let messageTouchLastY = 0
 
 function handleMessageHistoryScroll(event: Event) {
   const scrollTop = (event.target as HTMLElement).scrollTop
@@ -1821,6 +1823,32 @@ function handleMessageHistoryScroll(event: Event) {
   // Um fling no mobile pode avançar mais de 100px entre dois eventos de scroll.
   if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
   else if (delta < -3 && scrollTop <= 8) chatHeaderCollapsed.value = false
+}
+
+function handleMessageHistoryTouchStart(event: TouchEvent) {
+  messageTouchStartY = event.touches[0]?.clientY ?? 0
+  messageTouchLastY = messageTouchStartY
+}
+
+function handleMessageHistoryTouchMove(event: TouchEvent) {
+  const element = event.currentTarget as HTMLElement
+  // Quando há conteúdo para rolar, o scroll já controla o cabeçalho.
+  if (element.scrollHeight > element.clientHeight + 1) return
+
+  const y = event.touches[0]?.clientY ?? 0
+  const delta = y - messageTouchLastY
+  messageTouchLastY = y
+  if (Math.abs(delta) < 1) return
+
+  const total = y - messageTouchStartY
+  // Dedo para cima equivale a rolar para baixo na conversa.
+  if (total < -24) chatHeaderCollapsed.value = true
+  else if (total > 24) chatHeaderCollapsed.value = false
+}
+
+function handleMessageHistoryTouchEnd() {
+  messageTouchStartY = 0
+  messageTouchLastY = 0
 }
 
 onMounted(() => {
@@ -1866,6 +1894,8 @@ onUnmounted(() => {
   disposeCurrentChatSocket()
   chatHeaderCollapsed.value = false
   lastMessageScrollTop = 0
+  messageTouchStartY = 0
+  messageTouchLastY = 0
 })
 </script>
 
@@ -1881,12 +1911,11 @@ onUnmounted(() => {
     />
 
     <div
-      class="flex min-h-0 flex-1 flex-col px-[clamp(24px,3.3vw,48px)] py-8 max-[620px]:px-4 max-[620px]:py-5"
-      :class="chatHeaderCollapsed ? 'max-[620px]:!pt-0' : ''"
+      class="flex min-h-0 flex-1 flex-col px-[clamp(24px,3.3vw,48px)] py-8 max-[620px]:!p-0"
     >
       <div class="flex min-h-0 flex-1 gap-6 max-[900px]:flex-col">
         <aside
-          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:min-h-0 max-[900px]:w-full max-[900px]:flex-1"
+          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:min-h-0 max-[900px]:w-full max-[900px]:flex-1 max-[620px]:!rounded-none max-[620px]:!border-0 max-[620px]:!p-4"
           :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
         >
           <div class="flex shrink-0 flex-col gap-5">
@@ -2145,7 +2174,7 @@ onUnmounted(() => {
         </aside>
 
         <main
-          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white"
+          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white max-[620px]:!rounded-none max-[620px]:!border-0"
           :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
         >
           <div
@@ -2305,6 +2334,10 @@ onUnmounted(() => {
             v-if="selectedConversation"
             class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-white p-6 max-[620px]:p-4"
             @scroll.passive="handleMessageHistoryScroll"
+            @touchstart.passive="handleMessageHistoryTouchStart"
+            @touchmove.passive="handleMessageHistoryTouchMove"
+            @touchend.passive="handleMessageHistoryTouchEnd"
+            @touchcancel.passive="handleMessageHistoryTouchEnd"
           >
             <button
               v-if="nextCursor"
