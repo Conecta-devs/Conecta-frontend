@@ -58,6 +58,11 @@ const messages = ref<ChatMessage[]>([])
 const availableUsers = ref<ChatUserSuggestion[]>([])
 const selectedConversation = ref<ChatConversation | null>(null)
 const messageText = ref('')
+const TYPING_TTL_MS = 2_000
+const TYPING_EMIT_INTERVAL_MS = 1_000
+const typingByConversation = ref<Record<string, Record<string, boolean>>>({})
+const typingTimers = new Map<string, ReturnType<typeof setTimeout>>()
+let lastTypingEmitAt = 0
 const searchText = ref('')
 const activeSection = ref<ChatSection>('recent')
 const conversationsLoading = ref(false)
@@ -276,6 +281,7 @@ function clearChatState() {
   usersRequestId += 1
   conversations.value = []
   messages.value = []
+  clearTyping()
   availableUsers.value = []
   hiddenRecentConversationIds.value = []
   selectedConversation.value = null
@@ -325,6 +331,7 @@ function disposeCurrentChatSocket() {
   disposeChatSocket?.()
   disposeChatSocket = null
   chatSocket = null
+  clearTyping()
   refreshChatSocketAuthentication = null
   joinedConversationIds.clear()
   joiningConversationIds.clear()
@@ -625,6 +632,10 @@ function handleSocketMessage(value: unknown) {
     return
   }
 
+  if ('senderId' in value && typeof value.senderId === 'string') {
+    clearTyping(value.conversationId, value.senderId)
+  }
+
   try {
     applyIncomingMessage(normalizeChatMessage(value, value.conversationId), { markRead: true })
   } catch (error) {
@@ -632,6 +643,82 @@ function handleSocketMessage(value: unknown) {
       error instanceof Error ? error.message : 'A mensagem recebida é inválida.'
   }
 }
+
+function markTyping(conversationId: string, userId: string) {
+  const key = `${conversationId}:${userId}`
+  typingByConversation.value = {
+    ...typingByConversation.value,
+    [conversationId]: {
+      ...typingByConversation.value[conversationId],
+      [userId]: true,
+    },
+  }
+  const existingTimer = typingTimers.get(key)
+  if (existingTimer) clearTimeout(existingTimer)
+  typingTimers.set(
+    key,
+    setTimeout(() => clearTyping(conversationId, userId), TYPING_TTL_MS),
+  )
+}
+
+function clearTyping(conversationId?: string, userId?: string) {
+  for (const key of [...typingTimers.keys()]) {
+    const matchesConversation =
+      !conversationId || key.startsWith(`${conversationId}:`)
+    const matchesUser =
+      !conversationId || !userId || key === `${conversationId}:${userId}`
+    if (matchesConversation && matchesUser) {
+      const timer = typingTimers.get(key)
+      if (timer) clearTimeout(timer)
+      typingTimers.delete(key)
+    }
+  }
+
+  if (!conversationId) {
+    typingByConversation.value = {}
+    return
+  }
+
+  const remaining = { ...typingByConversation.value[conversationId] }
+  if (userId) delete remaining[userId]
+  typingByConversation.value = {
+    ...typingByConversation.value,
+    [conversationId]: remaining,
+  }
+}
+
+function handleSocketTyping(value: unknown) {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('conversationId' in value) ||
+    typeof value.conversationId !== 'string' ||
+    !('userId' in value) ||
+    typeof value.userId !== 'string'
+  ) {
+    return
+  }
+  markTyping(value.conversationId, value.userId)
+}
+
+function handleTypingInput() {
+  const conversation = selectedConversation.value
+  if (!conversation || !messageText.value.trim() || !chatSocket?.connected) return
+
+  const now = Date.now()
+  if (now - lastTypingEmitAt < TYPING_EMIT_INTERVAL_MS) return
+  lastTypingEmitAt = now
+  chatSocket.emit('chat:typing', { conversationId: conversation.id })
+}
+
+const isOtherTyping = computed(() => {
+  const conversationId = selectedConversation.value?.id
+  const currentUserId = currentUser.user?.sub
+  if (!conversationId) return false
+  return Object.entries(typingByConversation.value[conversationId] ?? {}).some(
+    ([userId, typing]) => typing && userId !== currentUserId,
+  )
+})
 
 async function joinConversationRoom(conversationId: string) {
   if (
@@ -753,6 +840,7 @@ function initializeChatSocket() {
     disposeChatSocket = connection.dispose
     refreshChatSocketAuthentication = connection.refreshAuthentication
     chatSocket.on('chat:message:new', handleSocketMessage)
+    chatSocket.on('chat:typing', handleSocketTyping)
     chatSocket.on('chat:conversation:update', updateConversationSummary)
     chatSocket.on('chat:unread:update', applyUnreadUpdate)
     chatSocket.on('chat:message:read', (value: unknown) => {
@@ -1389,6 +1477,7 @@ async function sendMessage(retryClientMessageId?: string) {
   try {
     const message = await sendChatMessage(conversation.id, { clientMessageId, content: text })
     if (requestSessionGeneration !== sessionGeneration) return
+    clearTyping(conversation.id)
     failedMessageAttempts.delete(clientMessageId)
     confirmedClientMessageIds.delete(clientMessageId)
     addOrReplaceMessage(message)
@@ -1684,6 +1773,11 @@ watch(
   { flush: 'post' },
 )
 
+watch(
+  () => selectedConversation.value?.id,
+  () => clearTyping(),
+)
+
 onMounted(() => {
   const requested = route.query.conversation
   if (typeof requested === 'string' && requested) {
@@ -1716,6 +1810,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleContextMenuViewportChange)
   window.removeEventListener('scroll', handleContextMenuViewportChange, true)
   stopMessagePolling()
+  clearTyping()
   conversationsController?.abort()
   messagesController?.abort()
   usersController?.abort()
@@ -2267,6 +2362,15 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
+            <div
+              v-if="isOtherTyping"
+              class="flex shrink-0 justify-start text-h6 leading-normal text-text-2"
+              role="status"
+              aria-live="polite"
+            >
+              <span aria-hidden="true">...</span>
+              <span class="sr-only">{{ selectedConversation?.name ?? 'A outra pessoa' }} está digitando</span>
+            </div>
           </div>
           <div
             v-else
@@ -2301,6 +2405,7 @@ onUnmounted(() => {
               <input
                 ref="messageInputElement"
                 v-model="messageText"
+                @input="handleTypingInput"
                 class="min-w-0 flex-1 border-0 bg-transparent text-h6 leading-normal font-medium text-text-1 outline-none placeholder:text-text-2"
                 type="text"
                 placeholder="Escreva uma mensagem..."
