@@ -13,6 +13,7 @@ import { getUserProfile } from '@/features/auth/services/auth'
 import { currentUser, saveSession } from '@/shared/services/session'
 import PageHeader from '@/features/dashboard/components/PageHeader.vue'
 import AsyncState from '@/features/dashboard/components/AsyncState.vue'
+import { AppButton, AppLink } from '@/shared/ui'
 
 interface PostComment {
   id: string
@@ -151,6 +152,10 @@ async function addComment(post: Post) {
     text: comment.content,
   })
   commentDraft.value = ''
+}
+
+function refreshFeed() {
+  if (!loading.value) void loadPosts()
 }
 
 async function loadPosts() {
@@ -356,10 +361,13 @@ onMounted(loadPosts)
             Cancelar
           </button>
 
-          <button
+          <AppButton
             type="submit"
+            variant="blue"
+            centered
+            :arrow="false"
             :disabled="saving"
-            class="h-[50px] w-[150px] rounded-button bg-co-blue px-5 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+            :busy="saving"
           >
             {{
               saving
@@ -368,7 +376,7 @@ onMounted(loadPosts)
                   ? 'Salvar alterações'
                   : 'Publicar'
             }}
-          </button>
+          </AppButton>
         </div>
       </div>
     </form>
@@ -379,14 +387,15 @@ onMounted(loadPosts)
           Publicações
         </h2>
 
-        <button
-          type="button"
-          class="text-h4 font-medium text-co-blue transition-opacity hover:underline disabled:opacity-60"
-          :disabled="loading"
-          @click="loadPosts"
+        <AppLink
+          href="#"
+          :arrow="false"
+          :aria-disabled="loading ? 'true' : undefined"
+          :class="loading ? 'pointer-events-none opacity-60' : undefined"
+          @click.prevent="refreshFeed"
         >
           Atualizar feed
-        </button>
+        </AppLink>
       </div>
 
       <AsyncState

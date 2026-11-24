@@ -22,6 +22,7 @@ import AsyncState from '@/features/dashboard/components/AsyncState.vue'
 import calendarEvent from '@/features/dashboard/assets/agenda/calendar-event.svg'
 import { getUserProfile } from '@/features/auth/services/auth'
 import { currentUser, saveSession } from '@/shared/services/session'
+import { AppButton } from '@/shared/ui'
 import { formatDateTime, isOrganizer } from '@/features/dashboard/utils/format'
 
 interface AgendaForm {
@@ -294,11 +295,10 @@ onMounted(loadAgenda)
             id="agenda-titulo"
         >
             <template #actions>
-                <button type="button"
-                    class="inline-flex h-[50px] w-[210px] shrink-0 items-center justify-center gap-[15px] rounded-button bg-co-blue px-10 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+                <AppButton variant="blue" :width="210" centered :arrow="false"
                     @click="beginCreate">
                     Criar encontro
-                </button>
+                </AppButton>
             </template>
         </PageHeader>
 
