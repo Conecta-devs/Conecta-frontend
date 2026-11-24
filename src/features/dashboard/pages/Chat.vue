@@ -93,6 +93,7 @@ const sendError = ref('')
 const mobileConversationListVisible = ref(false)
 const chatSocketStatus = ref<ChatSocketStatus>('connecting')
 const chatSocketError = ref('')
+const presenceByUser = ref<Record<string, boolean>>({})
 const chatNotice = ref('')
 const emojiPickerOpen = ref(false)
 const emojiPickerElement = ref<HTMLElement | null>(null)
@@ -334,6 +335,7 @@ function disposeCurrentChatSocket() {
   clearTyping()
   stopTypingHeartbeat()
   refreshChatSocketAuthentication = null
+  presenceByUser.value = {}
   joinedConversationIds.clear()
   joiningConversationIds.clear()
 }
@@ -359,9 +361,26 @@ const messagesDateLabel = computed(() => {
     .toUpperCase()
 })
 
+const conversationPresenceOnline = computed(() => {
+  const conversation = selectedConversation.value
+  if (!conversation) return false
+  const currentUserId = currentUser.user?.sub
+  const userIds = conversation.otherUserId
+    ? [conversation.otherUserId]
+    : conversation.members.map((member) => member.userId).filter((id) => id !== currentUserId)
+  return userIds.some((id) => presenceByUser.value[id] === true)
+})
+
 const conversationPresenceLabel = computed(() => {
-  if (chatSocketStatus.value === 'connected') return 'Online agora'
-  return 'Sincronizando mensagens...'
+  if (chatSocketStatus.value !== 'connected') return 'Sincronizando mensagens...'
+  if (!selectedConversation.value) return 'Sincronizando mensagens...'
+  if (!conversationPresenceOnline.value) return 'Offline'
+  if (selectedConversation.value.otherUserId) return 'Online agora'
+  const count = selectedConversation.value.members.filter(
+    (member) =>
+      member.userId !== currentUser.user?.sub && presenceByUser.value[member.userId] === true,
+  ).length
+  return `${count} online`
 })
 
 const visibleConversations = computed(() => {
@@ -827,6 +846,7 @@ function applyUnreadCount(conversationId: string, unreadCount: number) {
 
 async function onSocketConnected() {
   chatSocketError.value = ''
+  presenceByUser.value = {}
   joinedConversationIds.clear()
   joiningConversationIds.clear()
   await loadConversationList(true)
@@ -856,6 +876,30 @@ function initializeChatSocket() {
     disposeChatSocket = connection.dispose
     refreshChatSocketAuthentication = connection.refreshAuthentication
     chatSocket.on('chat:message:new', handleSocketMessage)
+    chatSocket.on(
+      'chat:presence:snapshot',
+      (value: {
+        conversationId?: string
+        presences?: Array<{ userId?: string; online?: boolean }>
+      }) => {
+        if (typeof value?.conversationId !== 'string' || !Array.isArray(value.presences)) {
+          return
+        }
+        const nextPresence = { ...presenceByUser.value }
+        for (const presence of value.presences) {
+          if (typeof presence?.userId !== 'string' || typeof presence.online !== 'boolean') return
+          nextPresence[presence.userId] = presence.online
+        }
+        presenceByUser.value = nextPresence
+      },
+    )
+    chatSocket.on('chat:presence:update', (value: { userId?: string; online?: boolean }) => {
+      if (typeof value?.userId !== 'string' || typeof value.online !== 'boolean') return
+      presenceByUser.value = {
+        ...presenceByUser.value,
+        [value.userId]: value.online,
+      }
+    })
     chatSocket.on('chat:typing', handleSocketTyping)
     chatSocket.on('chat:conversation:update', updateConversationSummary)
     chatSocket.on('chat:unread:update', applyUnreadUpdate)
@@ -2200,7 +2244,11 @@ onUnmounted(() => {
                 <p v-if="selectedConversation" class="m-0 mt-1.5 flex items-center gap-1.5 text-h6 leading-normal text-text-2">
                   <span
                     class="size-1.5 shrink-0 rounded-full"
-                    :class="chatSocketStatus === 'connected' ? 'bg-tree-green' : 'bg-traceline'"
+                    :class="
+                      chatSocketStatus === 'connected' && conversationPresenceOnline
+                        ? 'bg-tree-green'
+                        : 'bg-traceline'
+                    "
                   ></span>
                   {{ conversationPresenceLabel }}
                 </p>
