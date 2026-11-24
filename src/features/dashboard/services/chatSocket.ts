@@ -39,9 +39,13 @@ export function createChatSocket(
     throw new Error('Sessão expirada. Entre novamente para usar o chat.')
   }
 
-  const socketBaseUrl = new URL(API_BASE_URL, window.location.origin)
+  const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL?.trim()
+  const socketBaseUrl = configuredSocketUrl
+    ? new URL(configuredSocketUrl)
+    : new URL(API_BASE_URL, window.location.origin)
   const socket = io(socketBaseUrl.origin, {
     path: '/socket.io',
+    transports: ['websocket'],
     autoConnect: false,
     withCredentials: true,
     auth: { token },
