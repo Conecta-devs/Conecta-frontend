@@ -370,6 +370,19 @@ function conversationPreview(conversation: ChatConversation): string {
                 <AppDashboardIcon name="clock" :size="16" />
                 <span class="text-[14px] leading-4 font-medium">{{ eventTimeRange(item) }}</span>
               </span>
+
+              <span
+                v-if="participations[item.id]?.interested"
+                class="rounded-button bg-feedback-success/10 px-2.5 py-1.5 text-h6 font-medium text-feedback-success"
+              >
+                Interessado
+              </span>
+              <span
+                v-if="participations[item.id]?.confirmed"
+                class="rounded-button bg-traceline px-2.5 py-1.5 text-h6 font-medium text-co-blue"
+              >
+                Presença confirmada
+              </span>
             </div>
           </div>
 
