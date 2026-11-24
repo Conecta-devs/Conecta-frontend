@@ -43,7 +43,10 @@ import AsyncState from '@/features/dashboard/components/AsyncState.vue'
 import AppHeader from '@/features/dashboard/components/AppHeader.vue'
 import ChatConfirmDialog from '@/features/dashboard/components/ChatConfirmDialog.vue'
 import UserAvatar from '@/features/dashboard/components/UserAvatar.vue'
-import { chatHeaderCollapsed } from '@/features/dashboard/composables/chatHeader'
+import {
+  chatHeaderCollapsed,
+  createHeaderScrollHandlers,
+} from '@/features/dashboard/composables/chatHeader'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
@@ -1811,45 +1814,9 @@ watch(messageText, (value) => {
   if (!value.trim()) stopTypingHeartbeat()
 })
 
-let lastMessageScrollTop = 0
-let messageTouchStartY = 0
-let messageTouchLastY = 0
-
-function handleMessageHistoryScroll(event: Event) {
-  const scrollTop = (event.target as HTMLElement).scrollTop
-  const delta = scrollTop - lastMessageScrollTop
-  lastMessageScrollTop = scrollTop
-
-  // Um fling no mobile pode avançar mais de 100px entre dois eventos de scroll.
-  if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
-  else if (delta < -3 && scrollTop <= 8) chatHeaderCollapsed.value = false
-}
-
-function handleMessageHistoryTouchStart(event: TouchEvent) {
-  messageTouchStartY = event.touches[0]?.clientY ?? 0
-  messageTouchLastY = messageTouchStartY
-}
-
-function handleMessageHistoryTouchMove(event: TouchEvent) {
-  const element = event.currentTarget as HTMLElement
-  // Quando há conteúdo para rolar, o scroll já controla o cabeçalho.
-  if (element.scrollHeight > element.clientHeight + 1) return
-
-  const y = event.touches[0]?.clientY ?? 0
-  const delta = y - messageTouchLastY
-  messageTouchLastY = y
-  if (Math.abs(delta) < 1) return
-
-  const total = y - messageTouchStartY
-  // Dedo para cima equivale a rolar para baixo na conversa.
-  if (total < -24) chatHeaderCollapsed.value = true
-  else if (total > 24) chatHeaderCollapsed.value = false
-}
-
-function handleMessageHistoryTouchEnd() {
-  messageTouchStartY = 0
-  messageTouchLastY = 0
-}
+const messageScrollHandlers = createHeaderScrollHandlers()
+const peopleListScrollHandlers = createHeaderScrollHandlers()
+const conversationListScrollHandlers = createHeaderScrollHandlers()
 
 onMounted(() => {
   const requested = route.query.conversation
@@ -1893,9 +1860,9 @@ onUnmounted(() => {
   if (groupSearchTimeout) clearTimeout(groupSearchTimeout)
   disposeCurrentChatSocket()
   chatHeaderCollapsed.value = false
-  lastMessageScrollTop = 0
-  messageTouchStartY = 0
-  messageTouchLastY = 0
+  messageScrollHandlers.reset()
+  peopleListScrollHandlers.reset()
+  conversationListScrollHandlers.reset()
 })
 </script>
 
@@ -1990,7 +1957,15 @@ onUnmounted(() => {
             </div>
           </div>
 
-        <div v-if="activeSection === 'people'" class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+        <div
+          v-if="activeSection === 'people'"
+          class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+          @scroll.passive="peopleListScrollHandlers.onScroll"
+          @touchstart.passive="peopleListScrollHandlers.onTouchStart"
+          @touchmove.passive="peopleListScrollHandlers.onTouchMove"
+          @touchend.passive="peopleListScrollHandlers.onTouchEnd"
+          @touchcancel.passive="peopleListScrollHandlers.onTouchEnd"
+        >
           <AsyncState
             v-if="usersLoading"
             kind="loading"
@@ -2081,7 +2056,15 @@ onUnmounted(() => {
           />
         </div>
 
-        <div v-else class="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+        <div
+          v-else
+          class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+          @scroll.passive="conversationListScrollHandlers.onScroll"
+          @touchstart.passive="conversationListScrollHandlers.onTouchStart"
+          @touchmove.passive="conversationListScrollHandlers.onTouchMove"
+          @touchend.passive="conversationListScrollHandlers.onTouchEnd"
+          @touchcancel.passive="conversationListScrollHandlers.onTouchEnd"
+        >
           <AsyncState
             v-if="conversationsLoading"
             kind="loading"
@@ -2333,11 +2316,11 @@ onUnmounted(() => {
           <div
             v-if="selectedConversation"
             class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain bg-white p-6 max-[620px]:p-4"
-            @scroll.passive="handleMessageHistoryScroll"
-            @touchstart.passive="handleMessageHistoryTouchStart"
-            @touchmove.passive="handleMessageHistoryTouchMove"
-            @touchend.passive="handleMessageHistoryTouchEnd"
-            @touchcancel.passive="handleMessageHistoryTouchEnd"
+            @scroll.passive="messageScrollHandlers.onScroll"
+            @touchstart.passive="messageScrollHandlers.onTouchStart"
+            @touchmove.passive="messageScrollHandlers.onTouchMove"
+            @touchend.passive="messageScrollHandlers.onTouchEnd"
+            @touchcancel.passive="messageScrollHandlers.onTouchEnd"
           >
             <button
               v-if="nextCursor"

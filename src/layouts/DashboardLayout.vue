@@ -1,15 +1,61 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Header from '@/features/dashboard/components/AppHeader.vue'
 import Sidebar from '@/features/dashboard/components/AppSidebar.vue'
 import ProfileSetupModal from '@/features/profile/ProfileSetupModal.vue'
-import { expandChatHeader } from '@/features/dashboard/composables/chatHeader'
+import {
+  chatHeaderCollapsed,
+  createHeaderScrollHandlers,
+  expandChatHeader,
+} from '@/features/dashboard/composables/chatHeader'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const profileSetupOpen = ref(false)
 const mobileMenuOpen = ref(false)
+const dashboardTouchHandlers = createHeaderScrollHandlers()
+let lastWindowScrollY = 0
+
+function isMobileHeader() {
+  return window.matchMedia('(max-width: 620px)').matches
+}
+
+function handleWindowScroll() {
+  if (!isMobileHeader()) return
+
+  const scrollY = window.scrollY
+  const delta = scrollY - lastWindowScrollY
+  lastWindowScrollY = scrollY
+
+  // Um fling no mobile pode avançar mais de 100px entre dois eventos.
+  if (delta > 3 && scrollY > 24) chatHeaderCollapsed.value = true
+  else if (delta < -3 && scrollY <= 8) chatHeaderCollapsed.value = false
+}
+
+onMounted(() => {
+  lastWindowScrollY = window.scrollY
+  window.addEventListener('scroll', handleWindowScroll, { passive: true })
+  window.addEventListener('touchstart', dashboardTouchHandlers.onTouchStart, true)
+  window.addEventListener('touchmove', dashboardTouchHandlers.onTouchMove, true)
+  window.addEventListener('touchend', dashboardTouchHandlers.onTouchEnd, true)
+  window.addEventListener('touchcancel', dashboardTouchHandlers.onTouchEnd, true)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleWindowScroll)
+  window.removeEventListener('touchstart', dashboardTouchHandlers.onTouchStart, true)
+  window.removeEventListener('touchmove', dashboardTouchHandlers.onTouchMove, true)
+  window.removeEventListener('touchend', dashboardTouchHandlers.onTouchEnd, true)
+  window.removeEventListener('touchcancel', dashboardTouchHandlers.onTouchEnd, true)
+  dashboardTouchHandlers.reset()
+})
+
+watch(() => route.fullPath, () => {
+  expandChatHeader()
+  lastWindowScrollY = window.scrollY
+  dashboardTouchHandlers.reset()
+})
 
 function handleProfileSave() {
   localStorage.setItem('conecta_profile_setup', 'true')
@@ -57,7 +103,7 @@ function toggleMobileMenu() {
         </span>
       </div>
 
-      <Header v-if="!route.meta.hideHeader" />
+      <Header v-if="!route.meta.hideHeader" :collapsed="chatHeaderCollapsed" />
 
       <div class="main-content" style>
         <RouterView />

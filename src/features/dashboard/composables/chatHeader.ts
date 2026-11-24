@@ -1,15 +1,104 @@
 import { ref } from 'vue'
 
 /**
- * Estado do cabeçalho do chat no mobile.
+ * Estado do cabeçalho do dashboard no mobile.
  *
- * O histórico de mensagens rola dentro do painel, então o scroll da janela não
- * serve para controlar o recolhimento. A barra de navegação móvel usa
- * `expandChatHeader()` para trazer o cabeçalho de volta sem precisar rolar o
- * histórico até o topo.
+ * O scroll pode acontecer na janela ou em containers internos (histórico do
+ * chat, listas curtas, tabelas etc.), então o estado é compartilhado e as
+ * páginas usam `createHeaderScrollHandlers()` para controlá-lo.
  */
 export const chatHeaderCollapsed = ref(false)
 
 export function expandChatHeader() {
   chatHeaderCollapsed.value = false
+}
+
+function isMobileHeader() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 620px)').matches
+}
+
+function scrollableAncestor(target: EventTarget | null): HTMLElement | null {
+  let element = target instanceof HTMLElement ? target : null
+  while (element && element !== document.body) {
+    const overflowY = getComputedStyle(element).overflowY
+    if (
+      (overflowY === 'auto' || overflowY === 'scroll') &&
+      element.scrollHeight > element.clientHeight + 1
+    ) {
+      return element
+    }
+    element = element.parentElement
+  }
+  return null
+}
+
+/**
+ * Cria um conjunto independente de handlers para um container rolável.
+ * Use uma instância por container para não misturar o `scrollTop` de um com o
+ * outro quando o usuário troca de seção.
+ */
+export function createHeaderScrollHandlers() {
+  let lastScrollTop = 0
+  let touchStartY = 0
+  let touchLastY = 0
+
+  function onScroll(event: Event) {
+    if (!isMobileHeader()) return
+    const target = event.target
+    const element =
+      target instanceof HTMLElement
+        ? target
+        : (document.scrollingElement as HTMLElement | null)
+    if (!element || typeof element.scrollTop !== 'number') return
+
+    const scrollTop = element.scrollTop
+    const delta = scrollTop - lastScrollTop
+    lastScrollTop = scrollTop
+
+    // Um fling no mobile pode avançar mais de 100px entre dois eventos.
+    if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
+    else if (delta < -3 && scrollTop <= 8) chatHeaderCollapsed.value = false
+  }
+
+  function onTouchStart(event: Event) {
+    const touchEvent = event as TouchEvent
+    touchStartY = touchEvent.touches[0]?.clientY ?? 0
+    touchLastY = touchStartY
+  }
+
+  function onTouchMove(event: Event) {
+    if (!isMobileHeader()) return
+    // Se existe conteúdo para rolar, o scroll já controla o cabeçalho.
+    if (scrollableAncestor(event.target)) return
+    const scrollingElement = document.scrollingElement
+    if (
+      scrollingElement &&
+      scrollingElement.scrollHeight > scrollingElement.clientHeight + 1
+    ) {
+      return
+    }
+
+    const touchEvent = event as TouchEvent
+    const y = touchEvent.touches[0]?.clientY ?? 0
+    const delta = y - touchLastY
+    touchLastY = y
+    if (Math.abs(delta) < 1) return
+
+    const total = y - touchStartY
+    // Dedo para cima equivale a rolar para baixo na página.
+    if (total < -24) chatHeaderCollapsed.value = true
+    else if (total > 24) chatHeaderCollapsed.value = false
+  }
+
+  function onTouchEnd() {
+    touchStartY = 0
+    touchLastY = 0
+  }
+
+  function reset() {
+    lastScrollTop = 0
+    onTouchEnd()
+  }
+
+  return { onScroll, onTouchStart, onTouchMove, onTouchEnd, reset }
 }
