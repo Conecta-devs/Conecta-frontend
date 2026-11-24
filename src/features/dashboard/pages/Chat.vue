@@ -2368,7 +2368,7 @@ onUnmounted(() => {
               role="status"
               aria-live="polite"
             >
-              <span aria-hidden="true">...</span>
+              <span aria-hidden="true">Digitando...</span>
               <span class="sr-only">{{ selectedConversation?.name ?? 'A outra pessoa' }} está digitando</span>
             </div>
           </div>

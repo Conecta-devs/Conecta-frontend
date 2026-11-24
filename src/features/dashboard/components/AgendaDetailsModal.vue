@@ -205,6 +205,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
             >
               Organizado por você
             </span>
+            <p
+              v-else-if="entry.item.organizer?.name"
+              class="m-0 text-h6 leading-normal text-text-2"
+            >
+              Organizado por {{ entry.item.organizer.name }}
+            </p>
+            <p v-else class="m-0 text-h6 leading-normal text-text-2">
+              Organizado por um estudante
+            </p>
           </header>
 
           <p class="m-0 text-h6 font-medium leading-6 break-words whitespace-pre-wrap text-text-1">
