@@ -2,8 +2,8 @@ import { currentUser } from '../../../shared/services/session'
 import { fetchProtected } from '../../auth/services/auth'
 import { apiUrl } from './api'
 
-export type ChatCategory = 'community' | 'friend'
-export type ChatRole = 'admin' | 'member'
+type ChatCategory = 'community' | 'friend'
+type ChatRole = 'admin' | 'member'
 
 export interface ChatUserSuggestion {
   id: string
@@ -11,7 +11,7 @@ export interface ChatUserSuggestion {
   image: string | null
 }
 
-export interface ChatUserPage {
+interface ChatUserPage {
   users: ChatUserSuggestion[]
   page: number
   limit: number
@@ -58,7 +58,7 @@ export interface ChatMessage {
   deliveryStatus?: 'sending' | 'failed'
 }
 
-export interface ChatMessagePage {
+interface ChatMessagePage {
   messages: ChatMessage[]
   nextCursor: string | null
 }
@@ -107,7 +107,7 @@ function isChatMember(value: unknown): value is ChatMember {
   )
 }
 
-export function normalizeChatConversation(value: unknown): ChatConversation {
+function normalizeChatConversation(value: unknown): ChatConversation {
   if (
     !isRecord(value) ||
     typeof value.id !== 'string' ||

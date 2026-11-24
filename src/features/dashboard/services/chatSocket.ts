@@ -5,7 +5,7 @@ import { getStoredAccessToken } from '../../../shared/services/session'
 
 export type ChatSocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
-export interface SocketAcknowledgement<T> {
+interface SocketAcknowledgement<T> {
   ok: boolean
   data?: T
   error?: {
@@ -24,7 +24,7 @@ export class ChatSocketError extends Error {
   }
 }
 
-export interface ChatSocketConnection {
+interface ChatSocketConnection {
   socket: Socket
   dispose: () => void
   refreshAuthentication: () => Promise<void>

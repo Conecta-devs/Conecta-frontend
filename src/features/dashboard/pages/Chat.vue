@@ -42,6 +42,7 @@ import { currentUser } from '../../../shared/services/session'
 import { getInitials } from '../utils/format'
 import AsyncState from '../components/AsyncState.vue'
 import AppHeader from '../components/AppHeader.vue'
+import ChatConfirmDialog from '../components/ChatConfirmDialog.vue'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
@@ -153,13 +154,9 @@ const contextMenuTrigger = ref<HTMLElement | null>(null)
 const removeRecentConfirmationConversation = ref<ChatConversation | null>(null)
 const removeRecentConfirmationError = ref('')
 const removeRecentConfirmationLoading = ref(false)
-const removeRecentConfirmationButton = ref<HTMLButtonElement | null>(null)
-const removeRecentConfirmationSubmitButton = ref<HTMLButtonElement | null>(null)
 const leaveConfirmationConversation = ref<ChatConversation | null>(null)
 const leaveConfirmationError = ref('')
 const leaveConfirmationLoading = ref(false)
-const leaveConfirmationButton = ref<HTMLButtonElement | null>(null)
-const leaveConfirmationSubmitButton = ref<HTMLButtonElement | null>(null)
 const isCurrentUserAdmin = computed(() => selectedConversation.value?.currentUserRole === 'admin')
 const sectionUnreadCounts = computed<Record<ChatSection, number>>(() => ({
   recent: conversations.value
@@ -1056,7 +1053,6 @@ function openLeaveConfirmation(conversation: ChatConversation) {
   closeContextMenu()
   leaveConfirmationConversation.value = conversation
   leaveConfirmationError.value = ''
-  void nextTick(() => leaveConfirmationButton.value?.focus())
 }
 
 function requestRemoveFromRecent() {
@@ -1066,7 +1062,6 @@ function requestRemoveFromRecent() {
   if (!conversation) return
   removeRecentConfirmationConversation.value = conversation
   removeRecentConfirmationError.value = ''
-  void nextTick(() => removeRecentConfirmationButton.value?.focus())
 }
 
 function closeLeaveConfirmation() {
@@ -1110,36 +1105,6 @@ async function confirmRemoveFromRecent() {
       error instanceof Error ? error.message : 'Não foi possível remover a conversa de Recentes.'
   } finally {
     removeRecentConfirmationLoading.value = false
-  }
-}
-
-function handleRemoveRecentDialogKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Tab') return
-  const cancelButton = removeRecentConfirmationButton.value
-  const submitButton = removeRecentConfirmationSubmitButton.value
-  if (!cancelButton || !submitButton) return
-
-  if (event.shiftKey && document.activeElement === cancelButton) {
-    event.preventDefault()
-    submitButton.focus()
-  } else if (!event.shiftKey && document.activeElement === submitButton) {
-    event.preventDefault()
-    cancelButton.focus()
-  }
-}
-
-function handleLeaveDialogKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Tab') return
-  const cancelButton = leaveConfirmationButton.value
-  const submitButton = leaveConfirmationSubmitButton.value
-  if (!cancelButton || !submitButton) return
-
-  if (event.shiftKey && document.activeElement === cancelButton) {
-    event.preventDefault()
-    submitButton.focus()
-  } else if (!event.shiftKey && document.activeElement === submitButton) {
-    event.preventDefault()
-    cancelButton.focus()
   }
 }
 
@@ -2675,97 +2640,32 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <div
+    <ChatConfirmDialog
       v-if="removeRecentConfirmationConversation"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-overlay/40 p-4"
-      @click.self="closeRemoveRecentConfirmation"
-    >
-      <section
-        class="w-full max-w-sm rounded-card bg-white p-5 shadow-2xl"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="remove-recent-title"
-        aria-describedby="remove-recent-description"
-        @keydown="handleRemoveRecentDialogKeydown"
-      >
-        <h2 id="remove-recent-title" class="m-0 text-base font-semibold text-text-1">
-          Remover conversa de Recentes?
-        </h2>
-        <p id="remove-recent-description" class="mb-0 mt-2 text-xs leading-5 text-text-1">
-          “{{ removeRecentConfirmationConversation.name }}” será ocultada da lista deste navegador.
-          A conversa e as mensagens continuam no servidor. Para uma conversa individual, você pode
-          restaurá-la ao iniciar uma conversa com essa pessoa novamente.
-        </p>
-        <p v-if="removeRecentConfirmationError" class="mb-0 mt-3 text-xs text-danger" role="alert">
-          {{ removeRecentConfirmationError }}
-        </p>
-        <div class="mt-5 flex justify-end gap-2">
-          <button
-            ref="removeRecentConfirmationButton"
-            class="rounded-lg border border-traceline bg-white px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:bg-co-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:opacity-50"
-            type="button"
-            :disabled="removeRecentConfirmationLoading"
-            @click="closeRemoveRecentConfirmation"
-          >
-            Cancelar
-          </button>
-          <button
-            ref="removeRecentConfirmationSubmitButton"
-            class="rounded-lg border-0 bg-danger px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-danger-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:cursor-wait disabled:opacity-60"
-            type="button"
-            :disabled="removeRecentConfirmationLoading"
-            @click="confirmRemoveFromRecent"
-          >
-            {{ removeRecentConfirmationLoading ? 'Removendo…' : 'Remover conversa' }}
-          </button>
-        </div>
-      </section>
-    </div>
+      title="Remover conversa de Recentes?"
+      :description="`“${removeRecentConfirmationConversation.name}” será ocultada da lista deste navegador. A conversa e as mensagens continuam no servidor. Para uma conversa individual, você pode restaurá-la ao iniciar uma conversa com essa pessoa novamente.`"
+      confirm-label="Remover conversa"
+      busy-label="Removendo…"
+      :error="removeRecentConfirmationError"
+      :loading="removeRecentConfirmationLoading"
+      labelled-by="remove-recent-title"
+      described-by="remove-recent-description"
+      @confirm="confirmRemoveFromRecent"
+      @cancel="closeRemoveRecentConfirmation"
+    />
 
-    <div
+    <ChatConfirmDialog
       v-if="leaveConfirmationConversation"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-overlay/40 p-4"
-      @click.self="closeLeaveConfirmation"
-    >
-      <section
-        class="w-full max-w-sm rounded-card bg-white p-5 shadow-2xl"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="leave-conversation-title"
-        aria-describedby="leave-conversation-description"
-        @keydown="handleLeaveDialogKeydown"
-      >
-        <h2 id="leave-conversation-title" class="m-0 text-base font-semibold text-text-1">
-          Sair deste grupo?
-        </h2>
-        <p id="leave-conversation-description" class="mb-0 mt-2 text-xs leading-5 text-text-1">
-          Você deixará “{{ leaveConfirmationConversation.name }}” e não terá mais acesso à conversa.
-          Isso não apaga o grupo nem as mensagens. Um administrador poderá adicionar você novamente.
-        </p>
-        <p v-if="leaveConfirmationError" class="mb-0 mt-3 text-xs text-danger" role="alert">
-          {{ leaveConfirmationError }}
-        </p>
-        <div class="mt-5 flex justify-end gap-2">
-          <button
-            ref="leaveConfirmationButton"
-            class="rounded-lg border border-traceline bg-white px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:bg-co-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:opacity-50"
-            type="button"
-            :disabled="leaveConfirmationLoading"
-            @click="closeLeaveConfirmation"
-          >
-            Cancelar
-          </button>
-          <button
-            ref="leaveConfirmationSubmitButton"
-            class="rounded-lg border-0 bg-danger px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-danger-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:cursor-wait disabled:opacity-60"
-            type="button"
-            :disabled="leaveConfirmationLoading"
-            @click="confirmLeaveConversation"
-          >
-            {{ leaveConfirmationLoading ? 'Saindo…' : 'Sair do grupo' }}
-          </button>
-        </div>
-      </section>
-    </div>
+      title="Sair deste grupo?"
+      :description="`Você deixará “${leaveConfirmationConversation.name}” e não terá mais acesso à conversa. Isso não apaga o grupo nem as mensagens. Um administrador poderá adicionar você novamente.`"
+      confirm-label="Sair do grupo"
+      busy-label="Saindo…"
+      :error="leaveConfirmationError"
+      :loading="leaveConfirmationLoading"
+      labelled-by="leave-conversation-title"
+      described-by="leave-conversation-description"
+      @confirm="confirmLeaveConversation"
+      @cancel="closeLeaveConfirmation"
+    />
   </section>
 </template>

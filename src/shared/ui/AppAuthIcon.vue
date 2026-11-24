@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { PERSON_PATH } from './icons'
+
 /**
  * Figma — Components > Auth Icons (754:403)
  *
@@ -47,7 +49,7 @@ const GLIFOS = {
     width: 14,
     height: 14,
     /** 754:420 — Pessoa (contorno) */
-    path: 'M2.333 12.25V11.083C2.333 9.472 3.639 8.167 5.25 8.167H8.75C10.361 8.167 11.667 9.472 11.667 11.083V12.25M9.333 4.083C9.333 4.70175 9.0872 5.29516 8.64968 5.73268C8.21216 6.1702 7.61875 6.416 7 6.416C6.38125 6.416 5.78784 6.1702 5.35032 5.73268C4.9128 5.29516 4.667 4.70175 4.667 4.083C4.667 3.46425 4.9128 2.87084 5.35032 2.43332C5.78784 1.9958 6.38125 1.75 7 1.75C7.61875 1.75 8.21216 1.9958 8.64968 2.43332C9.0872 2.87084 9.333 3.46425 9.333 4.083Z',
+    path: PERSON_PATH,
   },
 } satisfies Record<AuthIconVariant, { width: number; height: number; path: string }>
 

@@ -268,7 +268,7 @@ onUnmounted(() => {
     <main id="topo" class="pt-[72px] sm:pt-[88px] lg:pt-[100px]" aria-label="Landpage">
       <!-- ========== Hero (333:344) ========== -->
       <section
-        class="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-5 pb-16 pt-10 sm:px-8 sm:pt-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8 lg:px-10 lg:pb-24 lg:pt-16"
+        class="mx-auto grid w-full max-w-page items-center gap-10 px-5 pb-16 pt-10 sm:px-8 sm:pt-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8 lg:px-10 lg:pb-24 lg:pt-16"
       >
         <div class="flex flex-col items-start gap-6 sm:gap-7">
           <p class="text-h6 leading-[normal] text-co-coral">
@@ -376,7 +376,7 @@ onUnmounted(() => {
     <!-- ========== Footer (402:291) ========== -->
     <footer class="border-t border-traceline">
       <div
-        class="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-4 px-5 py-8 text-center text-h6 leading-[normal] text-text-2 sm:flex-row sm:justify-between sm:px-8 sm:text-left lg:px-10"
+        class="mx-auto flex w-full max-w-page flex-col items-center gap-4 px-5 py-8 text-center text-h6 leading-[normal] text-text-2 sm:flex-row sm:justify-between sm:px-8 sm:text-left lg:px-10"
       >
         <AppLogo variant="conecta" :font-size="20" alt="" />
         <p>Feito por estudantes, para estudantes.</p>

@@ -10,13 +10,7 @@ import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
 import AppIcon from '../../../shared/ui/AppIcon.vue'
 import AppLogo from '../../../shared/ui/AppLogo.vue'
 import AppLogoAnimated from '../../../shared/ui/AppLogoAnimated.vue'
-
-type DashboardIconName =
-  | 'layout-dashboard'
-  | 'messages-square'
-  | 'coletive'
-  | 'newspaper'
-  | 'calendar-days'
+import type { DashboardIconName } from '../../../shared/ui/icons'
 
 const props = defineProps<{
   mobileOpen: boolean
@@ -123,7 +117,7 @@ const profileImage = computed(() => {
           :to="item.path"
           :aria-label="item.label"
           :title="item.label"
-          class="navigation-item flex h-16 w-full items-center gap-4 rounded-[10px] px-5 text-[14px] leading-4 font-medium no-underline transition-colors hover:bg-traceline/60 max-[1100px]:size-[52px] max-[1100px]:justify-center max-[1100px]:px-0"
+          class="navigation-item flex h-16 w-full items-center gap-4 rounded-button px-5 text-[14px] leading-4 font-medium no-underline transition-colors hover:bg-traceline/60 max-[1100px]:size-[52px] max-[1100px]:justify-center max-[1100px]:px-0"
           :class="
             isActive(item.path)
               ? 'navigation-item-active bg-traceline text-co-blue'

@@ -283,7 +283,7 @@ async function saveProfile() {
 
             <p
               v-if="erroSalvar"
-              class="text-sm font-semibold text-[rgba(255,0,4,0.75)]"
+              class="text-sm font-semibold text-danger/75"
               role="alert"
             >
               {{ erroSalvar }}

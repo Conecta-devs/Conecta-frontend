@@ -6,7 +6,7 @@ const API_URL = apiUrl('/agenda')
 export type AgendaKind = 'event' | 'conversation'
 export type AgendaFormat = 'online' | 'in_person'
 
-export interface AgendaOrganizer {
+interface AgendaOrganizer {
   id: string | null
   name: string | null
   image: string | null
@@ -50,7 +50,7 @@ export interface AgendaItemInput {
   location?: string | null
 }
 
-export type UpdateAgendaItemInput = Partial<AgendaItemInput>
+type UpdateAgendaItemInput = Partial<AgendaItemInput>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

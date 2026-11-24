@@ -41,7 +41,7 @@ const emit = defineEmits<{ cta: [] }>()
 
 <template>
   <section
-    class="flex w-full max-w-[1280px] flex-col items-center gap-5 overflow-hidden rounded-[16px] bg-co-blue px-6 py-12 text-center sm:px-12 sm:py-20"
+    class="flex w-full max-w-page flex-col items-center gap-5 overflow-hidden rounded-card bg-co-blue px-6 py-12 text-center sm:px-12 sm:py-20"
   >
     <p class="text-h6 leading-[normal] text-text-2">{{ eyebrow }}</p>
 

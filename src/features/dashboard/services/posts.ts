@@ -3,7 +3,7 @@ import { apiUrl } from './api'
 
 const API_URL = apiUrl('/posts')
 
-export interface PostAuthor {
+interface PostAuthor {
   id: string | null
   name: string | null
   image: string | null
@@ -28,22 +28,22 @@ export interface Post {
   comments?: PostComment[]
 }
 
-export interface PostLikeResponse {
+interface PostLikeResponse {
   liked: boolean
   likeCount: number
 }
 
-export interface CreatePostInput {
+interface CreatePostInput {
   title: string
   content?: string | null
 }
 
-export interface UpdatePostInput {
+interface UpdatePostInput {
   title?: string
   content?: string | null
 }
 
-export interface DeletePostResponse {
+interface DeletePostResponse {
   message: string
   id: string
 }
@@ -144,22 +144,6 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
   const data = await readJsonResponse(response)
   if (!isPost(data)) {
     throw new Error('A resposta da publicação criada é inválida.')
-  }
-
-  return data
-}
-
-export async function getPost(postId: string): Promise<Post> {
-  const response = await fetchProtected(`${API_URL}/${encodeURIComponent(postId)}`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-  })
-  await ensureSuccessfulResponse(response)
-
-  const data = await readJsonResponse(response)
-  if (!isPost(data)) {
-    throw new Error('A resposta da publicação é inválida.')
   }
 
   return data

@@ -23,7 +23,7 @@ withDefaults(
   <p
     :id="id"
     class="text-h6 leading-[normal]"
-    :class="variante === 'sucesso' ? 'text-tree-green' : 'text-[rgba(255,0,4,0.65)]'"
+    :class="variante === 'sucesso' ? 'text-tree-green' : 'text-danger/65'"
     :role="variante === 'sucesso' ? 'status' : 'alert'"
   >
     <slot />

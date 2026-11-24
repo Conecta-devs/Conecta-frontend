@@ -58,7 +58,7 @@ const feedbackId = computed(() => `${props.id}-feedback`)
 
 /** Entrada do Figma: 50px, raio 10, borda traceline, texto a 32px. */
 const inputBase =
-  'h-[50px] w-full rounded-[10px] border border-traceline bg-white pl-[32px] font-sans text-h6 text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral disabled:cursor-not-allowed disabled:opacity-60'
+  'h-[50px] w-full rounded-button border border-traceline bg-white pl-[32px] font-sans text-h6 text-text-1 outline-none placeholder:text-text-2/50 focus:border-co-coral disabled:cursor-not-allowed disabled:opacity-60'
 
 /** Ícone decorativo dentro do input: 14px a 13px da esquerda. */
 const inputIcon =

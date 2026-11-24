@@ -28,7 +28,7 @@ import AppLogo from '../../shared/ui/AppLogo.vue'
       <AppIcon variant="coletive" />
     </div>
 
-    <div class="flex max-w-[1280px] flex-wrap items-center justify-center gap-10">
+    <div class="flex max-w-page flex-wrap items-center justify-center gap-10">
       <AppArticle icon="hands" title="Text" text="Text" />
       <AppArticle icon="book" title="Text" text="Text" />
       <AppArticle icon="coletive" title="Text" text="Text" />

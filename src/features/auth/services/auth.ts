@@ -9,23 +9,23 @@ import type { AuthUser } from '../../../shared/types/auth'
 
 export type { AuthUser } from '../../../shared/types/auth'
 
-export interface LoginPayload {
+interface LoginPayload {
   email: string
   password: string
 }
 
-export interface RegisterPayload {
+interface RegisterPayload {
   name: string
   email: string
   password: string
 }
 
-export interface LoginResponse {
+interface LoginResponse {
   user: AuthUser
   accessToken: string
 }
 
-export type UserProfile = AuthUser
+type UserProfile = AuthUser
 
 type RefreshFailureKind = 'unauthorized' | 'network' | 'server' | 'http' | 'invalid-response'
 
@@ -219,8 +219,6 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
   }
   return { user, accessToken: data.accessToken.trim() }
 }
-
-export const LoginUser = loginUser
 
 export async function registerUser(payload: RegisterPayload): Promise<void> {
   const response = await fetchApi(apiUrl('/auth/register'), {

@@ -68,7 +68,7 @@ export function isAuthenticated(): boolean {
 }
 
 /** Única fonte de escrita do token (login, cadastro e limpeza). */
-export function saveAccessToken(accessToken: string | null) {
+function saveAccessToken(accessToken: string | null) {
   if (accessToken) {
     localStorage.setItem(TOKEN_KEY, accessToken)
   } else {

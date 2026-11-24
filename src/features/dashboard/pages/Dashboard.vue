@@ -336,7 +336,7 @@ function conversationPreview(conversation: ChatConversation): string {
           class="event-card flex min-h-[148px] flex-wrap items-center gap-9 rounded-2xl border border-traceline bg-white p-6 max-[620px]:flex-col max-[620px]:items-stretch max-[620px]:gap-5"
         >
           <div
-            class="grid h-24 w-20 shrink-0 place-content-center gap-2 rounded-[10px] bg-s-coral text-center text-co-blue"
+            class="grid h-24 w-20 shrink-0 place-content-center gap-2 rounded-button bg-s-coral text-center text-co-blue"
           >
             <span class="text-[32px] leading-[38px] font-semibold">{{ formatDay(item.startsAt) }}</span>
             <span class="text-[14px] leading-4 font-medium uppercase">{{

@@ -136,7 +136,7 @@ const labelClasses: Record<NonNullable<typeof props.labelVariant>, string> = {
     <!-- Camada de fundo (431:120 / 435:71 e equivalentes) -->
     <span
       aria-hidden="true"
-      class="absolute inset-0 rounded-[10px] border transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
+      class="absolute inset-0 rounded-button border transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0,0,0.58,1)] motion-reduce:transition-none"
       :class="surfaceClasses"
     />
 
