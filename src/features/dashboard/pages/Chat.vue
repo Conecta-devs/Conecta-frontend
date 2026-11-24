@@ -1871,7 +1871,7 @@ onUnmounted(() => {
 
 <template>
   <section
-    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:h-auto max-[900px]:min-h-screen max-[620px]:!h-[calc(100dvh-65px)] max-[620px]:!min-h-0"
+    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:min-h-0 max-[620px]:!h-[calc(100dvh-65px)] max-[620px]:!min-h-0"
   >
     <AppHeader
       v-model:search-value="searchText"
@@ -1882,10 +1882,11 @@ onUnmounted(() => {
 
     <div
       class="flex min-h-0 flex-1 flex-col px-[clamp(24px,3.3vw,48px)] py-8 max-[620px]:px-4 max-[620px]:py-5"
+      :class="chatHeaderCollapsed ? 'max-[620px]:!pt-0' : ''"
     >
       <div class="flex min-h-0 flex-1 gap-6 max-[900px]:flex-col">
         <aside
-          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:h-[520px] max-[900px]:w-full max-[620px]:!h-auto max-[620px]:!min-h-0 max-[620px]:!flex-1"
+          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:min-h-0 max-[900px]:w-full max-[900px]:flex-1"
           :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
         >
           <div class="flex shrink-0 flex-col gap-5">
@@ -2144,7 +2145,7 @@ onUnmounted(() => {
         </aside>
 
         <main
-          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white max-[900px]:h-[620px] max-[900px]:flex-none max-[620px]:!h-auto max-[620px]:!min-h-0 max-[620px]:!flex-1"
+          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white"
           :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
         >
           <div
