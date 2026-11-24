@@ -24,7 +24,7 @@ function toggleMobileMenu() {
 
 <template>
   <div
-    class="dashboard-page flex min-h-screen bg-co-white text-text-1"
+    class="dashboard-page flex min-h-dvh bg-co-white text-text-1"
   >
     <button
       v-if="mobileMenuOpen"

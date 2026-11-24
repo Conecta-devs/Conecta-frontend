@@ -2332,7 +2332,7 @@ onUnmounted(() => {
 
           <div
             v-if="selectedConversation"
-            class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-white p-6 max-[620px]:p-4"
+            class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain bg-white p-6 max-[620px]:p-4"
             @scroll.passive="handleMessageHistoryScroll"
             @touchstart.passive="handleMessageHistoryTouchStart"
             @touchmove.passive="handleMessageHistoryTouchMove"
