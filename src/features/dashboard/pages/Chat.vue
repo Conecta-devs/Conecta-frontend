@@ -1818,9 +1818,7 @@ function handleMessageHistoryScroll(event: Event) {
   const delta = scrollTop - lastMessageScrollTop
   lastMessageScrollTop = scrollTop
 
-  // Troca de conversa reposiciona o histórico; não é um gesto do usuário.
-  if (Math.abs(delta) > 120) return
-
+  // Um fling no mobile pode avançar mais de 100px entre dois eventos de scroll.
   if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
   else if (delta < -3 && scrollTop <= 8) chatHeaderCollapsed.value = false
 }
