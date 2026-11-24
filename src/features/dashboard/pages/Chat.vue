@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Socket } from 'socket.io-client'
 import {
   faArrowLeft,
-  faBell,
   faEllipsis,
   faFaceSmile,
   faPaperclip,
@@ -1854,14 +1853,7 @@ onUnmounted(() => {
       v-model:search-value="searchText"
       variant="chat"
       @search-input="handleSearchInput"
-    >
-      <template #search-icon>
-        <font-awesome-icon :icon="faSearch" class="text-[20px]" />
-      </template>
-      <template #notification-icon>
-        <font-awesome-icon :icon="faBell" class="text-[20px]" />
-      </template>
-    </AppHeader>
+    />
 
     <div
       class="flex min-h-0 flex-1 flex-col px-[clamp(24px,3.3vw,48px)] py-8 max-[620px]:px-4 max-[620px]:py-5"
