@@ -362,8 +362,16 @@ onMounted(loadAgenda)
                         </p>
                     </div>
 
-                    <p v-if="isOrganizer(item, currentUser.user?.sub)" class="text-h6 font-medium text-text-2">
-                        Organizado por você
+                    <p class="text-h6 font-medium text-text-2">
+                        <template v-if="isOrganizer(item, currentUser.user?.sub)">
+                            Organizado por você
+                        </template>
+                        <template v-else-if="item.organizer?.name">
+                            Organizado por {{ item.organizer.name }}
+                        </template>
+                        <template v-else>
+                            Organizado por um estudante
+                        </template>
                     </p>
                 </div>
 

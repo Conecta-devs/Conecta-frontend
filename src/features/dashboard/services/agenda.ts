@@ -6,6 +6,12 @@ const API_URL = apiUrl('/agenda')
 export type AgendaKind = 'event' | 'conversation'
 export type AgendaFormat = 'online' | 'in_person'
 
+export interface AgendaOrganizer {
+  id: string | null
+  name: string | null
+  image: string | null
+}
+
 export interface AgendaItem {
   id: string
   title: string
@@ -17,6 +23,7 @@ export interface AgendaItem {
   meetingUrl: string | null
   location: string | null
   organizerId: string
+  organizer?: AgendaOrganizer | null
   cancelledAt: string | null
   createdAt: string
   updatedAt: string
@@ -49,6 +56,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function isAgendaOrganizer(value: unknown): value is AgendaOrganizer {
+  return (
+    isRecord(value) &&
+    (typeof value.id === 'string' || value.id === null) &&
+    (typeof value.name === 'string' || value.name === null) &&
+    (typeof value.image === 'string' || value.image === null)
+  )
+}
+
 function isAgendaItem(value: unknown): value is AgendaItem {
   return (
     isRecord(value) &&
@@ -62,6 +78,9 @@ function isAgendaItem(value: unknown): value is AgendaItem {
     (typeof value.meetingUrl === 'string' || value.meetingUrl === null) &&
     (typeof value.location === 'string' || value.location === null) &&
     typeof value.organizerId === 'string' &&
+    (value.organizer === undefined ||
+      value.organizer === null ||
+      isAgendaOrganizer(value.organizer)) &&
     (typeof value.cancelledAt === 'string' || value.cancelledAt === null) &&
     typeof value.createdAt === 'string' &&
     typeof value.updatedAt === 'string'
