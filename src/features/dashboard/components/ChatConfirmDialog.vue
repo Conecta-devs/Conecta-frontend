@@ -80,7 +80,7 @@ function handleConfirm() {
       <div class="mt-5 flex justify-end gap-2">
         <button
           ref="cancelButton"
-          class="rounded-lg border border-traceline bg-white px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:bg-co-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:opacity-50"
+          class="rounded-lg border border-traceline bg-white px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:bg-s-blue/30 hover:text-co-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-co-blue disabled:opacity-50"
           type="button"
           :disabled="loading"
           @click="handleCancel"
