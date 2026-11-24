@@ -341,6 +341,21 @@ export async function listChatMessages(
   }
 }
 
+export async function sendChatMessage(
+  conversationId: string,
+  input: { clientMessageId: string; content: string },
+): Promise<ChatMessage> {
+  const body = await requestJson(
+    `/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  )
+  return normalizeChatMessage(body, conversationId)
+}
+
 export async function markChatConversationRead(
   conversationId: string,
 ): Promise<{ conversationId: string; lastReadSequence: number; unreadCount: number }> {

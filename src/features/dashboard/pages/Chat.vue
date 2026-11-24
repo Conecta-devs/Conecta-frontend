@@ -26,6 +26,7 @@ import {
   normalizeChatMessage,
   removeChatMember,
   searchChatUsers,
+  sendChatMessage,
   type ChatConversation,
   type ChatMember,
   type ChatMessage,
@@ -84,6 +85,53 @@ const mobileConversationListVisible = ref(false)
 const chatSocketStatus = ref<ChatSocketStatus>('connecting')
 const chatSocketError = ref('')
 const chatNotice = ref('')
+const emojiPickerOpen = ref(false)
+const emojiPickerElement = ref<HTMLElement | null>(null)
+const messageInputElement = ref<HTMLInputElement | null>(null)
+const quickEmojis = [
+  '😀',
+  '😂',
+  '😍',
+  '😎',
+  '🤔',
+  '👍',
+  '👏',
+  '🙌',
+  '❤️',
+  '🎉',
+  '🔥',
+  '✨',
+  '👀',
+  '💪',
+  '🙏',
+  '😅',
+  '😭',
+  '🤝',
+  '💡',
+  '🚀',
+]
+
+function toggleEmojiPicker() {
+  emojiPickerOpen.value = !emojiPickerOpen.value
+}
+
+function insertEmoji(emoji: string) {
+  messageText.value = `${messageText.value}${emoji}`.slice(0, 4000)
+  emojiPickerOpen.value = false
+  void nextTick(() => messageInputElement.value?.focus())
+}
+
+function handleEmojiPickerOutside(event: PointerEvent) {
+  if (!emojiPickerOpen.value) return
+  if (emojiPickerElement.value?.contains(event.target as Node)) return
+  emojiPickerOpen.value = false
+}
+
+function handleEmojiPickerEscape(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || !emojiPickerOpen.value) return
+  emojiPickerOpen.value = false
+  void nextTick(() => messageInputElement.value?.focus())
+}
 const readCursors = ref<Record<string, number>>({})
 const pendingUnreadCounts = ref<Record<string, { count: number; revision: number }>>({})
 let unreadEventRevision = 0
@@ -134,6 +182,10 @@ const confirmedClientMessageIds = new Set<string>()
 const sendingClientMessageIds = new Set<string>()
 const joinedConversationIds = new Set<string>()
 const joiningConversationIds = new Set<string>()
+const MESSAGE_POLL_INTERVAL_MS = 4_000
+let messagePollTimer: ReturnType<typeof setInterval> | null = null
+let messagePollController: AbortController | null = null
+let messagePollInFlight = false
 let chatSocket: Socket | null = null
 let disposeChatSocket: (() => void) | null = null
 let refreshChatSocketAuthentication: (() => Promise<void>) | null = null
@@ -205,6 +257,8 @@ function refreshConversationList() {
 
 function clearChatState() {
   sessionGeneration += 1
+  stopMessagePolling()
+  emojiPickerOpen.value = false
   conversationsController?.abort()
   messagesController?.abort()
   usersController?.abort()
@@ -294,9 +348,7 @@ const messagesDateLabel = computed(() => {
 
 const conversationPresenceLabel = computed(() => {
   if (chatSocketStatus.value === 'connected') return 'Online agora'
-  if (chatSocketStatus.value === 'connecting') return 'Conectando...'
-  if (chatSocketStatus.value === 'reconnecting') return 'Reconectando...'
-  return 'Offline'
+  return 'Sincronizando mensagens...'
 })
 
 const visibleConversations = computed(() => {
@@ -520,6 +572,44 @@ function applyUnreadUpdate(value: unknown) {
   applyUnreadCount(value.conversationId, value.unreadCount)
 }
 
+function applyIncomingMessage(
+  message: ChatMessage,
+  options: { markRead?: boolean; updateSummary?: boolean } = {},
+) {
+  const failedAttempt = failedMessageAttempts.get(message.clientMessageId)
+  if (failedAttempt) {
+    failedMessageAttempts.delete(message.clientMessageId)
+    if (
+      message.conversationId === selectedConversation.value?.id &&
+      messageText.value.trim() === failedAttempt.content
+    ) {
+      messageText.value = ''
+    }
+  } else if (sendingClientMessageIds.has(message.clientMessageId)) {
+    confirmedClientMessageIds.add(message.clientMessageId)
+  }
+  addOrReplaceMessage(message)
+  if (options.updateSummary !== false) {
+    updateConversationSummary({
+      id: message.conversationId,
+      updatedAt: message.createdAt,
+      lastMessage: {
+        content: message.content,
+        senderId: message.senderId,
+        sequence: message.sequence,
+        createdAt: message.createdAt,
+      },
+    })
+  }
+  if (
+    options.markRead &&
+    message.conversationId === selectedConversation.value?.id &&
+    !message.isMine
+  ) {
+    void markCurrentConversationRead(message.conversationId)
+  }
+}
+
 function handleSocketMessage(value: unknown) {
   if (
     typeof value !== 'object' ||
@@ -531,33 +621,7 @@ function handleSocketMessage(value: unknown) {
   }
 
   try {
-    const message = normalizeChatMessage(value, value.conversationId)
-    const failedAttempt = failedMessageAttempts.get(message.clientMessageId)
-    if (failedAttempt) {
-      failedMessageAttempts.delete(message.clientMessageId)
-      if (
-        message.conversationId === selectedConversation.value?.id &&
-        messageText.value.trim() === failedAttempt.content
-      ) {
-        messageText.value = ''
-      }
-    } else if (sendingClientMessageIds.has(message.clientMessageId)) {
-      confirmedClientMessageIds.add(message.clientMessageId)
-    }
-    addOrReplaceMessage(message)
-    updateConversationSummary({
-      id: message.conversationId,
-      updatedAt: message.createdAt,
-      lastMessage: {
-        content: message.content,
-        senderId: message.senderId,
-        sequence: message.sequence,
-        createdAt: message.createdAt,
-      },
-    })
-    if (message.conversationId === selectedConversation.value?.id && !message.isMine) {
-      void markCurrentConversationRead(message.conversationId)
-    }
+    applyIncomingMessage(normalizeChatMessage(value, value.conversationId), { markRead: true })
   } catch (error) {
     chatSocketError.value =
       error instanceof Error ? error.message : 'A mensagem recebida é inválida.'
@@ -1163,6 +1227,74 @@ async function loadMessages(conversationId: string, loadOlder = false) {
   }
 }
 
+function stopMessagePolling() {
+  if (messagePollTimer) clearInterval(messagePollTimer)
+  messagePollTimer = null
+  messagePollController?.abort()
+  messagePollController = null
+  messagePollInFlight = false
+}
+
+function startMessagePolling() {
+  stopMessagePolling()
+  messagePollTimer = setInterval(() => {
+    void syncMessagesFromApi()
+  }, MESSAGE_POLL_INTERVAL_MS)
+}
+
+async function syncMessagesFromApi() {
+  const conversation = selectedConversation.value
+  if (!conversation || messagePollInFlight || document.visibilityState !== 'visible') return
+
+  messagePollInFlight = true
+  messagePollController?.abort()
+  const controller = new AbortController()
+  messagePollController = controller
+  const requestSessionGeneration = sessionGeneration
+
+  try {
+    const page = await listChatMessages(conversation.id, {
+      limit: 50,
+      signal: controller.signal,
+    })
+    if (
+      controller.signal.aborted ||
+      requestSessionGeneration !== sessionGeneration ||
+      selectedConversation.value?.id !== conversation.id
+    ) {
+      return
+    }
+
+    const knownIds = new Set(messages.value.map((message) => message.clientMessageId))
+    const newestMessage = page.messages[page.messages.length - 1]
+    let hasNewIncomingMessage = false
+    for (const message of page.messages) {
+      if (!message.isMine && !knownIds.has(message.clientMessageId)) {
+        hasNewIncomingMessage = true
+      }
+      applyIncomingMessage(message, {
+        updateSummary: message.clientMessageId === newestMessage?.clientMessageId,
+      })
+    }
+    if (hasNewIncomingMessage) void markCurrentConversationRead(conversation.id)
+  } catch (error) {
+    if (
+      !controller.signal.aborted &&
+      requestSessionGeneration === sessionGeneration &&
+      selectedConversation.value?.id === conversation.id
+    ) {
+      handleConversationAccessError(error, conversation.id)
+    }
+  } finally {
+    if (messagePollController === controller) messagePollController = null
+    messagePollInFlight = false
+  }
+}
+
+function handleWindowVisibilityChange() {
+  if (document.visibilityState === 'visible') void syncMessagesFromApi()
+}
+
 function selectConversation(conversation: ChatConversation) {
   closeContextMenu()
   closeRemoveRecentConfirmation()
@@ -1237,16 +1369,8 @@ async function sendMessage(retryClientMessageId?: string) {
   addOrReplaceMessage(optimisticMessage)
   sendingClientMessageIds.add(clientMessageId)
   try {
-    if (!chatSocket?.connected) {
-      throw new Error('Sem conexão com o chat. Tente novamente quando reconectar.')
-    }
-    const result = await emitChatSocketAck<unknown>(chatSocket, 'chat:message:send', {
-      conversationId: conversation.id,
-      clientMessageId,
-      content: text,
-    })
+    const message = await sendChatMessage(conversation.id, { clientMessageId, content: text })
     if (requestSessionGeneration !== sessionGeneration) return
-    const message = normalizeChatMessage(result, conversation.id)
     failedMessageAttempts.delete(clientMessageId)
     confirmedClientMessageIds.delete(clientMessageId)
     addOrReplaceMessage(message)
@@ -1533,6 +1657,7 @@ watch(
     if (userId) {
       chatSocketStatus.value = 'connecting'
       void loadConversationList()
+      startMessagePolling()
       initializeChatSocket()
     } else {
       chatSocketStatus.value = 'disconnected'
@@ -1550,17 +1675,25 @@ onMounted(() => {
   }
   document.addEventListener('pointerdown', handleContextMenuOutside)
   document.addEventListener('keydown', handleContextMenuEscape)
+  document.addEventListener('pointerdown', handleEmojiPickerOutside)
+  document.addEventListener('keydown', handleEmojiPickerEscape)
+  document.addEventListener('visibilitychange', handleWindowVisibilityChange)
   window.addEventListener('resize', handleContextMenuViewportChange)
   window.addEventListener('scroll', handleContextMenuViewportChange, true)
   void loadConversationList()
+  startMessagePolling()
   initializeChatSocket()
 })
 
 onUnmounted(() => {
   document.removeEventListener('pointerdown', handleContextMenuOutside)
   document.removeEventListener('keydown', handleContextMenuEscape)
+  document.removeEventListener('pointerdown', handleEmojiPickerOutside)
+  document.removeEventListener('keydown', handleEmojiPickerEscape)
+  document.removeEventListener('visibilitychange', handleWindowVisibilityChange)
   window.removeEventListener('resize', handleContextMenuViewportChange)
   window.removeEventListener('scroll', handleContextMenuViewportChange, true)
+  stopMessagePolling()
   conversationsController?.abort()
   messagesController?.abort()
   usersController?.abort()
@@ -1890,11 +2023,8 @@ onUnmounted(() => {
               {{
                 chatSocketStatus === 'connecting'
                   ? 'Conectando ao chat...'
-                  : chatSocketStatus === 'reconnecting'
-                    ? 'Reconectando ao chat. As mensagens serão sincronizadas ao reconectar.'
-                    : 'Conexão em tempo real indisponível.'
+                  : 'Sincronizando mensagens com o servidor.'
               }}
-              <span v-if="chatSocketError" class="ml-1">{{ chatSocketError }}</span>
             </span>
             <button
               v-if="chatSocketStatus === 'disconnected'"
@@ -1902,7 +2032,7 @@ onUnmounted(() => {
               type="button"
               @click="retryChatSocket"
             >
-              Tentar novamente
+              Tentar tempo real
             </button>
           </div>
           <header
@@ -1944,20 +2074,25 @@ onUnmounted(() => {
             </div>
             <div v-if="selectedConversation" class="flex shrink-0 items-center gap-3 text-text-2">
               <button
-                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue"
+                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 aria-label="Iniciar chamada de voz"
+                title="Chamadas em breve"
+                disabled
               >
                 <font-awesome-icon :icon="faPhone" />
               </button>
               <button
-                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue"
+                class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 aria-label="Iniciar chamada de vídeo"
+                title="Chamadas em breve"
+                disabled
               >
                 <font-awesome-icon :icon="faVideo" />
               </button>
               <button
+                v-if="selectedConversation.category === 'community'"
                 class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent transition-colors hover:bg-traceline hover:text-co-blue"
                 type="button"
                 aria-label="Mais opções"
@@ -2133,13 +2268,16 @@ onUnmounted(() => {
               class="flex h-[52px] min-w-0 flex-1 items-center gap-[14px] rounded-button border border-traceline bg-co-white px-4"
             >
               <button
-                class="grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue"
+                class="grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue disabled:cursor-not-allowed disabled:opacity-40"
                 type="button"
                 aria-label="Anexar arquivo"
+                title="Envio de arquivos em breve"
+                disabled
               >
                 <font-awesome-icon :icon="faPaperclip" />
               </button>
               <input
+                ref="messageInputElement"
                 v-model="messageText"
                 class="min-w-0 flex-1 border-0 bg-transparent text-h6 leading-normal font-medium text-text-1 outline-none placeholder:text-text-2"
                 type="text"
@@ -2148,13 +2286,34 @@ onUnmounted(() => {
                 maxlength="4000"
                 :disabled="sendingMessage"
               />
-              <button
-                class="grid size-5 shrink-0 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue"
-                type="button"
-                aria-label="Adicionar emoji"
-              >
-                <font-awesome-icon :icon="faFaceSmile" />
-              </button>
+              <div ref="emojiPickerElement" class="relative grid size-5 shrink-0 place-items-center">
+                <button
+                  class="grid size-5 place-items-center border-0 bg-transparent text-text-2 hover:text-co-blue"
+                  type="button"
+                  aria-label="Adicionar emoji"
+                  :aria-expanded="emojiPickerOpen"
+                  @click="toggleEmojiPicker"
+                >
+                  <font-awesome-icon :icon="faFaceSmile" />
+                </button>
+                <div
+                  v-if="emojiPickerOpen"
+                  class="absolute right-0 bottom-full z-30 mb-3 grid w-[220px] grid-cols-5 gap-1 rounded-card border border-traceline bg-white p-2 shadow-xl"
+                  role="group"
+                  aria-label="Emojis rápidos"
+                >
+                  <button
+                    v-for="emoji in quickEmojis"
+                    :key="emoji"
+                    class="grid size-9 place-items-center rounded-[8px] border-0 bg-transparent text-lg transition-colors hover:bg-traceline"
+                    type="button"
+                    :aria-label="`Inserir emoji ${emoji}`"
+                    @click="insertEmoji(emoji)"
+                  >
+                    {{ emoji }}
+                  </button>
+                </div>
+              </div>
             </div>
             <button
               class="grid size-12 shrink-0 place-items-center rounded-button border-0 bg-co-blue text-co-white transition-colors hover:bg-co-blue/90 disabled:cursor-not-allowed disabled:opacity-50"
