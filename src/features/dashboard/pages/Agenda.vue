@@ -341,7 +341,7 @@ onMounted(loadAgenda)
 
         <div v-else class="flex flex-col gap-4">
             <article v-for="item in agendaItems" :key="item.id"
-                class="flex w-full flex-wrap items-center justify-between gap-6 rounded-card border border-traceline bg-co-white p-6 max-[620px]:p-5">
+                class="flex w-full flex-wrap items-center justify-between gap-6 rounded-card border border-traceline bg-white p-6 max-[620px]:p-5">
                 <div class="flex min-w-0 flex-1 flex-col gap-2.5">
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="rounded-md bg-traceline px-2.5 py-1.5 text-h6 font-medium text-co-blue">

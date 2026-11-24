@@ -1786,7 +1786,7 @@ onUnmounted(() => {
               </button>
             </div>
             <label
-              class="flex h-12 items-center gap-[10px] rounded-button border border-traceline bg-co-white px-3 text-text-2"
+              class="flex h-12 items-center gap-[10px] rounded-button border border-traceline bg-white px-3 text-text-2"
             >
               <font-awesome-icon :icon="faSearch" />
               <input

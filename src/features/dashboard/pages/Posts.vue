@@ -302,7 +302,7 @@ onMounted(loadPosts)
     </div>
 
     <form
-      class="flex flex-col gap-5 rounded-card border border-traceline bg-co-white p-6"
+      class="flex flex-col gap-5 rounded-card border border-traceline bg-white p-6"
       @submit.prevent="submitPost"
     >
       <h2 class="text-h3 font-semibold text-co-blue">
@@ -412,7 +412,7 @@ onMounted(loadPosts)
         <article
           v-for="post in posts"
           :key="post.id"
-          class="rounded-card border border-traceline bg-co-white p-6"
+          class="rounded-card border border-traceline bg-white p-6"
         >
           <div class="flex items-center gap-3.5">
             <div
