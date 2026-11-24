@@ -191,7 +191,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
               <div class="mt-1 flex items-center gap-2.5">
                 <span class="relative block h-[15.804px] w-[14.222px] shrink-0 overflow-hidden">
                   <img :src="calendarEvent" alt=""
-                    class="absolute inset-[-4.78%_-5.31%] block h-full w-full max-w-none" />
+                    class="absolute inset-0 block h-full w-full max-w-none" />
                 </span>
                 <p class="m-0 text-h6 font-medium text-text-2">
                   {{ formatDateTime(entry.item.startsAt) }} – {{ formatDateTime(entry.item.endsAt) }}
