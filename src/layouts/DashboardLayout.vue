@@ -16,25 +16,71 @@ const profileSetupOpen = ref(false)
 const mobileMenuOpen = ref(false)
 const dashboardTouchHandlers = createHeaderScrollHandlers()
 let lastWindowScrollY = 0
+let expandedHeaderHeight = 0
+let compensatingScroll = false
 
 function isMobileHeader() {
   return window.matchMedia('(max-width: 620px)').matches
+}
+
+function getPageHeader() {
+  return document.querySelector('.dashboard-main > header') as HTMLElement | null
+}
+
+// Ajusta o scroll antes de recolher o header para que o conteúdo não dê um
+// salto para cima. Na reabertura o salto é desejado: o header volta ao topo.
+function compensateHeaderCollapse() {
+  if (route.meta.hideHeader || !isMobileHeader()) return
+
+  const distance = expandedHeaderHeight || getPageHeader()?.offsetHeight || 0
+  if (distance < 1) return
+
+  compensatingScroll = true
+  window.scrollBy(0, -distance)
+  lastWindowScrollY = window.scrollY
+  requestAnimationFrame(() => {
+    compensatingScroll = false
+    lastWindowScrollY = window.scrollY
+  })
 }
 
 function handleWindowScroll() {
   if (!isMobileHeader()) return
 
   const scrollY = window.scrollY
+  if (compensatingScroll) {
+    lastWindowScrollY = scrollY
+    return
+  }
+
   const delta = scrollY - lastWindowScrollY
   lastWindowScrollY = scrollY
 
+  // No chat, o container interno controla o recolhimento.
+  if (route.meta.hideHeader) return
+
+  const header = getPageHeader()
+  if (!header) return
+  if (!chatHeaderCollapsed.value) {
+    expandedHeaderHeight = header.offsetHeight || expandedHeaderHeight
+  }
+
+  // Só recolhe depois que o header já saiu da viewport; assim a compensação
+  // de scroll não precisa empurrar o conteúdo além do topo da página.
+  const collapseAt = Math.max(expandedHeaderHeight, 24) + 8
+
   // Um fling no mobile pode avançar mais de 100px entre dois eventos.
-  if (delta > 3 && scrollY > 24) chatHeaderCollapsed.value = true
-  else if (delta < -3 && scrollY <= 8) chatHeaderCollapsed.value = false
+  if (delta > 3 && scrollY > collapseAt) {
+    compensateHeaderCollapse()
+    chatHeaderCollapsed.value = true
+  } else if (delta < -3 && scrollY <= 8) {
+    chatHeaderCollapsed.value = false
+  }
 }
 
 onMounted(() => {
   lastWindowScrollY = window.scrollY
+  expandedHeaderHeight = getPageHeader()?.offsetHeight ?? 0
   window.addEventListener('scroll', handleWindowScroll, { passive: true })
   window.addEventListener('touchstart', dashboardTouchHandlers.onTouchStart, true)
   window.addEventListener('touchmove', dashboardTouchHandlers.onTouchMove, true)
@@ -54,6 +100,7 @@ onUnmounted(() => {
 watch(() => route.fullPath, () => {
   expandChatHeader()
   lastWindowScrollY = window.scrollY
+  expandedHeaderHeight = getPageHeader()?.offsetHeight ?? expandedHeaderHeight
   dashboardTouchHandlers.reset()
 })
 
