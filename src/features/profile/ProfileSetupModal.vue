@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
-import { getUserProfile, updateUserProfile } from '../auth/services/auth'
-import { currentUser, saveSession } from '../../shared/services/session'
+import { getUserProfile, updateUserProfile } from '@/features/auth/services/auth'
+import { currentUser, saveSession } from '@/shared/services/session'
 
 const props = defineProps<{
   modelValue: boolean

@@ -3,14 +3,16 @@ import { computed, ref } from 'vue'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useRoute, useRouter } from 'vue-router'
 
-import { apiUrl, fetchApi } from '../services/api'
-import { clearSession, currentUser } from '../../../shared/services/session'
-import AppArrowIcon from '../../../shared/ui/AppArrowIcon.vue'
-import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
-import AppIcon from '../../../shared/ui/AppIcon.vue'
-import AppLogo from '../../../shared/ui/AppLogo.vue'
-import AppLogoAnimated from '../../../shared/ui/AppLogoAnimated.vue'
-import type { DashboardIconName } from '../../../shared/ui/icons'
+import { apiUrl, fetchApi } from '@/features/dashboard/services/api'
+import { clearSession, currentUser } from '@/shared/services/session'
+import {
+  AppArrowIcon,
+  AppDashboardIcon,
+  AppIcon,
+  AppLogo,
+  AppLogoAnimated,
+  type DashboardIconName,
+} from '@/shared/ui'
 
 const props = defineProps<{
   mobileOpen: boolean

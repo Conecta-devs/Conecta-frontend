@@ -6,15 +6,15 @@ import {
   listAgendaItems,
   type AgendaItem,
   type AgendaParticipation,
-} from '../services/agenda'
-import { listChatConversations, type ChatConversation } from '../services/chat'
-import AgendaDetailsButton from '../components/AgendaDetailsButton.vue'
-import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
-import DashboardCalendar from '../components/DashboardCalendar.vue'
-import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
-import AppLink from '../../../shared/ui/AppLink.vue'
-import { currentUser } from '../../../shared/services/session'
-import { getInitials, isOrganizer } from '../utils/format'
+} from '@/features/dashboard/services/agenda'
+import { listChatConversations, type ChatConversation } from '@/features/dashboard/services/chat'
+import AgendaDetailsButton from '@/features/dashboard/components/AgendaDetailsButton.vue'
+import AgendaDetailsModal from '@/features/dashboard/components/AgendaDetailsModal.vue'
+import DashboardCalendar from '@/features/dashboard/components/DashboardCalendar.vue'
+import { AppDashboardIcon, AppLink } from '@/shared/ui'
+import UserAvatar from '@/features/dashboard/components/UserAvatar.vue'
+import { currentUser } from '@/shared/services/session'
+import { isOrganizer } from '@/features/dashboard/utils/format'
 
 const agendaItems = ref<AgendaItem[]>([])
 const participations = ref<Record<string, AgendaParticipation>>({})
@@ -264,12 +264,11 @@ function conversationPreview(conversation: ChatConversation): string {
                 :to="{ path: '/dashboard/chat', query: { conversation: conversation.id } }"
                 class="conversation-item flex h-28 items-center gap-5 rounded-2xl border border-traceline bg-white p-6 no-underline transition-colors hover:border-s-blue"
               >
-                <span
-                  class="profile-avatar grid size-12 shrink-0 place-items-center rounded-full text-[14px] leading-4 font-medium text-co-blue"
+                <UserAvatar
+                  :name="conversation.name"
+                  class="profile-avatar size-12 text-[14px] leading-4 font-medium text-co-blue"
                   :class="conversation.category === 'friend' ? 'bg-s-coral' : 'bg-traceline'"
-                >
-                  {{ getInitials(conversation.name) }}
-                </span>
+                />
 
                 <span class="min-w-0 flex-1">
                   <span class="flex items-baseline justify-between gap-4">

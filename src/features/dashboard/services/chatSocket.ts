@@ -1,7 +1,7 @@
 import { io, type Socket } from 'socket.io-client'
 import { API_BASE_URL } from './api'
-import { getUserProfile } from '../../auth/services/auth'
-import { getStoredAccessToken } from '../../../shared/services/session'
+import { getUserProfile } from '@/features/auth/services/auth'
+import { getStoredAccessToken } from '@/shared/services/session'
 
 export type ChatSocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 

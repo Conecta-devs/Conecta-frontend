@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import logo1 from '../../assets/logos/logo-1.svg'
-import logo2 from '../../assets/logos/logo-2.svg'
-import logo3 from '../../assets/logos/logo-3.svg'
+import logo1 from '@/assets/logos/logo-1.svg'
+import logo2 from '@/assets/logos/logo-2.svg'
+import logo3 from '@/assets/logos/logo-3.svg'
 
 /**
  * Figma — Components > Logos (307:96)

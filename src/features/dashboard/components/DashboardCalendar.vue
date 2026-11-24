@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import type { AgendaItem, AgendaParticipation } from '../services/agenda'
-import { currentUser } from '../../../shared/services/session'
-import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
+import type { AgendaItem, AgendaParticipation } from '@/features/dashboard/services/agenda'
+import { currentUser } from '@/shared/services/session'
+import AppDashboardIcon from '@/shared/ui/AppDashboardIcon.vue'
 
 /**
  * Figma — Dashboard Conecta > Calendário (851:308)

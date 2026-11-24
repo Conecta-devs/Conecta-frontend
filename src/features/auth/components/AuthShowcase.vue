@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import AppButton from '../../../shared/ui/AppButton.vue'
-import AppLogo from '../../../shared/ui/AppLogo.vue'
-import coletiveIcon from '../../../assets/icons/coletive-white.svg'
-import orbitInner from '../../../assets/decorations/orbit.svg'
-import orbitOuter from '../../../assets/decorations/orbit2.svg'
+import { AppButton, AppLogo } from '@/shared/ui'
+import coletiveIcon from '@/assets/icons/coletive-white.svg'
+import orbitInner from '@/assets/decorations/orbit.svg'
+import orbitOuter from '@/assets/decorations/orbit2.svg'
 
 /**
  * Figma — painel de apresentação das telas de autenticação.

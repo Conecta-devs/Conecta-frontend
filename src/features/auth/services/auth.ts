@@ -1,13 +1,13 @@
-import { apiUrl, fetchApi } from '../../dashboard/services/api'
+import { apiUrl, fetchApi } from '@/features/dashboard/services/api'
 import {
   clearSession,
   currentUser,
   getStoredAccessToken,
   saveSession,
-} from '../../../shared/services/session'
-import type { AuthUser } from '../../../shared/types/auth'
+} from '@/shared/services/session'
+import type { AuthUser } from '@/shared/types/auth'
 
-export type { AuthUser } from '../../../shared/types/auth'
+export type { AuthUser } from '@/shared/types/auth'
 
 interface LoginPayload {
   email: string
@@ -144,7 +144,7 @@ async function redirectToLogin(expectedAccessToken: string): Promise<void> {
   if (!loginRedirectPromise) {
     loginRedirectPromise = (async () => {
       clearSession()
-      const { default: router } = await import('../../../router')
+      const { default: router } = await import('@/router')
       if (router.currentRoute.value.path !== '/login') {
         await router.push('/login')
       }

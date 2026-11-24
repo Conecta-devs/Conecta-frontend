@@ -2,17 +2,13 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { resetPassword } from '../services/auth'
-import AuthField from '../components/AuthField.vue'
-import AuthFormColumn from '../components/AuthFormColumn.vue'
-import AuthIntro from '../components/AuthIntro.vue'
-import AuthShowcase from '../components/AuthShowcase.vue'
-import { introSucessoReset } from '../successTexts'
-import AppBackLink from '../../../shared/ui/AppBackLink.vue'
-import AppButton from '../../../shared/ui/AppButton.vue'
-import AppDivider from '../../../shared/ui/AppDivider.vue'
-import AppEyebrow from '../../../shared/ui/AppEyebrow.vue'
-import AppLink from '../../../shared/ui/AppLink.vue'
+import { resetPassword } from '@/features/auth/services/auth'
+import AuthField from '@/features/auth/components/AuthField.vue'
+import AuthFormColumn from '@/features/auth/components/AuthFormColumn.vue'
+import AuthIntro from '@/features/auth/components/AuthIntro.vue'
+import AuthShowcase from '@/features/auth/components/AuthShowcase.vue'
+import { introSucessoReset } from '@/features/auth/successTexts'
+import { AppBackLink, AppButton, AppDivider, AppEyebrow, AppLink } from '@/shared/ui'
 
 /**
  * Figma — Criar nova senha (760:666) e Senha redefinida com sucesso (760:726).

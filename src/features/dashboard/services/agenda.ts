@@ -1,4 +1,4 @@
-import { fetchProtected } from '../../auth/services/auth'
+import { fetchProtected } from '@/features/auth/services/auth'
 import { apiUrl } from './api'
 
 const API_URL = apiUrl('/agenda')

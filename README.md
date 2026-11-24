@@ -147,10 +147,9 @@ src/
 ├── layouts/            DashboardLayout
 ├── router/             rotas e guarda de autenticação
 └── shared/
-    ├── composables/    useBodyScrollLock
     ├── services/       session
     ├── types/          auth
-    └── ui/             componentes reutilizáveis (AppButton, AppLogo, ...)
+    └── ui/             componentes reutilizáveis (AppButton, AppLogo, icons.ts, ...)
 ```
 
 Cada `feature` mantém suas páginas, componentes e serviços próximos. Componentes usados por mais de uma feature vivem em `shared/ui`.

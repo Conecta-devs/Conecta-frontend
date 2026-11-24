@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { currentUser } from '../../../shared/services/session'
-import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
+import { currentUser } from '@/shared/services/session'
+import AppDashboardIcon from '@/shared/ui/AppDashboardIcon.vue'
 
 withDefaults(
   defineProps<{

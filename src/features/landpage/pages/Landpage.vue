@@ -3,13 +3,8 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 
-import AppArticle from '../../../shared/ui/AppArticle.vue'
-import AppButton from '../../../shared/ui/AppButton.vue'
-import AppCartaz from '../../../shared/ui/AppCartaz.vue'
-import AppLink from '../../../shared/ui/AppLink.vue'
-import AppLogo from '../../../shared/ui/AppLogo.vue'
-import BlurReveal from '../../../shared/ui/BlurReveal.vue'
-import heroTree from '../../../assets/images/hero-tree.svg'
+import { AppArticle, AppButton, AppCartaz, AppLink, AppLogo, BlurReveal } from '@/shared/ui'
+import heroTree from '@/assets/images/hero-tree.svg'
 
 /**
  * Figma — Landpage (310:2)

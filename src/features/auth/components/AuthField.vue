@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 
 import AuthMessage from './AuthMessage.vue'
-import AppAuthIcon from '../../../shared/ui/AppAuthIcon.vue'
+import AppAuthIcon from '@/shared/ui/AppAuthIcon.vue'
 
 /**
  * Figma — campo das telas de autenticação (760:651 / 760:706 / 506:1672).

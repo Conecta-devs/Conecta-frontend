@@ -8,10 +8,10 @@ import {
   updateAgendaInterest,
   type AgendaItem,
   type AgendaParticipation,
-} from '../services/agenda'
-import { currentUser } from '../../../shared/services/session'
-import { formatDateTime, isOrganizer } from '../utils/format'
-import calendarEvent from '../assets/agenda/calendar-event.svg'
+} from '@/features/dashboard/services/agenda'
+import { currentUser } from '@/shared/services/session'
+import { formatDateTime, isOrganizer } from '@/features/dashboard/utils/format'
+import calendarEvent from '@/features/dashboard/assets/agenda/calendar-event.svg'
 import AsyncState from './AsyncState.vue'
 import AppModal from './AppModal.vue'
 

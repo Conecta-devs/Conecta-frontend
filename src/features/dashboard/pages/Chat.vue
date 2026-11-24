@@ -31,18 +31,18 @@ import {
   type ChatMember,
   type ChatMessage,
   type ChatUserSuggestion,
-} from '../services/chat'
+} from '@/features/dashboard/services/chat'
 import {
   createChatSocket,
   emitChatSocketAck,
   ChatSocketError,
   type ChatSocketStatus,
-} from '../services/chatSocket'
-import { currentUser } from '../../../shared/services/session'
-import { getInitials } from '../utils/format'
-import AsyncState from '../components/AsyncState.vue'
-import AppHeader from '../components/AppHeader.vue'
-import ChatConfirmDialog from '../components/ChatConfirmDialog.vue'
+} from '@/features/dashboard/services/chatSocket'
+import { currentUser } from '@/shared/services/session'
+import AsyncState from '@/features/dashboard/components/AsyncState.vue'
+import AppHeader from '@/features/dashboard/components/AppHeader.vue'
+import ChatConfirmDialog from '@/features/dashboard/components/ChatConfirmDialog.vue'
+import UserAvatar from '@/features/dashboard/components/UserAvatar.vue'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
@@ -1978,17 +1978,11 @@ onUnmounted(() => {
                 :disabled="creatingConversationFor !== null"
                 @click="startDirectConversation(user)"
               >
-                <span
-                  class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-h6 leading-normal font-medium text-co-blue"
-                >
-                  <img
-                    v-if="user.image"
-                    :src="user.image"
-                    :alt="`Foto de ${user.name}`"
-                    class="size-full object-cover"
-                  />
-                  <span v-else>{{ getInitials(user.name) }}</span>
-                </span>
+                <UserAvatar
+                  :name="user.name"
+                  :image="user.image"
+                  class="size-10 overflow-hidden bg-s-coral text-h6 leading-normal font-medium text-co-blue"
+                />
                 <span class="min-w-0 flex-1">
                   <strong class="block truncate text-h6 leading-normal font-medium text-co-blue">{{ user.name }}</strong>
                   <span class="mt-1 block truncate text-h6 leading-normal text-text-2">
@@ -2075,8 +2069,10 @@ onUnmounted(() => {
               :aria-label="`Abrir conversa ${conversation.name}`"
               @click="selectConversation(conversation)"
             >
-              <span
-                class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full text-h6 leading-normal font-medium text-co-blue"
+              <UserAvatar
+                :name="conversation.name"
+                :image="conversation.image"
+                class="relative size-10 overflow-hidden text-h6 leading-normal font-medium text-co-blue"
                 :class="
                   conversation.category === 'community'
                     ? 'bg-traceline'
@@ -2084,15 +2080,7 @@ onUnmounted(() => {
                       ? 'bg-tree-bg'
                       : 'bg-s-coral'
                 "
-              >
-                <img
-                  v-if="conversation.image"
-                  :src="conversation.image"
-                  :alt="`Foto de ${conversation.name}`"
-                  class="size-full object-cover"
-                />
-                <span v-else>{{ getInitials(conversation.name) }}</span>
-              </span>
+              />
               <span class="min-w-0 flex-1">
                 <span class="flex items-center justify-between gap-1.5">
                   <strong class="truncate text-h6 leading-normal font-medium text-co-blue">{{
@@ -2190,18 +2178,12 @@ onUnmounted(() => {
               >
                 <font-awesome-icon :icon="faArrowLeft" />
               </button>
-              <span
+              <UserAvatar
                 v-if="selectedConversation"
-                class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-s-coral text-h6 leading-normal font-medium text-co-blue"
-              >
-                <img
-                  v-if="selectedConversation.image"
-                  :src="selectedConversation.image"
-                  :alt="`Foto de ${selectedConversation.name}`"
-                  class="size-full object-cover"
-                />
-                <span v-else>{{ getInitials(selectedConversation.name) }}</span>
-              </span>
+                :name="selectedConversation.name"
+                :image="selectedConversation.image"
+                class="size-11 overflow-hidden bg-s-coral text-h6 leading-normal font-medium text-co-blue"
+              />
               <div class="min-w-0">
                 <h2 class="text-h3 truncate">
                   {{ selectedConversation?.name ?? 'Conversas' }}
@@ -2567,17 +2549,11 @@ onUnmounted(() => {
                 : [...groupSelectedIds, user.id]
             "
           >
-            <span
-              class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-co-white text-[10px] font-bold text-co-blue"
-            >
-              <img
-                v-if="user.image"
-                :src="user.image"
-                :alt="`Foto de ${user.name}`"
-                class="size-full object-cover"
-              />
-              <span v-else>{{ getInitials(user.name) }}</span>
-            </span>
+            <UserAvatar
+              :name="user.name"
+              :image="user.image"
+              class="size-9 overflow-hidden bg-co-white text-[10px] font-bold text-co-blue"
+            />
             <span class="min-w-0 flex-1 truncate text-xs text-text-1">{{ user.name }}</span>
             <span class="text-[10px] font-semibold text-co-blue">
               {{ groupSelectedIds.includes(user.id) ? 'Selecionada' : 'Selecionar' }}

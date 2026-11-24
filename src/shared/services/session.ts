@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import type { AuthUser } from '../types/auth'
+import type { AuthUser } from '@/shared/types/auth'
 
 const SESSION_KEY = 'conecta_session'
 const TOKEN_KEY = 'conecta_access_token'

@@ -12,17 +12,17 @@ import {
     type AgendaItem,
     type AgendaItemInput,
     type AgendaKind,
-} from '../services/agenda'
-import AgendaDetailsButton from '../components/AgendaDetailsButton.vue'
-import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
-import AppModal from '../components/AppModal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
-import PageHeader from '../components/PageHeader.vue'
-import AsyncState from '../components/AsyncState.vue'
-import calendarEvent from '../assets/agenda/calendar-event.svg'
-import { getUserProfile } from '../../auth/services/auth'
-import { currentUser, saveSession } from '../../../shared/services/session'
-import { formatDateTime, isOrganizer } from '../utils/format'
+} from '@/features/dashboard/services/agenda'
+import AgendaDetailsButton from '@/features/dashboard/components/AgendaDetailsButton.vue'
+import AgendaDetailsModal from '@/features/dashboard/components/AgendaDetailsModal.vue'
+import AppModal from '@/features/dashboard/components/AppModal.vue'
+import ConfirmDialog from '@/features/dashboard/components/ConfirmDialog.vue'
+import PageHeader from '@/features/dashboard/components/PageHeader.vue'
+import AsyncState from '@/features/dashboard/components/AsyncState.vue'
+import calendarEvent from '@/features/dashboard/assets/agenda/calendar-event.svg'
+import { getUserProfile } from '@/features/auth/services/auth'
+import { currentUser, saveSession } from '@/shared/services/session'
+import { formatDateTime, isOrganizer } from '@/features/dashboard/utils/format'
 
 interface AgendaForm {
     title: string

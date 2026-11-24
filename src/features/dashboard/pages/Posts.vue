@@ -8,11 +8,11 @@ import {
   setPostLike,
   updatePost,
   type Post,
-} from '../services/posts'
-import { getUserProfile } from '../../auth/services/auth'
-import { currentUser, saveSession } from '../../../shared/services/session'
-import PageHeader from '../components/PageHeader.vue'
-import AsyncState from '../components/AsyncState.vue'
+} from '@/features/dashboard/services/posts'
+import { getUserProfile } from '@/features/auth/services/auth'
+import { currentUser, saveSession } from '@/shared/services/session'
+import PageHeader from '@/features/dashboard/components/PageHeader.vue'
+import AsyncState from '@/features/dashboard/components/AsyncState.vue'
 
 interface PostComment {
   id: string

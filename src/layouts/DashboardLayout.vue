@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
-import Header from '../features/dashboard/components/AppHeader.vue'
-import Sidebar from '../features/dashboard/components/AppSidebar.vue'
-import ProfileSetupModal from '../features/profile/ProfileSetupModal.vue'
+import Header from '@/features/dashboard/components/AppHeader.vue'
+import Sidebar from '@/features/dashboard/components/AppSidebar.vue'
+import ProfileSetupModal from '@/features/profile/ProfileSetupModal.vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()

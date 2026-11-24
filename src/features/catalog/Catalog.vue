@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import AppArticle from '../../shared/ui/AppArticle.vue'
-import AppAuthTabs from '../../shared/ui/AppAuthTabs.vue'
-import AppButton from '../../shared/ui/AppButton.vue'
-import AppCartaz from '../../shared/ui/AppCartaz.vue'
-import AppIcon from '../../shared/ui/AppIcon.vue'
-import AppLink from '../../shared/ui/AppLink.vue'
-import AppLogo from '../../shared/ui/AppLogo.vue'
+import { AppArticle, AppAuthTabs, AppButton, AppCartaz, AppIcon, AppLink, AppLogo } from '@/shared/ui'
 </script>
 
 <template>

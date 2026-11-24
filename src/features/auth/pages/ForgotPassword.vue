@@ -2,16 +2,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { requestPasswordReset } from '../services/auth'
-import AuthField from '../components/AuthField.vue'
-import AuthFormColumn from '../components/AuthFormColumn.vue'
-import AuthIntro from '../components/AuthIntro.vue'
-import AuthShowcase from '../components/AuthShowcase.vue'
-import AppBackLink from '../../../shared/ui/AppBackLink.vue'
-import AppButton from '../../../shared/ui/AppButton.vue'
-import AppDivider from '../../../shared/ui/AppDivider.vue'
-import AppEyebrow from '../../../shared/ui/AppEyebrow.vue'
-import AppLink from '../../../shared/ui/AppLink.vue'
+import { requestPasswordReset } from '@/features/auth/services/auth'
+import AuthField from '@/features/auth/components/AuthField.vue'
+import AuthFormColumn from '@/features/auth/components/AuthFormColumn.vue'
+import AuthIntro from '@/features/auth/components/AuthIntro.vue'
+import AuthShowcase from '@/features/auth/components/AuthShowcase.vue'
+import { AppBackLink, AppButton, AppDivider, AppEyebrow, AppLink } from '@/shared/ui'
 
 /**
  * Figma — Esqueci minha senha (760:611).

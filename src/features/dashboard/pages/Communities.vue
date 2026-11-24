@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // O estado "em breve" é deliberado: não há endpoint de comunidades no backend.
-import PageHeader from '../components/PageHeader.vue'
+import PageHeader from '@/features/dashboard/components/PageHeader.vue'
 </script>
 
 <template>

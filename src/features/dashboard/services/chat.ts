@@ -1,5 +1,5 @@
-import { currentUser } from '../../../shared/services/session'
-import { fetchProtected } from '../../auth/services/auth'
+import { currentUser } from '@/shared/services/session'
+import { fetchProtected } from '@/features/auth/services/auth'
 import { apiUrl } from './api'
 
 type ChatCategory = 'community' | 'friend'

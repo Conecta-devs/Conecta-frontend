@@ -2,19 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { loginUser, registerUser } from '../services/auth'
-import { saveSession, getLastEmail, saveLastEmail } from '../../../shared/services/session'
-import AuthField from '../components/AuthField.vue'
-import AuthFormColumn from '../components/AuthFormColumn.vue'
-import AuthIntro from '../components/AuthIntro.vue'
-import AuthShowcase from '../components/AuthShowcase.vue'
-import { introSucessoConta, introSucessoReset } from '../successTexts'
-import AppAuthTabs from '../../../shared/ui/AppAuthTabs.vue'
-import AppBackLink from '../../../shared/ui/AppBackLink.vue'
-import AppButton from '../../../shared/ui/AppButton.vue'
-import AppDivider from '../../../shared/ui/AppDivider.vue'
-import AppEyebrow from '../../../shared/ui/AppEyebrow.vue'
-import AppLink from '../../../shared/ui/AppLink.vue'
+import { loginUser, registerUser } from '@/features/auth/services/auth'
+import { saveSession, getLastEmail, saveLastEmail } from '@/shared/services/session'
+import AuthField from '@/features/auth/components/AuthField.vue'
+import AuthFormColumn from '@/features/auth/components/AuthFormColumn.vue'
+import AuthIntro from '@/features/auth/components/AuthIntro.vue'
+import AuthShowcase from '@/features/auth/components/AuthShowcase.vue'
+import { introSucessoConta, introSucessoReset } from '@/features/auth/successTexts'
+import { AppAuthTabs, AppBackLink, AppButton, AppDivider, AppEyebrow, AppLink } from '@/shared/ui'
 
 /**
  * Figma — Login / Register (446:109, 468:187, 506:1651, 506:1917, 506:1739)
