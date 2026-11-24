@@ -19,7 +19,6 @@ import AppModal from '../components/AppModal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import PageHeader from '../components/PageHeader.vue'
 import AsyncState from '../components/AsyncState.vue'
-import arrowRight from '../assets/agenda/arrow-right.svg'
 import calendarEvent from '../assets/agenda/calendar-event.svg'
 import { getUserProfile } from '../../auth/services/auth'
 import { currentUser, saveSession } from '../../../shared/services/session'
@@ -163,6 +162,11 @@ function closeForm() {
 }
 
 function buildAgendaInput(): AgendaItemInput {
+    const dateTimePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
+    if (!dateTimePattern.test(form.value.startsAt) || !dateTimePattern.test(form.value.endsAt)) {
+        throw new Error('Informe um ano com quatro dígitos.')
+    }
+
     const startsAt = new Date(form.value.startsAt)
     const endsAt = new Date(form.value.endsAt)
 
@@ -294,7 +298,6 @@ onMounted(loadAgenda)
                     class="inline-flex h-[50px] w-[210px] shrink-0 items-center justify-center gap-[15px] rounded-button bg-co-blue px-10 text-h5 font-medium text-co-white transition-colors hover:bg-co-blue/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
                     @click="beginCreate">
                     Criar encontro
-                    <img :src="arrowRight" alt="" class="block h-[12px] w-4 max-w-none" />
                 </button>
             </template>
         </PageHeader>
@@ -444,11 +447,13 @@ onMounted(loadAgenda)
                         <label class="block text-h6 font-medium text-text-1" for="agenda-starts-at">
                             Início
                             <input id="agenda-starts-at" v-model="form.startsAt" type="datetime-local" required
+                                max="9999-12-31T23:59"
                                 class="mt-2 h-11 w-full min-w-0 rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
                         </label>
                         <label class="block text-h6 font-medium text-text-1" for="agenda-ends-at">
                             Término
                             <input id="agenda-ends-at" v-model="form.endsAt" type="datetime-local" required
+                                max="9999-12-31T23:59"
                                 class="mt-2 h-11 w-full min-w-0 rounded-button border border-traceline bg-white px-3 text-h6 font-medium text-text-1 outline-none focus:border-s-blue focus:ring-2 focus:ring-s-blue/30" />
                         </label>
                     </div>
