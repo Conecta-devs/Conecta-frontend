@@ -43,6 +43,7 @@ import AsyncState from '@/features/dashboard/components/AsyncState.vue'
 import AppHeader from '@/features/dashboard/components/AppHeader.vue'
 import ChatConfirmDialog from '@/features/dashboard/components/ChatConfirmDialog.vue'
 import UserAvatar from '@/features/dashboard/components/UserAvatar.vue'
+import { chatHeaderCollapsed } from '@/features/dashboard/composables/chatHeader'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
 type ChatContextTarget =
@@ -1810,6 +1811,20 @@ watch(messageText, (value) => {
   if (!value.trim()) stopTypingHeartbeat()
 })
 
+let lastMessageScrollTop = 0
+
+function handleMessageHistoryScroll(event: Event) {
+  const scrollTop = (event.target as HTMLElement).scrollTop
+  const delta = scrollTop - lastMessageScrollTop
+  lastMessageScrollTop = scrollTop
+
+  // Troca de conversa reposiciona o histórico; não é um gesto do usuário.
+  if (Math.abs(delta) > 120) return
+
+  if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
+  else if (delta < -3 && scrollTop <= 8) chatHeaderCollapsed.value = false
+}
+
 onMounted(() => {
   const requested = route.query.conversation
   if (typeof requested === 'string' && requested) {
@@ -1851,16 +1866,19 @@ onUnmounted(() => {
   if (usersSearchTimeout) clearTimeout(usersSearchTimeout)
   if (groupSearchTimeout) clearTimeout(groupSearchTimeout)
   disposeCurrentChatSocket()
+  chatHeaderCollapsed.value = false
+  lastMessageScrollTop = 0
 })
 </script>
 
 <template>
   <section
-    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:h-auto max-[900px]:min-h-screen"
+    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:h-auto max-[900px]:min-h-screen max-[620px]:!h-[calc(100dvh-65px)] max-[620px]:!min-h-0"
   >
     <AppHeader
       v-model:search-value="searchText"
       variant="chat"
+      :collapsed="chatHeaderCollapsed"
       @search-input="handleSearchInput"
     />
 
@@ -1869,7 +1887,7 @@ onUnmounted(() => {
     >
       <div class="flex min-h-0 flex-1 gap-6 max-[900px]:flex-col">
         <aside
-          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:h-[520px] max-[900px]:w-full"
+          class="chat-list flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-card border border-traceline bg-co-white p-5 max-[900px]:h-[520px] max-[900px]:w-full max-[620px]:!h-auto max-[620px]:!min-h-0 max-[620px]:!flex-1"
           :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
         >
           <div class="flex shrink-0 flex-col gap-5">
@@ -2128,7 +2146,7 @@ onUnmounted(() => {
         </aside>
 
         <main
-          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white max-[900px]:h-[620px] max-[900px]:flex-none"
+          class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-traceline bg-white max-[900px]:h-[620px] max-[900px]:flex-none max-[620px]:!h-auto max-[620px]:!min-h-0 max-[620px]:!flex-1"
           :class="{ 'max-[620px]:hidden': mobileConversationListVisible }"
         >
           <div
@@ -2287,6 +2305,7 @@ onUnmounted(() => {
           <div
             v-if="selectedConversation"
             class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-white p-6 max-[620px]:p-4"
+            @scroll.passive="handleMessageHistoryScroll"
           >
             <button
               v-if="nextCursor"

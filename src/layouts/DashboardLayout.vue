@@ -4,6 +4,7 @@ import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Header from '@/features/dashboard/components/AppHeader.vue'
 import Sidebar from '@/features/dashboard/components/AppSidebar.vue'
 import ProfileSetupModal from '@/features/profile/ProfileSetupModal.vue'
+import { expandChatHeader } from '@/features/dashboard/composables/chatHeader'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -13,6 +14,11 @@ const mobileMenuOpen = ref(false)
 function handleProfileSave() {
   localStorage.setItem('conecta_profile_setup', 'true')
   profileSetupOpen.value = false
+}
+
+function toggleMobileMenu() {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+  expandChatHeader()
 }
 </script>
 
@@ -35,14 +41,14 @@ function handleProfileSave() {
     />
 
     <main class="dashboard-main min-w-0 flex-1">
-      <div class="flex items-center gap-3 border-b border-traceline bg-co-white px-5 py-3 min-[621px]:hidden">
+      <div class="sticky top-0 z-40 flex items-center gap-3 border-b border-traceline bg-co-white px-5 py-3 min-[621px]:hidden">
         <button
           type="button"
           class="grid size-10 shrink-0 place-items-center rounded-lg border border-traceline bg-co-white text-co-blue"
           aria-controls="dashboard-sidebar"
           :aria-expanded="mobileMenuOpen"
           :aria-label="mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'"
-          @click="mobileMenuOpen = !mobileMenuOpen"
+          @click="toggleMobileMenu"
         >
           <font-awesome-icon :icon="mobileMenuOpen ? faXmark : faBars" />
         </button>

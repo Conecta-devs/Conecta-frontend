@@ -10,10 +10,13 @@ withDefaults(
     variant?: 'page' | 'chat'
     /** Valor controlado da busca. Sem valor, o campo permanece livre. */
     searchValue?: string
+    /** Recolhe o cabeçalho no mobile, liberando espaço para o chat. */
+    collapsed?: boolean
   }>(),
   {
     variant: 'page',
     searchValue: undefined,
+    collapsed: false,
   },
 )
 
@@ -35,12 +38,17 @@ function onSearchInput(event: Event) {
 
 <template>
   <header
-    class="flex items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
-    :class="
+    :inert="collapsed ? true : undefined"
+    :aria-hidden="collapsed ? 'true' : undefined"
+    class="flex items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter transition-[height,padding,gap,border-width] duration-300 ease-out motion-reduce:transition-none max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
+    :class="[
       variant === 'chat'
         ? 'h-[100px] shrink-0 max-[1000px]:h-auto max-[1000px]:py-5 max-[620px]:gap-3'
-        : 'min-h-[100px]'
-    "
+        : 'min-h-[100px]',
+      collapsed
+        ? 'max-[620px]:!h-0 max-[620px]:!min-h-0 max-[620px]:!overflow-hidden max-[620px]:!border-0 max-[620px]:!py-0 max-[620px]:!gap-0'
+        : '',
+    ]"
   >
     <div class="header-text flex min-w-0 flex-1 flex-col gap-[5px]">
       <p class="m-0 text-h6 leading-4 font-medium text-text-2 uppercase">
