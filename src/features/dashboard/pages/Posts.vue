@@ -49,19 +49,19 @@ function isMyPost(post: Post): boolean {
 }
 
 function authorName(post: Post): string {
-  return post.author?.name?.trim() || 'Estudante'
+  return post.author?.name?.trim() || 'Autor desconhecido'
 }
 
 function authorInitials(post: Post): string {
   const parts = authorName(post).split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return 'ES'
+  if (parts.length === 0) return 'AD'
 
   const initials =
     parts.length > 1
       ? `${parts[0]?.charAt(0) ?? ''}${parts[parts.length - 1]?.charAt(0) ?? ''}`
       : (parts[0]?.slice(0, 2) ?? '')
 
-  return initials.toUpperCase() || 'ES'
+  return initials.toUpperCase() || 'AD'
 }
 
 function syncInteractions(loadedPosts: Post[]) {
@@ -73,7 +73,7 @@ function syncInteractions(loadedPosts: Post[]) {
       likeCount: post.likeCount ?? 0,
       comments: (post.comments ?? []).map((comment) => ({
         id: comment.id,
-        author: comment.author.name?.trim() || 'Estudante',
+        author: comment.author.name?.trim() || 'Autor desconhecido',
         text: comment.content,
       })),
     }
@@ -147,7 +147,7 @@ async function addComment(post: Post) {
 
   interactions.value[post.id]?.comments.push({
     id: comment.id,
-    author: comment.author.name?.trim() || 'Estudante',
+    author: comment.author.name?.trim() || 'Autor desconhecido',
     text: comment.content,
   })
   commentDraft.value = ''
