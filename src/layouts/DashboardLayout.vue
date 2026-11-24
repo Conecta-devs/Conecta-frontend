@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Header from '@/features/dashboard/components/AppHeader.vue'
 import Sidebar from '@/features/dashboard/components/AppSidebar.vue'
@@ -16,8 +16,7 @@ const profileSetupOpen = ref(false)
 const mobileMenuOpen = ref(false)
 const dashboardTouchHandlers = createHeaderScrollHandlers()
 let lastWindowScrollY = 0
-let expandedHeaderHeight = 0
-let compensatingScroll = false
+const expandedHeaderHeight = ref(0)
 
 function isMobileHeader() {
   return window.matchMedia('(max-width: 620px)').matches
@@ -27,60 +26,35 @@ function getPageHeader() {
   return document.querySelector('.dashboard-main > header') as HTMLElement | null
 }
 
-// Ajusta o scroll antes de recolher o header para que o conteúdo não dê um
-// salto para cima. Na reabertura o salto é desejado: o header volta ao topo.
-function compensateHeaderCollapse() {
-  if (route.meta.hideHeader || !isMobileHeader()) return
-
-  const distance = expandedHeaderHeight || getPageHeader()?.offsetHeight || 0
-  if (distance < 1) return
-
-  compensatingScroll = true
-  window.scrollBy(0, -distance)
-  lastWindowScrollY = window.scrollY
-  requestAnimationFrame(() => {
-    compensatingScroll = false
-    lastWindowScrollY = window.scrollY
-  })
+function measureHeader() {
+  if (route.meta.hideHeader || chatHeaderCollapsed.value) return
+  expandedHeaderHeight.value = getPageHeader()?.offsetHeight || expandedHeaderHeight.value
 }
 
 function handleWindowScroll() {
   if (!isMobileHeader()) return
 
   const scrollY = window.scrollY
-  if (compensatingScroll) {
-    lastWindowScrollY = scrollY
-    return
-  }
-
   const delta = scrollY - lastWindowScrollY
   lastWindowScrollY = scrollY
 
   // No chat, o container interno controla o recolhimento.
   if (route.meta.hideHeader) return
 
-  const header = getPageHeader()
-  if (!header) return
-  if (!chatHeaderCollapsed.value) {
-    expandedHeaderHeight = header.offsetHeight || expandedHeaderHeight
-  }
+  measureHeader()
 
-  // Só recolhe depois que o header já saiu da viewport; assim a compensação
-  // de scroll não precisa empurrar o conteúdo além do topo da página.
-  const collapseAt = Math.max(expandedHeaderHeight, 24) + 8
+  // Recolhe quando o encontro com a barra de navegação chega ao fim.
+  const collapseAt = Math.max(expandedHeaderHeight.value, 24) + 8
 
   // Um fling no mobile pode avançar mais de 100px entre dois eventos.
-  if (delta > 3 && scrollY > collapseAt) {
-    compensateHeaderCollapse()
-    chatHeaderCollapsed.value = true
-  } else if (delta < -3 && scrollY <= 8) {
-    chatHeaderCollapsed.value = false
-  }
+  if (delta > 3 && scrollY > collapseAt) chatHeaderCollapsed.value = true
+  else if (delta < -3 && scrollY <= 8) chatHeaderCollapsed.value = false
 }
 
 onMounted(() => {
   lastWindowScrollY = window.scrollY
-  expandedHeaderHeight = getPageHeader()?.offsetHeight ?? 0
+  measureHeader()
+  window.addEventListener('resize', measureHeader)
   window.addEventListener('scroll', handleWindowScroll, { passive: true })
   window.addEventListener('touchstart', dashboardTouchHandlers.onTouchStart, true)
   window.addEventListener('touchmove', dashboardTouchHandlers.onTouchMove, true)
@@ -89,6 +63,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', measureHeader)
   window.removeEventListener('scroll', handleWindowScroll)
   window.removeEventListener('touchstart', dashboardTouchHandlers.onTouchStart, true)
   window.removeEventListener('touchmove', dashboardTouchHandlers.onTouchMove, true)
@@ -97,11 +72,12 @@ onUnmounted(() => {
   dashboardTouchHandlers.reset()
 })
 
-watch(() => route.fullPath, () => {
+watch(() => route.fullPath, async () => {
   expandChatHeader()
   lastWindowScrollY = window.scrollY
-  expandedHeaderHeight = getPageHeader()?.offsetHeight ?? expandedHeaderHeight
   dashboardTouchHandlers.reset()
+  await nextTick()
+  measureHeader()
 })
 
 function handleProfileSave() {
@@ -151,6 +127,13 @@ function toggleMobileMenu() {
       </div>
 
       <Header v-if="!route.meta.hideHeader" :collapsed="chatHeaderCollapsed" />
+
+      <div
+        v-if="!route.meta.hideHeader"
+        class="pointer-events-none hidden shrink-0 transition-[height] duration-300 ease-out motion-reduce:transition-none max-[620px]:block"
+        :style="{ height: chatHeaderCollapsed ? `${expandedHeaderHeight}px` : '0px' }"
+        aria-hidden="true"
+      ></div>
 
       <div class="main-content" style>
         <RouterView />
