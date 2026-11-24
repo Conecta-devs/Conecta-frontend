@@ -632,9 +632,9 @@ function handleSocketMessage(value: unknown) {
     return
   }
 
-  if ('senderId' in value && typeof value.senderId === 'string') {
-    clearTyping(value.conversationId, value.senderId)
-  }
+  // O indicador some pelo TTL natural: limpar na chegada da mensagem fazia o
+  // "Digitando..." desaparecer antes de quem lê conseguir ver quando o envio
+  // é rápido.
 
   try {
     applyIncomingMessage(normalizeChatMessage(value, value.conversationId), { markRead: true })
