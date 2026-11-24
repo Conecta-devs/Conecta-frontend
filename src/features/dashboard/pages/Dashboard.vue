@@ -13,7 +13,8 @@ import AgendaDetailsModal from '../components/AgendaDetailsModal.vue'
 import DashboardCalendar from '../components/DashboardCalendar.vue'
 import AppDashboardIcon from '../../../shared/ui/AppDashboardIcon.vue'
 import AppLink from '../../../shared/ui/AppLink.vue'
-import { getInitials } from '../utils/format'
+import { currentUser } from '../../../shared/services/session'
+import { getInitials, isOrganizer } from '../utils/format'
 
 const agendaItems = ref<AgendaItem[]>([])
 const participations = ref<Record<string, AgendaParticipation>>({})
@@ -384,6 +385,18 @@ function conversationPreview(conversation: ChatConversation): string {
                 Presença confirmada
               </span>
             </div>
+
+            <p class="m-0 text-h6 leading-normal text-text-2">
+              <template v-if="isOrganizer(item, currentUser.user?.sub)">
+                Organizado por você
+              </template>
+              <template v-else-if="item.organizer?.name">
+                Organizado por {{ item.organizer.name }}
+              </template>
+              <template v-else>
+                Organizado por um estudante
+              </template>
+            </p>
           </div>
 
           <div class="ml-auto shrink-0 max-[620px]:ml-0">
