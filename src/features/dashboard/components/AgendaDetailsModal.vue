@@ -26,7 +26,9 @@ import UserAvatar from './UserAvatar.vue'
  * usa com o encontro selecionado. O conteúdo rola quando há vários encontros.
  *
  * Dentro do popup é possível marcar interesse e confirmar presença. Quando
- * `showOrganizerActions` está ativo, o organizador também vê editar/cancelar.
+ * `showOrganizerActions` está ativo, o organizador também vê editar/cancelar;
+ * `showAttendees` controla a lista de confirmados, que fica de fora da visão
+ * de vários encontros de um dia.
  */
 const props = withDefaults(
   defineProps<{
@@ -35,10 +37,13 @@ const props = withDefaults(
     heading?: string
     /** Exibe as ações de organização (editar/cancelar) para quem criou. */
     showOrganizerActions?: boolean
+    /** Exibe a lista de confirmados nos encontros próprios. */
+    showAttendees?: boolean
   }>(),
   {
     heading: undefined,
     showOrganizerActions: false,
+    showAttendees: true,
   },
 )
 
@@ -88,13 +93,15 @@ async function loadEntries() {
         const own = isOrganizer(details, currentUser.user?.sub)
 
         if (own) {
-          try {
-            const attendees = await listAgendaParticipants(details.id)
-            if (token !== loadToken) return
-            entry.attendees = attendees
-          } catch {
-            if (token !== loadToken) return
-            entry.error = 'Não foi possível carregar as presenças confirmadas.'
+          if (props.showAttendees) {
+            try {
+              const attendees = await listAgendaParticipants(details.id)
+              if (token !== loadToken) return
+              entry.attendees = attendees
+            } catch {
+              if (token !== loadToken) return
+              entry.error = 'Não foi possível carregar as presenças confirmadas.'
+            }
           }
         } else {
           const participation = await getMyAgendaParticipation(entry.item.id)
@@ -116,7 +123,7 @@ async function loadEntries() {
   )
 }
 
-watch(() => props.items, loadEntries, { immediate: true })
+watch([() => props.items, () => props.showAttendees], loadEntries, { immediate: true })
 
 async function setInterest(entry: Entry, interested: boolean) {
   if (!entry.participation || entry.savingInterest) return
@@ -270,7 +277,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
           />
 
           <section
-            v-if="isOrganizer(entry.item, currentUser.user?.sub)"
+            v-if="showAttendees && isOrganizer(entry.item, currentUser.user?.sub)"
             class="flex flex-col rounded-button border border-traceline bg-white p-4"
           >
             <h4 class="m-0 text-h5 font-semibold text-co-blue">

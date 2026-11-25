@@ -27,6 +27,7 @@ const chatError = ref(false)
 const detailsOpen = ref(false)
 const detailsItems = ref<AgendaItem[]>([])
 const detailsHeading = ref<string | undefined>()
+const detailsShowAttendees = ref(true)
 
 async function loadParticipations(items: AgendaItem[], skipId?: string) {
   const targets = items.filter((item) => item.cancelledAt == null && item.id !== skipId)
@@ -104,6 +105,7 @@ onMounted(async () => {
 function openEventDetails(item: AgendaItem) {
   detailsItems.value = [item]
   detailsHeading.value = undefined
+  detailsShowAttendees.value = true
   detailsOpen.value = true
 }
 
@@ -113,6 +115,7 @@ function openDayDetails(payload: { date: Date; items: AgendaItem[] }) {
     day: 'numeric',
     month: 'long',
   })}`
+  detailsShowAttendees.value = false
   detailsOpen.value = true
 }
 
@@ -120,6 +123,7 @@ function closeDetails() {
   detailsOpen.value = false
   detailsItems.value = []
   detailsHeading.value = undefined
+  detailsShowAttendees.value = true
 }
 
 function handleParticipationChange(payload: {
@@ -409,6 +413,7 @@ function conversationPreview(conversation: ChatConversation): string {
       v-if="detailsOpen"
       :items="detailsItems"
       :heading="detailsHeading"
+      :show-attendees="detailsShowAttendees"
       @close="closeDetails"
       @participation-change="handleParticipationChange"
     />
