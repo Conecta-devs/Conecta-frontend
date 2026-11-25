@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Socket } from 'socket.io-client'
 import {
   faArrowLeft,
   faEllipsis,
@@ -33,11 +32,17 @@ import {
   type ChatUserSuggestion,
 } from '@/features/dashboard/services/chat'
 import {
-  createChatSocket,
   emitChatSocketAck,
   ChatSocketError,
-  type ChatSocketStatus,
 } from '@/features/dashboard/services/chatSocket'
+import {
+  chatSocketError,
+  chatSocketStatus,
+  ensureChatSocket,
+  getChatSocket,
+  refreshChatSocketAuthentication,
+  subscribeChatSocket,
+} from '@/features/dashboard/composables/chatSocketClient'
 import { currentUser } from '@/shared/services/session'
 import AsyncState from '@/features/dashboard/components/AsyncState.vue'
 import AppHeader from '@/features/dashboard/components/AppHeader.vue'
@@ -100,8 +105,6 @@ const nextCursor = ref<string | null>(null)
 const sendingMessage = ref(false)
 const sendError = ref('')
 const mobileConversationListVisible = ref(false)
-const chatSocketStatus = ref<ChatSocketStatus>('connecting')
-const chatSocketError = ref('')
 const presenceByUser = ref<Record<string, boolean>>({})
 const chatNotice = ref('')
 const emojiPickerOpen = ref(false)
@@ -234,9 +237,8 @@ const MESSAGE_POLL_INTERVAL_MS = 4_000
 let messagePollTimer: ReturnType<typeof setInterval> | null = null
 let messagePollController: AbortController | null = null
 let messagePollInFlight = false
-let chatSocket: Socket | null = null
-let disposeChatSocket: (() => void) | null = null
-let refreshChatSocketAuthentication: (() => Promise<void>) | null = null
+let unsubscribeChatSocket: (() => void) | null = null
+let chatPageMounted = false
 let sessionGeneration = 0
 
 function isConversationAccessError(error: unknown): error is ChatApiError | ChatSocketError {
@@ -294,7 +296,7 @@ function handleConversationAccessError(error: unknown, conversationId: string): 
 
 function handleSocketAuthenticationError(error: unknown): boolean {
   if (!(error instanceof ChatSocketError) || error.statusCode !== 401) return false
-  void refreshChatSocketAuthentication?.()
+  void refreshChatSocketAuthentication()
   return true
 }
 
@@ -369,12 +371,8 @@ function clearChatState() {
 }
 
 function disposeCurrentChatSocket() {
-  disposeChatSocket?.()
-  disposeChatSocket = null
-  chatSocket = null
   clearTyping()
   stopTypingHeartbeat()
-  refreshChatSocketAuthentication = null
   presenceByUser.value = {}
   joinedConversationIds.clear()
   joiningConversationIds.clear()
@@ -796,8 +794,9 @@ function handleSocketTyping(value: unknown) {
 
 function emitTyping() {
   const conversation = selectedConversation.value
-  if (!conversation || !messageText.value.trim() || !chatSocket?.connected) return
-  chatSocket.emit('chat:typing', { conversationId: conversation.id })
+  const socket = getChatSocket()
+  if (!conversation || !messageText.value.trim() || !socket?.connected) return
+  socket.emit('chat:typing', { conversationId: conversation.id })
 }
 
 function stopTypingHeartbeat() {
@@ -808,7 +807,7 @@ function stopTypingHeartbeat() {
 
 function handleTypingInput() {
   const conversation = selectedConversation.value
-  if (!conversation || !messageText.value.trim() || !chatSocket?.connected) {
+  if (!conversation || !messageText.value.trim() || !getChatSocket()?.connected) {
     stopTypingHeartbeat()
     return
   }
@@ -829,8 +828,9 @@ const isOtherTyping = computed(() => {
 })
 
 async function joinConversationRoom(conversationId: string) {
+  const socket = getChatSocket()
   if (
-    !chatSocket?.connected ||
+    !socket?.connected ||
     joinedConversationIds.has(conversationId) ||
     joiningConversationIds.has(conversationId)
   ) {
@@ -838,7 +838,7 @@ async function joinConversationRoom(conversationId: string) {
   }
   joiningConversationIds.add(conversationId)
   try {
-    await emitChatSocketAck(chatSocket, 'chat:conversation:join', { conversationId })
+    await emitChatSocketAck(socket, 'chat:conversation:join', { conversationId })
     joinedConversationIds.add(conversationId)
   } catch (error) {
     if (handleSocketAuthenticationError(error)) return
@@ -851,9 +851,10 @@ async function joinConversationRoom(conversationId: string) {
 }
 
 async function leaveConversationRoom(conversationId: string) {
-  if (!chatSocket?.connected) return
+  const socket = getChatSocket()
+  if (!socket?.connected) return
   try {
-    await emitChatSocketAck(chatSocket, 'chat:conversation:leave', { conversationId })
+    await emitChatSocketAck(socket, 'chat:conversation:leave', { conversationId })
     joinedConversationIds.delete(conversationId)
   } catch {
     // The server removes the socket from its rooms on disconnect.
@@ -875,12 +876,13 @@ async function markCurrentConversationRead(conversationId: string) {
   }
 
   try {
-    if (chatSocket?.connected) {
+    const socket = getChatSocket()
+    if (socket?.connected) {
       const result = await emitChatSocketAck<{
         conversationId: string
         lastReadSequence: number
         unreadCount: number
-      }>(chatSocket, 'chat:message:read', { conversationId })
+      }>(socket, 'chat:message:read', { conversationId })
       if (requestSessionGeneration === sessionGeneration) applyRead(result)
     } else {
       const result = await markChatConversationRead(conversationId)
@@ -929,54 +931,65 @@ async function onSocketConnected() {
   }
 }
 
-function initializeChatSocket() {
-  if (chatSocket) return
-  if (!currentUser.user?.sub) {
-    chatSocketStatus.value = 'disconnected'
-    return
-  }
-  try {
-    const connection = createChatSocket(
-      (status) => {
-        chatSocketStatus.value = status
-        if (status === 'connected') void onSocketConnected()
-      },
-      (message) => {
-        chatSocketError.value = message
-      },
-    )
-    chatSocket = connection.socket
-    disposeChatSocket = connection.dispose
-    refreshChatSocketAuthentication = connection.refreshAuthentication
-    chatSocket.on('chat:message:new', handleSocketMessage)
-    chatSocket.on(
-      'chat:presence:snapshot',
-      (value: {
-        conversationId?: string
-        presences?: Array<{ userId?: string; online?: boolean }>
-      }) => {
-        if (typeof value?.conversationId !== 'string' || !Array.isArray(value.presences)) {
+function unsubscribeChatSocketEvents() {
+  unsubscribeChatSocket?.()
+  unsubscribeChatSocket = null
+}
+
+function subscribeChatSocketEvents() {
+  if (unsubscribeChatSocket) return
+  if (!currentUser.user?.sub) return
+  ensureChatSocket()
+  unsubscribeChatSocket = subscribeChatSocket({
+    'chat:message:new': handleSocketMessage,
+    'chat:presence:snapshot': (value: unknown) => {
+      if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('conversationId' in value) ||
+        typeof value.conversationId !== 'string' ||
+        !('presences' in value) ||
+        !Array.isArray(value.presences)
+      ) {
+        return
+      }
+      const presences = value.presences as unknown[]
+      const nextPresence = { ...presenceByUser.value }
+      for (const presence of presences) {
+        if (
+          typeof presence !== 'object' ||
+          presence === null ||
+          !('userId' in presence) ||
+          typeof presence.userId !== 'string' ||
+          !('online' in presence) ||
+          typeof presence.online !== 'boolean'
+        ) {
           return
         }
-        const nextPresence = { ...presenceByUser.value }
-        for (const presence of value.presences) {
-          if (typeof presence?.userId !== 'string' || typeof presence.online !== 'boolean') return
-          nextPresence[presence.userId] = presence.online
-        }
-        presenceByUser.value = nextPresence
-      },
-    )
-    chatSocket.on('chat:presence:update', (value: { userId?: string; online?: boolean }) => {
-      if (typeof value?.userId !== 'string' || typeof value.online !== 'boolean') return
+        nextPresence[presence.userId] = presence.online
+      }
+      presenceByUser.value = nextPresence
+    },
+    'chat:presence:update': (value: unknown) => {
+      if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('userId' in value) ||
+        typeof value.userId !== 'string' ||
+        !('online' in value) ||
+        typeof value.online !== 'boolean'
+      ) {
+        return
+      }
       presenceByUser.value = {
         ...presenceByUser.value,
         [value.userId]: value.online,
       }
-    })
-    chatSocket.on('chat:typing', handleSocketTyping)
-    chatSocket.on('chat:conversation:update', updateConversationSummary)
-    chatSocket.on('chat:unread:update', applyUnreadUpdate)
-    chatSocket.on('chat:message:read', (value: unknown) => {
+    },
+    'chat:typing': handleSocketTyping,
+    'chat:conversation:update': updateConversationSummary,
+    'chat:unread:update': applyUnreadUpdate,
+    'chat:message:read': (value: unknown) => {
       if (
         typeof value === 'object' &&
         value !== null &&
@@ -992,35 +1005,52 @@ function initializeChatSocket() {
           [`${value.conversationId}:${value.userId}`]: value.lastReadSequence,
         }
       }
-    })
-    chatSocket.on('chat:conversation:available', () => {
+    },
+    'chat:conversation:available': () => {
       void loadConversationList(true)
-    })
-    chatSocket.on(
-      'chat:conversation:members',
-      (value: { conversationId?: string; memberIds?: string[] }) => {
-        if (!value.conversationId || !Array.isArray(value.memberIds)) return
-        if (selectedConversation.value?.id === value.conversationId) {
-          void refreshConversationDetails(value.conversationId)
-        }
-        void loadConversationList(true)
-      },
-    )
-    chatSocket.on('chat:conversation:removed', (value: { conversationId?: string }) => {
-      if (!value.conversationId) return
+    },
+    'chat:conversation:members': (value: unknown) => {
+      if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('memberIds' in value) ||
+        !Array.isArray(value.memberIds) ||
+        !('conversationId' in value) ||
+        typeof value.conversationId !== 'string' ||
+        !value.conversationId
+      ) {
+        return
+      }
+      if (selectedConversation.value?.id === value.conversationId) {
+        void refreshConversationDetails(value.conversationId)
+      }
+      void loadConversationList(true)
+    },
+    'chat:conversation:removed': (value: unknown) => {
+      if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('conversationId' in value) ||
+        typeof value.conversationId !== 'string' ||
+        !value.conversationId
+      ) {
+        return
+      }
       clearOpenConversation(value.conversationId)
-    })
-  } catch (error) {
-    chatSocketStatus.value = 'disconnected'
-    chatSocketError.value =
-      error instanceof Error ? error.message : 'Não foi possível iniciar o chat em tempo real.'
-  }
+    },
+  })
 }
 
 function retryChatSocket() {
-  if (chatSocket?.connected) return
-  disposeCurrentChatSocket()
-  initializeChatSocket()
+  const socket = getChatSocket()
+  if (socket?.connected) return
+  if (!socket) {
+    unsubscribeChatSocketEvents()
+    ensureChatSocket()
+    subscribeChatSocketEvents()
+    return
+  }
+  void refreshChatSocketAuthentication()
 }
 
 function closeContextMenu(restoreFocus = false) {
@@ -1330,7 +1360,7 @@ async function loadConversationList(preserveSelection = false) {
       }
       pendingUnreadCounts.value = nextPending
     }
-    if (chatSocket?.connected) {
+    if (getChatSocket()?.connected) {
       for (const conversation of result) void joinConversationRoom(conversation.id)
     }
     if (requestedConversationId.value) {
@@ -1698,7 +1728,7 @@ async function startDirectConversation(user: ChatUserSuggestion) {
     activeSection.value = 'recent'
     searchText.value = ''
     selectConversation(conversation)
-    if (chatSocket?.connected) {
+    if (getChatSocket()?.connected) {
       await joinConversationRoom(conversation.id)
     }
   } catch (error) {
@@ -1874,15 +1904,23 @@ watch(
     }
     disposeCurrentChatSocket()
     if (userId) {
-      chatSocketStatus.value = 'connecting'
       void loadConversationList()
       startMessagePolling()
-      initializeChatSocket()
-    } else {
-      chatSocketStatus.value = 'disconnected'
+      unsubscribeChatSocketEvents()
+      subscribeChatSocketEvents()
     }
   },
   { flush: 'post' },
+)
+
+// O socket é criado pelo DashboardLayout, então o chat precisa reagir a uma
+// conexão que já existia (ou que conectou) fora do ciclo de montagem da página.
+watch(
+  chatSocketStatus,
+  (status) => {
+    if (status === 'connected' && chatPageMounted) void onSocketConnected()
+  },
+  { immediate: true },
 )
 
 // Depois que o servidor valida a leitura, guarda o status para sobreviver a
@@ -1920,6 +1958,8 @@ const chatListScrollHandlers = createHeaderScrollHandlers()
 let stopKeyboardDetection: (() => void) | null = null
 
 onMounted(() => {
+  chatPageMounted = true
+  if (chatSocketStatus.value === 'connected') void onSocketConnected()
   stopKeyboardDetection = setupMobileKeyboardDetection(
     () => document.activeElement === messageInputElement.value,
   )
@@ -1943,10 +1983,12 @@ onMounted(() => {
   window.addEventListener('scroll', handleContextMenuViewportChange, true)
   void loadConversationList()
   startMessagePolling()
-  initializeChatSocket()
+  subscribeChatSocketEvents()
 })
 
 onUnmounted(() => {
+  chatPageMounted = false
+  unsubscribeChatSocketEvents()
   stopKeyboardDetection?.()
   document.removeEventListener('pointerdown', handleContextMenuOutside)
   document.removeEventListener('keydown', handleContextMenuEscape)
