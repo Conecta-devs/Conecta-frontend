@@ -39,6 +39,13 @@ export interface AgendaParticipation {
   updatedAt: string | null
 }
 
+export interface AgendaAttendee {
+  userId: string
+  name: string
+  image: string | null
+  confirmed: true
+}
+
 export interface AgendaItemInput {
   title: string
   description: string
@@ -97,6 +104,16 @@ function isAgendaParticipation(value: unknown): value is AgendaParticipation {
     typeof value.confirmed === 'boolean' &&
     (typeof value.createdAt === 'string' || value.createdAt === null) &&
     (typeof value.updatedAt === 'string' || value.updatedAt === null)
+  )
+}
+
+export function isAgendaAttendee(value: unknown): value is AgendaAttendee {
+  return (
+    isRecord(value) &&
+    typeof value.userId === 'string' &&
+    typeof value.name === 'string' &&
+    (typeof value.image === 'string' || value.image === null) &&
+    value.confirmed === true
   )
 }
 
@@ -168,6 +185,21 @@ export async function getAgendaItem(id: string): Promise<AgendaItem> {
       headers: { Accept: 'application/json' },
     }),
   )
+}
+
+export async function listAgendaParticipants(id: string): Promise<AgendaAttendee[]> {
+  const response = await fetchProtected(`${itemPath(id)}/participants`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  })
+  await ensureSuccessfulResponse(response)
+
+  const body = await readJsonResponse(response)
+  if (!Array.isArray(body) || !body.every(isAgendaAttendee)) {
+    throw new Error('A lista de confirmados retornada pela API é inválida.')
+  }
+  return body
 }
 
 export async function createAgendaItem(input: AgendaItemInput): Promise<AgendaItem> {
