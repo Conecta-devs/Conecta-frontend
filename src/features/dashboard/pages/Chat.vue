@@ -46,6 +46,9 @@ import UserAvatar from '@/features/dashboard/components/UserAvatar.vue'
 import {
   chatHeaderCollapsed,
   createHeaderScrollHandlers,
+  mobileKeyboardHeight,
+  mobileKeyboardOpen,
+  setupMobileKeyboardDetection,
 } from '@/features/dashboard/composables/chatHeader'
 
 type ChatSection = 'recent' | 'community' | 'friend' | 'people'
@@ -1818,8 +1821,10 @@ const messageScrollHandlers = createHeaderScrollHandlers()
 const peopleListScrollHandlers = createHeaderScrollHandlers()
 const conversationListScrollHandlers = createHeaderScrollHandlers()
 const chatListScrollHandlers = createHeaderScrollHandlers()
+let stopKeyboardDetection: (() => void) | null = null
 
 onMounted(() => {
+  stopKeyboardDetection = setupMobileKeyboardDetection()
   const requested = route.query.conversation
   if (typeof requested === 'string' && requested) {
     requestedConversationId.value = requested
@@ -1843,6 +1848,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stopKeyboardDetection?.()
   document.removeEventListener('pointerdown', handleContextMenuOutside)
   document.removeEventListener('keydown', handleContextMenuEscape)
   document.removeEventListener('pointerdown', handleEmojiPickerOutside)
@@ -1870,7 +1876,13 @@ onUnmounted(() => {
 
 <template>
   <section
-    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:min-h-0 max-[620px]:!h-[calc(100dvh-65px)] max-[620px]:!min-h-0"
+    class="chat-page relative flex h-dvh min-h-[560px] w-full flex-col bg-co-white text-text-1 max-[900px]:min-h-0 max-[620px]:!min-h-0"
+    :class="
+      mobileKeyboardOpen
+        ? 'max-[620px]:!h-[var(--chat-keyboard-height)]'
+        : 'max-[620px]:!h-[calc(100dvh-65px)]'
+    "
+    :style="{ '--chat-keyboard-height': `${mobileKeyboardHeight}px` }"
   >
     <AppHeader
       v-model:search-value="searchText"

@@ -8,9 +8,71 @@ import { ref } from 'vue'
  * páginas usam `createHeaderScrollHandlers()` para controlá-lo.
  */
 export const chatHeaderCollapsed = ref(false)
+export const mobileKeyboardOpen = ref(false)
+export const mobileKeyboardHeight = ref(0)
+
+let viewportHeightWithoutKeyboard = 0
+let collapsedBeforeKeyboard = false
 
 export function expandChatHeader() {
+  if (mobileKeyboardOpen.value) return
   chatHeaderCollapsed.value = false
+}
+
+function setMobileKeyboardOpen(open: boolean, height: number) {
+  if (open === mobileKeyboardOpen.value) {
+    if (open) mobileKeyboardHeight.value = height
+    return
+  }
+
+  if (open) {
+    collapsedBeforeKeyboard = chatHeaderCollapsed.value
+    chatHeaderCollapsed.value = true
+    mobileKeyboardHeight.value = height
+    // O teclado pode empurrar o viewport; volta ao topo para manter a seta e o nome visíveis.
+    window.scrollTo(0, 0)
+  } else {
+    chatHeaderCollapsed.value = collapsedBeforeKeyboard
+    mobileKeyboardHeight.value = 0
+  }
+
+  mobileKeyboardOpen.value = open
+}
+
+/**
+ * Detecta o teclado pelo visualViewport e recolhe o header enquanto ele estiver
+ * ativo. Chamado apenas no chat; a nav móvel some e o painel usa a altura visível.
+ */
+export function setupMobileKeyboardDetection() {
+  if (typeof window === 'undefined' || !window.visualViewport) return () => {}
+
+  const viewport = window.visualViewport
+  viewportHeightWithoutKeyboard = viewport.height || window.innerHeight
+
+  const update = () => {
+    if (!isMobileHeader()) {
+      viewportHeightWithoutKeyboard = viewport.height || window.innerHeight
+      if (mobileKeyboardOpen.value) setMobileKeyboardOpen(false, 0)
+      return
+    }
+
+    const height = viewport.height || window.innerHeight
+    if (height > viewportHeightWithoutKeyboard) viewportHeightWithoutKeyboard = height
+    const open = viewportHeightWithoutKeyboard - height > 120
+    setMobileKeyboardOpen(open, height)
+  }
+
+  viewport.addEventListener('resize', update)
+  viewport.addEventListener('scroll', update)
+  window.addEventListener('resize', update)
+  update()
+
+  return () => {
+    viewport.removeEventListener('resize', update)
+    viewport.removeEventListener('scroll', update)
+    window.removeEventListener('resize', update)
+    if (mobileKeyboardOpen.value) setMobileKeyboardOpen(false, 0)
+  }
 }
 
 function isMobileHeader() {
@@ -57,7 +119,9 @@ export function createHeaderScrollHandlers() {
 
     // Um fling no mobile pode avançar mais de 100px entre dois eventos.
     if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
-    else if (delta < -3 && scrollTop <= 8) chatHeaderCollapsed.value = false
+    else if (!mobileKeyboardOpen.value && delta < -3 && scrollTop <= 8) {
+      chatHeaderCollapsed.value = false
+    }
   }
 
   function onTouchStart(event: Event) {
@@ -87,7 +151,7 @@ export function createHeaderScrollHandlers() {
     const total = y - touchStartY
     // Dedo para cima equivale a rolar para baixo na página.
     if (total < -24) chatHeaderCollapsed.value = true
-    else if (total > 24) chatHeaderCollapsed.value = false
+    else if (!mobileKeyboardOpen.value && total > 24) chatHeaderCollapsed.value = false
   }
 
   function onTouchEnd() {
