@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Header from '@/features/dashboard/components/AppHeader.vue'
 import Sidebar from '@/features/dashboard/components/AppSidebar.vue'
@@ -13,6 +13,45 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const profileSetupOpen = ref(false)
 const mobileMenuOpen = ref(false)
+const dashboardHeaderHidden = ref(false)
+let lastScrollY = 0
+
+function isMobileLayout() {
+  return window.matchMedia('(max-width: 620px)').matches
+}
+
+function handleDashboardScroll() {
+  if (!isMobileLayout() || route.meta.hideHeader) {
+    dashboardHeaderHidden.value = false
+    lastScrollY = window.scrollY
+    return
+  }
+
+  const scrollY = window.scrollY
+  const delta = scrollY - lastScrollY
+  lastScrollY = scrollY
+  if (Math.abs(delta) < 3) return
+
+  if (delta > 0 && scrollY > 24) dashboardHeaderHidden.value = true
+  else if (delta < 0) dashboardHeaderHidden.value = false
+}
+
+onMounted(() => {
+  lastScrollY = window.scrollY
+  window.addEventListener('scroll', handleDashboardScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleDashboardScroll)
+})
+
+watch(
+  () => route.path,
+  () => {
+    dashboardHeaderHidden.value = false
+    lastScrollY = window.scrollY
+  },
+)
 
 function handleProfileSave() {
   localStorage.setItem('conecta_profile_setup', 'true')
@@ -63,7 +102,7 @@ function toggleMobileMenu() {
         </span>
       </div>
 
-      <Header v-if="!route.meta.hideHeader" />
+      <Header v-if="!route.meta.hideHeader" :collapsed="dashboardHeaderHidden" />
 
       <div class="main-content" style>
         <RouterView />

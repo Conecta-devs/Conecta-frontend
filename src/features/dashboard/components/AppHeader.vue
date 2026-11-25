@@ -10,7 +10,7 @@ withDefaults(
     variant?: 'page' | 'chat'
     /** Valor controlado da busca. Sem valor, o campo permanece livre. */
     searchValue?: string
-    /** Recolhe o cabeçalho no mobile, liberando espaço para o chat. */
+    /** No chat, recolhe liberando espaço; nas outras telas, esconde sob a nav no scroll. */
     collapsed?: boolean
   }>(),
   {
@@ -40,13 +40,15 @@ function onSearchInput(event: Event) {
   <header
     :inert="collapsed ? true : undefined"
     :aria-hidden="collapsed ? 'true' : undefined"
-    class="flex items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter transition-[height,padding,gap,border-width] duration-300 ease-out motion-reduce:transition-none max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
+    class="flex items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter transition-[height,padding,gap,border-width,transform] duration-300 ease-out motion-reduce:transition-none max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
     :class="[
       variant === 'chat'
         ? 'h-[100px] shrink-0 max-[1000px]:h-auto max-[1000px]:py-5 max-[620px]:gap-3'
-        : 'min-h-[100px]',
+        : 'min-h-[100px] max-[620px]:sticky max-[620px]:top-[65px] max-[620px]:z-30',
       collapsed
-        ? 'max-[620px]:!h-0 max-[620px]:!min-h-0 max-[620px]:!overflow-hidden max-[620px]:!border-0 max-[620px]:!py-0 max-[620px]:!gap-0'
+        ? variant === 'chat'
+          ? 'max-[620px]:!h-0 max-[620px]:!min-h-0 max-[620px]:!overflow-hidden max-[620px]:!border-0 max-[620px]:!py-0 max-[620px]:!gap-0'
+          : 'max-[620px]:-translate-y-full'
         : '',
     ]"
   >
