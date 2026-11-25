@@ -153,6 +153,38 @@ function handleEmojiPickerEscape(event: KeyboardEvent) {
 }
 const readCursors = ref<Record<string, number>>({})
 const readMessageIds = ref<Record<string, boolean>>({})
+const READ_MESSAGES_STORAGE_PREFIX = 'conecta_read_messages:'
+
+function readMessagesStorageKey(): string | null {
+  const userId = currentUser.user?.sub
+  return userId ? `${READ_MESSAGES_STORAGE_PREFIX}${userId}` : null
+}
+
+function loadReadMessages() {
+  const key = readMessagesStorageKey()
+  if (!key) return
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    readMessageIds.value =
+      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, boolean>)
+        : {}
+  } catch {
+    readMessageIds.value = {}
+  }
+}
+
+function persistReadMessages() {
+  const key = readMessagesStorageKey()
+  if (!key) return
+  try {
+    localStorage.setItem(key, JSON.stringify(readMessageIds.value))
+  } catch {
+    // Armazenamento cheio ou indisponível: o status continua valendo na sessão.
+  }
+}
+
 const pendingUnreadCounts = ref<Record<string, { count: number; revision: number }>>({})
 let unreadEventRevision = 0
 let conversationsRequestRevision = 0
@@ -294,6 +326,7 @@ function clearChatState() {
   selectedConversation.value = null
   readCursors.value = {}
   readMessageIds.value = {}
+  loadReadMessages()
   pendingUnreadCounts.value = {}
   failedMessageAttempts.clear()
   confirmedClientMessageIds.clear()
@@ -541,10 +574,20 @@ function messageReadKey(message: ChatMessage): string {
 
 function cursorSaysRead(message: ChatMessage): boolean {
   const conversation = selectedConversation.value
-  if (!message.isMine || conversation?.category !== 'friend') return false
-  const otherMember = conversation.members.find((member) => member.userId !== currentUser.user?.sub)
-  if (!otherMember) return false
-  return (readCursors.value[`${conversation.id}:${otherMember.userId}`] ?? 0) >= message.sequence
+  if (!message.isMine || !conversation) return false
+
+  const otherUserIds = conversation.members
+    .map((member) => member.userId)
+    .filter((id) => id !== currentUser.user?.sub)
+  if (otherUserIds.length === 0 && conversation.otherUserId) {
+    otherUserIds.push(conversation.otherUserId)
+  }
+  if (otherUserIds.length === 0) return false
+
+  // Em grupos, "Lida" só aparece quando todos os outros membros leram.
+  return otherUserIds.every(
+    (userId) => (readCursors.value[`${conversation.id}:${userId}`] ?? 0) >= message.sequence,
+  )
 }
 
 function isMessageRead(message: ChatMessage): boolean {
@@ -1842,6 +1885,7 @@ watch(
     }
     if (Object.keys(confirmed).length === 0) return
     readMessageIds.value = { ...readMessageIds.value, ...confirmed }
+    persistReadMessages()
   },
   { flush: 'post' },
 )
@@ -1866,6 +1910,7 @@ let stopKeyboardDetection: (() => void) | null = null
 
 onMounted(() => {
   stopKeyboardDetection = setupMobileKeyboardDetection()
+  loadReadMessages()
   const requested = route.query.conversation
   if (typeof requested === 'string' && requested) {
     requestedConversationId.value = requested
