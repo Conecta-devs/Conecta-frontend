@@ -408,7 +408,7 @@ onUnmounted(clearSuccessMessage)
                         Editar
                     </button>
                     <button v-if="isOrganizer(item, currentUser.user?.sub)" type="button"
-                        class="h-[50px] w-[150px] rounded-button border border-co-coral bg-co-white text-h5 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:opacity-50 max-[620px]:!w-full"
+                        class="h-[50px] w-[150px] rounded-button border border-co-coral bg-co-white text-h5 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:opacity-50 max-[620px]:col-span-2 max-[620px]:justify-self-center max-[620px]:!w-[calc(50%_-_5px)]"
                         :disabled="cancellingAgendaId === item.id" @click="cancelItem(item)">
                         {{ cancellingAgendaId === item.id ? 'Cancelando...' : 'Cancelar' }}
                     </button>
