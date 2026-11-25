@@ -10,13 +10,16 @@ withDefaults(
     variant?: 'page' | 'chat'
     /** Valor controlado da busca. Sem valor, o campo permanece livre. */
     searchValue?: string
-    /** No chat, recolhe liberando espaço; nas outras telas, esconde sob a nav no scroll. */
+    /** No chat, recolhe liberando espaço durante a rolagem do histórico. */
     collapsed?: boolean
+    /** Deslocamento vertical acompanhando o scroll nas telas fora do chat. */
+    scrollOffset?: number
   }>(),
   {
     variant: 'page',
     searchValue: undefined,
     collapsed: false,
+    scrollOffset: 0,
   },
 )
 
@@ -40,15 +43,14 @@ function onSearchInput(event: Event) {
   <header
     :inert="collapsed ? true : undefined"
     :aria-hidden="collapsed ? 'true' : undefined"
-    class="flex items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter transition-[height,padding,gap,border-width,transform] duration-300 ease-out motion-reduce:transition-none max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
+    :style="variant !== 'chat' && scrollOffset ? { transform: `translateY(-${scrollOffset}px)` } : undefined"
+    class="flex items-center justify-between gap-12 border-b border-traceline bg-co-white px-page-gutter transition-[height,padding,gap,border-width] duration-300 ease-out motion-reduce:transition-none max-[1000px]:flex-col max-[1000px]:items-stretch max-[1000px]:gap-5 max-[620px]:py-5"
     :class="[
       variant === 'chat'
         ? 'h-[100px] shrink-0 max-[1000px]:h-auto max-[1000px]:py-5 max-[620px]:gap-3'
-        : 'min-h-[100px] max-[620px]:sticky max-[620px]:top-[65px] max-[620px]:z-30',
+        : 'min-h-[100px] max-[620px]:sticky max-[620px]:top-[65px] max-[620px]:z-30 max-[620px]:will-change-transform',
       collapsed
-        ? variant === 'chat'
-          ? 'max-[620px]:!h-0 max-[620px]:!min-h-0 max-[620px]:!overflow-hidden max-[620px]:!border-0 max-[620px]:!py-0 max-[620px]:!gap-0'
-          : 'max-[620px]:-translate-y-full'
+        ? 'max-[620px]:!h-0 max-[620px]:!min-h-0 max-[620px]:!overflow-hidden max-[620px]:!border-0 max-[620px]:!py-0 max-[620px]:!gap-0'
         : '',
     ]"
   >

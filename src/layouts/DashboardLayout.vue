@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
 import Header from '@/features/dashboard/components/AppHeader.vue'
 import Sidebar from '@/features/dashboard/components/AppSidebar.vue'
@@ -13,45 +13,54 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const profileSetupOpen = ref(false)
 const mobileMenuOpen = ref(false)
-const dashboardHeaderHidden = ref(false)
+const dashboardHeaderOffset = ref(0)
 let lastScrollY = 0
+let dashboardHeaderHeight = 0
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 620px)').matches
 }
 
+function measureDashboardHeader() {
+  dashboardHeaderHeight =
+    (document.querySelector('.dashboard-main > header') as HTMLElement | null)?.offsetHeight ?? 0
+}
+
+function resetDashboardHeader() {
+  dashboardHeaderOffset.value = 0
+  lastScrollY = window.scrollY
+  void nextTick(measureDashboardHeader)
+}
+
 function handleDashboardScroll() {
   if (!isMobileLayout() || route.meta.hideHeader) {
-    dashboardHeaderHidden.value = false
-    lastScrollY = window.scrollY
+    resetDashboardHeader()
     return
   }
 
   const scrollY = window.scrollY
   const delta = scrollY - lastScrollY
   lastScrollY = scrollY
-  if (Math.abs(delta) < 3) return
+  if (!delta) return
 
-  if (delta > 0 && scrollY > 24) dashboardHeaderHidden.value = true
-  else if (delta < 0) dashboardHeaderHidden.value = false
+  // O header acompanha o dedo: sobe ao descer, desce ao subir, sempre travado na nav.
+  const next = dashboardHeaderOffset.value + delta
+  dashboardHeaderOffset.value = Math.max(0, Math.min(dashboardHeaderHeight, next))
 }
 
 onMounted(() => {
   lastScrollY = window.scrollY
   window.addEventListener('scroll', handleDashboardScroll, { passive: true })
+  window.addEventListener('resize', resetDashboardHeader)
+  resetDashboardHeader()
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleDashboardScroll)
+  window.removeEventListener('resize', resetDashboardHeader)
 })
 
-watch(
-  () => route.path,
-  () => {
-    dashboardHeaderHidden.value = false
-    lastScrollY = window.scrollY
-  },
-)
+watch(() => route.path, resetDashboardHeader)
 
 function handleProfileSave() {
   localStorage.setItem('conecta_profile_setup', 'true')
@@ -102,7 +111,7 @@ function toggleMobileMenu() {
         </span>
       </div>
 
-      <Header v-if="!route.meta.hideHeader" :collapsed="dashboardHeaderHidden" />
+      <Header v-if="!route.meta.hideHeader" :scroll-offset="dashboardHeaderOffset" />
 
       <div class="main-content" style>
         <RouterView />
