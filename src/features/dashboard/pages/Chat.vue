@@ -1963,6 +1963,14 @@ const conversationListScrollHandlers = createHeaderScrollHandlers()
 const chatListScrollHandlers = createHeaderScrollHandlers()
 let stopKeyboardDetection: (() => void) | null = null
 
+// A lista é reaproveitada entre seções: ao trocar de conteúdo, o scrollTop é
+// clampado para 0. Sem o reset, esse evento residual era lido como "usuário
+// voltou ao topo" e abria o header.
+watch(activeSection, () => {
+  peopleListScrollHandlers.reset()
+  conversationListScrollHandlers.reset()
+})
+
 onMounted(() => {
   chatPageMounted = true
   if (chatSocketStatus.value === 'connected') void onSocketConnected()
