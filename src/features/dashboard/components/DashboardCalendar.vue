@@ -84,14 +84,17 @@ const daysInfo = computed(() => {
     }
     entry.items.push(item)
 
-    const participation = props.participations[item.id]
-    if (participation) {
-      entry.interested = entry.interested || participation.interested
-      entry.confirmed = entry.confirmed || participation.confirmed
+    const owned = Boolean(currentUser.user?.sub && item.organizerId === currentUser.user.sub)
+    if (owned) {
+      entry.owned = true
     }
 
-    if (currentUser.user?.sub && item.organizerId === currentUser.user.sub) {
-      entry.owned = true
+    if (!owned) {
+      const participation = props.participations[item.id]
+      if (participation) {
+        entry.interested = entry.interested || participation.interested
+        entry.confirmed = entry.confirmed || participation.confirmed
+      }
     }
 
     map.set(day, entry)

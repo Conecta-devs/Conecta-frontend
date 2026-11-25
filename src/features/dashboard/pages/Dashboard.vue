@@ -372,13 +372,13 @@ function conversationPreview(conversation: ChatConversation): string {
               </span>
 
               <span
-                v-if="participations[item.id]?.interested"
+                v-if="!isOrganizer(item, currentUser.user?.sub) && participations[item.id]?.interested"
                 class="rounded-button bg-feedback-success/10 px-2.5 py-1.5 text-h6 font-medium text-feedback-success"
               >
                 Interessado
               </span>
               <span
-                v-if="participations[item.id]?.confirmed"
+                v-if="!isOrganizer(item, currentUser.user?.sub) && participations[item.id]?.confirmed"
                 class="rounded-button bg-traceline px-2.5 py-1.5 text-h6 font-medium text-co-blue"
               >
                 Presença confirmada
