@@ -4,8 +4,10 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   getAgendaItem,
   getMyAgendaParticipation,
+  listAgendaParticipants,
   updateAgendaAttendance,
   updateAgendaInterest,
+  type AgendaAttendee,
   type AgendaItem,
   type AgendaParticipation,
 } from '@/features/dashboard/services/agenda'
@@ -14,6 +16,7 @@ import { formatDateTime, isOrganizer } from '@/features/dashboard/utils/format'
 import calendarEvent from '@/features/dashboard/assets/agenda/calendar-event.svg'
 import AsyncState from './AsyncState.vue'
 import AppModal from './AppModal.vue'
+import UserAvatar from './UserAvatar.vue'
 
 /**
  * Popup de detalhes de encontros da Agenda.
@@ -49,6 +52,7 @@ const emit = defineEmits<{
 type Entry = {
   item: AgendaItem
   participation: AgendaParticipation | null
+  attendees: AgendaAttendee[]
   loading: boolean
   error: string
   savingInterest: boolean
@@ -65,6 +69,7 @@ async function loadEntries() {
   entries.value = props.items.map<Entry>((item) => ({
     item,
     participation: null,
+    attendees: [],
     loading: true,
     error: '',
     savingInterest: false,
@@ -74,16 +79,29 @@ async function loadEntries() {
   await Promise.all(
     entries.value.map(async (entry) => {
       try {
-        const [details, participation] = await Promise.all([
-          getAgendaItem(entry.item.id).catch(() => entry.item),
-          getMyAgendaParticipation(entry.item.id),
-        ])
+        const details = await getAgendaItem(entry.item.id).catch(() => entry.item)
 
         if (token !== loadToken) return
 
         entry.item = details
-        entry.participation = participation
-        emit('participation-change', { id: entry.item.id, participation })
+
+        const own = isOrganizer(details, currentUser.user?.sub)
+
+        if (own) {
+          try {
+            const attendees = await listAgendaParticipants(details.id)
+            if (token !== loadToken) return
+            entry.attendees = attendees
+          } catch {
+            if (token !== loadToken) return
+            entry.error = 'Não foi possível carregar as presenças confirmadas.'
+          }
+        } else {
+          const participation = await getMyAgendaParticipation(entry.item.id)
+          if (token !== loadToken) return
+          entry.participation = participation
+          emit('participation-change', { id: entry.item.id, participation })
+        }
       } catch (error) {
         if (token !== loadToken) return
 
@@ -251,7 +269,34 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
             class="m-0 text-h6 font-medium"
           />
 
-          <div v-if="entry.participation" class="grid gap-3 sm:grid-cols-2">
+          <section
+            v-if="isOrganizer(entry.item, currentUser.user?.sub)"
+            class="flex flex-col rounded-button border border-traceline bg-white p-4"
+          >
+            <h4 class="m-0 text-h5 font-semibold text-co-blue">
+              Presença confirmada · {{ entry.attendees.length }}
+            </h4>
+            <ul v-if="entry.attendees.length" class="m-0 mt-3 flex flex-col gap-2 list-none p-0">
+              <li
+                v-for="attendee in entry.attendees"
+                :key="attendee.userId"
+                class="flex items-center gap-2"
+              >
+                <span class="size-8 overflow-hidden rounded-full">
+                  <UserAvatar :name="attendee.name" :image="attendee.image" />
+                </span>
+                <span class="text-h6 font-medium text-text-1">{{ attendee.name }}</span>
+              </li>
+            </ul>
+            <p
+              v-else-if="!entry.error"
+              class="m-0 mt-1 text-h6 font-medium text-text-2"
+            >
+              Nenhuma presença confirmada ainda.
+            </p>
+          </section>
+
+          <div v-else-if="entry.participation" class="grid gap-3 sm:grid-cols-2">
             <section class="flex flex-col rounded-button border border-traceline bg-white p-4">
               <h4 class="m-0 text-h5 font-semibold text-co-blue">Interesse</h4>
               <p class="m-0 mt-1 text-h6 font-medium text-text-2">
