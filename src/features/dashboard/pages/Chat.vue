@@ -1909,7 +1909,9 @@ const chatListScrollHandlers = createHeaderScrollHandlers()
 let stopKeyboardDetection: (() => void) | null = null
 
 onMounted(() => {
-  stopKeyboardDetection = setupMobileKeyboardDetection()
+  stopKeyboardDetection = setupMobileKeyboardDetection(
+    () => document.activeElement === messageInputElement.value,
+  )
   loadReadMessages()
   const requested = route.query.conversation
   if (typeof requested === 'string' && requested) {
@@ -1986,7 +1988,7 @@ onUnmounted(() => {
           :class="{ 'max-[620px]:hidden': !mobileConversationListVisible }"
           @scroll.passive="chatListScrollHandlers.onScroll"
           @touchstart.passive="chatListScrollHandlers.onTouchStart"
-          @touchmove.passive="chatListScrollHandlers.onTouchMove"
+          @touchmove="chatListScrollHandlers.onTouchMove"
           @touchend.passive="chatListScrollHandlers.onTouchEnd"
           @touchcancel.passive="chatListScrollHandlers.onTouchEnd"
         >
@@ -2067,7 +2069,7 @@ onUnmounted(() => {
           class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
           @scroll.passive="peopleListScrollHandlers.onScroll"
           @touchstart.passive="peopleListScrollHandlers.onTouchStart"
-          @touchmove.passive="peopleListScrollHandlers.onTouchMove"
+          @touchmove="peopleListScrollHandlers.onTouchMove"
           @touchend.passive="peopleListScrollHandlers.onTouchEnd"
           @touchcancel.passive="peopleListScrollHandlers.onTouchEnd"
         >
@@ -2166,7 +2168,7 @@ onUnmounted(() => {
           class="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
           @scroll.passive="conversationListScrollHandlers.onScroll"
           @touchstart.passive="conversationListScrollHandlers.onTouchStart"
-          @touchmove.passive="conversationListScrollHandlers.onTouchMove"
+          @touchmove="conversationListScrollHandlers.onTouchMove"
           @touchend.passive="conversationListScrollHandlers.onTouchEnd"
           @touchcancel.passive="conversationListScrollHandlers.onTouchEnd"
         >
@@ -2424,7 +2426,7 @@ onUnmounted(() => {
             class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain bg-white p-6 max-[620px]:p-4"
             @scroll.passive="messageScrollHandlers.onScroll"
             @touchstart.passive="messageScrollHandlers.onTouchStart"
-            @touchmove.passive="messageScrollHandlers.onTouchMove"
+            @touchmove="messageScrollHandlers.onTouchMove"
             @touchend.passive="messageScrollHandlers.onTouchEnd"
             @touchcancel.passive="messageScrollHandlers.onTouchEnd"
           >

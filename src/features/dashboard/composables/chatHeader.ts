@@ -13,7 +13,6 @@ export const mobileKeyboardHeight = ref(0)
 
 let viewportHeightWithoutKeyboard = 0
 let collapsedBeforeKeyboard = false
-let bodyOverflowBeforeKeyboard = ''
 
 export function expandChatHeader() {
   if (mobileKeyboardOpen.value) return
@@ -28,14 +27,11 @@ function setMobileKeyboardOpen(open: boolean, height: number) {
 
   if (open) {
     collapsedBeforeKeyboard = chatHeaderCollapsed.value
-    bodyOverflowBeforeKeyboard = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     chatHeaderCollapsed.value = true
     mobileKeyboardHeight.value = height
     // O teclado pode empurrar o viewport; volta ao topo para manter a seta e o nome visíveis.
     window.scrollTo(0, 0)
   } else {
-    document.body.style.overflow = bodyOverflowBeforeKeyboard
     chatHeaderCollapsed.value = collapsedBeforeKeyboard
     mobileKeyboardHeight.value = 0
   }
@@ -50,9 +46,10 @@ export function preventKeyboardScroll(event: TouchEvent) {
 
 /**
  * Detecta o teclado pelo visualViewport e recolhe o header enquanto ele estiver
- * ativo. Chamado apenas no chat; a nav móvel some e o painel usa a altura visível.
+ * ativo. A queda de altura só conta como teclado quando o campo da mensagem está
+ * focado: esconder a barra do navegador não pode travar o scroll nem mexer no header.
  */
-export function setupMobileKeyboardDetection() {
+export function setupMobileKeyboardDetection(isMessageInputFocused: () => boolean) {
   if (typeof window === 'undefined' || !window.visualViewport) return () => {}
 
   const viewport = window.visualViewport
@@ -66,6 +63,12 @@ export function setupMobileKeyboardDetection() {
     }
 
     const height = viewport.height || window.innerHeight
+    if (!isMessageInputFocused()) {
+      viewportHeightWithoutKeyboard = height
+      if (mobileKeyboardOpen.value) setMobileKeyboardOpen(false, 0)
+      return
+    }
+
     if (height > viewportHeightWithoutKeyboard) viewportHeightWithoutKeyboard = height
     const open = viewportHeightWithoutKeyboard - height > 120
     setMobileKeyboardOpen(open, height)
@@ -90,7 +93,9 @@ function isMobileHeader() {
 
 function scrollableAncestor(target: EventTarget | null): HTMLElement | null {
   let element = target instanceof HTMLElement ? target : null
-  while (element && element !== document.body) {
+  const chatPage = element?.closest('.chat-page') ?? null
+  const stopAt = chatPage?.parentElement ?? document.body
+  while (element && element !== stopAt && element !== document.body) {
     const overflowY = getComputedStyle(element).overflowY
     if (
       (overflowY === 'auto' || overflowY === 'scroll') &&
@@ -109,28 +114,17 @@ function scrollableAncestor(target: EventTarget | null): HTMLElement | null {
  * outro quando o usuário troca de seção.
  */
 export function createHeaderScrollHandlers() {
-  let lastScrollTop = 0
   let touchStartY = 0
   let touchLastY = 0
 
   function onScroll(event: Event) {
     if (!isMobileHeader()) return
     const target = event.target
-    const element =
-      target instanceof HTMLElement
-        ? target
-        : (document.scrollingElement as HTMLElement | null)
-    if (!element || typeof element.scrollTop !== 'number') return
+    if (!(target instanceof HTMLElement)) return
 
-    const scrollTop = element.scrollTop
-    const delta = scrollTop - lastScrollTop
-    lastScrollTop = scrollTop
-
-    // Um fling no mobile pode avançar mais de 100px entre dois eventos.
-    if (delta > 3 && scrollTop > 24) chatHeaderCollapsed.value = true
-    else if (!mobileKeyboardOpen.value && delta < -3 && scrollTop <= 8) {
-      chatHeaderCollapsed.value = false
-    }
+    const scrollTop = target.scrollTop
+    if (scrollTop > 24) chatHeaderCollapsed.value = true
+    else if (!mobileKeyboardOpen.value && scrollTop <= 8) chatHeaderCollapsed.value = false
   }
 
   function onTouchStart(event: Event) {
@@ -143,19 +137,15 @@ export function createHeaderScrollHandlers() {
     if (!isMobileHeader()) return
     // Se existe conteúdo para rolar, o scroll já controla o cabeçalho.
     if (scrollableAncestor(event.target)) return
-    const scrollingElement = document.scrollingElement
-    if (
-      scrollingElement &&
-      scrollingElement.scrollHeight > scrollingElement.clientHeight + 1
-    ) {
-      return
-    }
 
     const touchEvent = event as TouchEvent
     const y = touchEvent.touches[0]?.clientY ?? 0
     const delta = y - touchLastY
-    touchLastY = y
     if (Math.abs(delta) < 1) return
+
+    // A área não é rolável: o gesto é do header, não da página (nem pull-to-refresh).
+    event.preventDefault()
+    touchLastY = y
 
     const total = y - touchStartY
     // Dedo para cima equivale a rolar para baixo na página.
@@ -169,7 +159,6 @@ export function createHeaderScrollHandlers() {
   }
 
   function reset() {
-    lastScrollTop = 0
     onTouchEnd()
   }
 
