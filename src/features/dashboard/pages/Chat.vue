@@ -2388,7 +2388,7 @@ onUnmounted(() => {
               :class="message.isMine ? 'justify-end' : 'justify-start'"
             >
               <div
-                class="flex flex-col gap-[10px] rounded-card px-5 py-4"
+                class="flex flex-col gap-2 rounded-card px-4 py-3 max-[620px]:gap-1.5 max-[620px]:px-3 max-[620px]:py-2.5"
                 :class="
                   message.isMine
                     ? 'w-[min(380px,85%)] bg-co-blue text-co-white'
@@ -2402,28 +2402,29 @@ onUnmounted(() => {
                   {{ getMessageSenderName(message) }}
                 </span>
                 <p class="m-0 text-h5 leading-5 font-medium">{{ message.content }}</p>
-                <time
-                  class="block text-right text-h6 leading-normal font-medium"
-                  :class="message.isMine ? 'text-co-white' : 'text-text-2'"
-                  >{{ formatTime(message.createdAt) }}</time
-                >
                 <div
-                  v-if="message.deliveryStatus || isMessageRead(message)"
-                  class="flex items-center justify-end gap-2 text-[10px]"
+                  class="flex items-center justify-end gap-1.5 text-[10px] leading-normal"
                   :class="message.isMine ? 'text-co-white' : 'text-text-2'"
                 >
-                  <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
-                  <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
-                  <span v-else-if="isMessageRead(message)">Lida</span>
-                  <button
-                    v-if="message.deliveryStatus === 'failed'"
-                    class="border-0 bg-transparent p-0 text-inherit underline"
-                    type="button"
-                    :disabled="sendingMessage"
-                    @click="retryMessage(message)"
-                  >
-                    Tentar novamente
-                  </button>
+                  <template v-if="message.deliveryStatus || isMessageRead(message)">
+                    <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
+                    <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
+                    <span v-else-if="isMessageRead(message)">Lida</span>
+                    <button
+                      v-if="message.deliveryStatus === 'failed'"
+                      class="border-0 bg-transparent p-0 text-inherit underline"
+                      type="button"
+                      :disabled="sendingMessage"
+                      @click="retryMessage(message)"
+                    >
+                      Tentar novamente
+                    </button>
+                    <span
+                      class="size-1 shrink-0 rounded-full bg-current"
+                      aria-hidden="true"
+                    ></span>
+                  </template>
+                  <time class="shrink-0">{{ formatTime(message.createdAt) }}</time>
                 </div>
               </div>
             </div>
