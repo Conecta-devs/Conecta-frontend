@@ -289,7 +289,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
               </li>
             </ul>
             <p
-              v-else-if="!entry.error"
+              v-else-if="!entry.loading && !entry.error"
               class="m-0 mt-1 text-h6 font-medium text-text-2"
             >
               Nenhuma presença confirmada ainda.
