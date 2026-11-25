@@ -13,6 +13,7 @@ export const mobileKeyboardHeight = ref(0)
 
 let viewportHeightWithoutKeyboard = 0
 let collapsedBeforeKeyboard = false
+let bodyOverflowBeforeKeyboard = ''
 
 export function expandChatHeader() {
   if (mobileKeyboardOpen.value) return
@@ -27,16 +28,24 @@ function setMobileKeyboardOpen(open: boolean, height: number) {
 
   if (open) {
     collapsedBeforeKeyboard = chatHeaderCollapsed.value
+    bodyOverflowBeforeKeyboard = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     chatHeaderCollapsed.value = true
     mobileKeyboardHeight.value = height
     // O teclado pode empurrar o viewport; volta ao topo para manter a seta e o nome visíveis.
     window.scrollTo(0, 0)
   } else {
+    document.body.style.overflow = bodyOverflowBeforeKeyboard
     chatHeaderCollapsed.value = collapsedBeforeKeyboard
     mobileKeyboardHeight.value = 0
   }
 
   mobileKeyboardOpen.value = open
+}
+
+/** Impede que um gesto no cabeçalho ou no form rol a página com o teclado aberto. */
+export function preventKeyboardScroll(event: TouchEvent) {
+  if (mobileKeyboardOpen.value) event.preventDefault()
 }
 
 /**

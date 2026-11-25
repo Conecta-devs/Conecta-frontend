@@ -48,6 +48,7 @@ import {
   createHeaderScrollHandlers,
   mobileKeyboardHeight,
   mobileKeyboardOpen,
+  preventKeyboardScroll,
   setupMobileKeyboardDetection,
 } from '@/features/dashboard/composables/chatHeader'
 
@@ -151,6 +152,7 @@ function handleEmojiPickerEscape(event: KeyboardEvent) {
   void nextTick(() => messageInputElement.value?.focus())
 }
 const readCursors = ref<Record<string, number>>({})
+const readMessageIds = ref<Record<string, boolean>>({})
 const pendingUnreadCounts = ref<Record<string, { count: number; revision: number }>>({})
 let unreadEventRevision = 0
 let conversationsRequestRevision = 0
@@ -291,6 +293,7 @@ function clearChatState() {
   hiddenRecentConversationIds.value = []
   selectedConversation.value = null
   readCursors.value = {}
+  readMessageIds.value = {}
   pendingUnreadCounts.value = {}
   failedMessageAttempts.clear()
   confirmedClientMessageIds.clear()
@@ -351,19 +354,34 @@ const sectionOptions: { label: string; value: ChatSection }[] = [
   { label: 'Pessoas', value: 'people' },
 ]
 
-const messagesDateLabel = computed(() => {
-  const lastMessage = messages.value[messages.value.length - 1]
-  if (!lastMessage) return 'HOJE'
-  const messageDate = new Date(lastMessage.createdAt)
-  if (Number.isNaN(messageDate.getTime())) return 'HOJE'
+function messageDayKey(value: string): string {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? new Date().toDateString() : date.toDateString()
+}
+
+function messageDateLabel(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'HOJE'
 
   const today = new Date()
-  if (messageDate.toDateString() === today.toDateString()) return 'HOJE'
+  if (date.toDateString() === today.toDateString()) return 'HOJE'
 
-  return messageDate
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) return 'ONTEM'
+
+  return date
     .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     .toUpperCase()
-})
+}
+
+function shouldShowDateSeparator(index: number): boolean {
+  if (index === 0) return true
+  return (
+    messageDayKey(messages.value[index].createdAt) !==
+    messageDayKey(messages.value[index - 1].createdAt)
+  )
+}
 
 const conversationPresenceOnline = computed(() => {
   const conversation = selectedConversation.value
@@ -517,12 +535,20 @@ function addOrReplaceMessage(message: ChatMessage) {
   messages.value = mergeMessages(messages.value, [message])
 }
 
-function isMessageRead(message: ChatMessage): boolean {
+function messageReadKey(message: ChatMessage): string {
+  return `${message.conversationId}:${message.clientMessageId || message.id}`
+}
+
+function cursorSaysRead(message: ChatMessage): boolean {
   const conversation = selectedConversation.value
   if (!message.isMine || conversation?.category !== 'friend') return false
   const otherMember = conversation.members.find((member) => member.userId !== currentUser.user?.sub)
   if (!otherMember) return false
   return (readCursors.value[`${conversation.id}:${otherMember.userId}`] ?? 0) >= message.sequence
+}
+
+function isMessageRead(message: ChatMessage): boolean {
+  return readMessageIds.value[messageReadKey(message)] === true || cursorSaysRead(message)
 }
 
 function getMessageSenderName(message: ChatMessage): string {
@@ -1805,6 +1831,21 @@ watch(
   { flush: 'post' },
 )
 
+// Depois que o servidor valida a leitura, guarda o status para sobreviver a
+// recarregamentos do histórico ou da conversa.
+watch(
+  [readCursors, conversations, selectedConversation, messages],
+  () => {
+    const confirmed: Record<string, boolean> = {}
+    for (const message of messages.value) {
+      if (cursorSaysRead(message)) confirmed[messageReadKey(message)] = true
+    }
+    if (Object.keys(confirmed).length === 0) return
+    readMessageIds.value = { ...readMessageIds.value, ...confirmed }
+  },
+  { flush: 'post' },
+)
+
 watch(
   () => selectedConversation.value?.id,
   () => {
@@ -2216,6 +2257,7 @@ onUnmounted(() => {
           </div>
           <header
             class="flex h-[90px] shrink-0 items-center justify-between gap-4 border-b border-traceline px-6 max-[620px]:px-4"
+            @touchmove="preventKeyboardScroll"
           >
             <div class="flex min-w-0 items-center gap-4">
               <button
@@ -2378,56 +2420,59 @@ onUnmounted(() => {
               message="Nenhuma mensagem nesta conversa ainda."
               class="text-center text-h6 leading-normal"
             />
-            <p class="shrink-0 text-center text-h6 leading-normal font-medium text-text-2">
-              {{ messagesDateLabel }}
-            </p>
-            <div
-              v-for="message in messages"
-              :key="message.clientMessageId"
-              class="flex shrink-0"
-              :class="message.isMine ? 'justify-end' : 'justify-start'"
-            >
-              <div
-                class="flex flex-col gap-2 rounded-card px-4 py-3 max-[620px]:gap-1.5 max-[620px]:px-3 max-[620px]:py-2.5"
-                :class="
-                  message.isMine
-                    ? 'w-[min(380px,85%)] bg-co-blue text-co-white'
-                    : 'w-[min(460px,85%)] border border-traceline bg-co-white text-text-1'
-                "
+            <template v-for="(message, index) in messages" :key="message.clientMessageId">
+              <p
+                v-if="shouldShowDateSeparator(index)"
+                class="shrink-0 text-center text-h6 leading-normal font-medium text-text-2"
               >
-                <span
-                  v-if="selectedConversation.category === 'community' && !message.isMine"
-                  class="text-h6 leading-normal font-medium text-co-blue"
-                >
-                  {{ getMessageSenderName(message) }}
-                </span>
-                <p class="m-0 text-h5 leading-5 font-medium">{{ message.content }}</p>
+                {{ messageDateLabel(message.createdAt) }}
+              </p>
+              <div
+                class="flex shrink-0"
+                :class="message.isMine ? 'justify-end' : 'justify-start'"
+              >
                 <div
-                  class="flex items-center justify-end gap-1.5 text-[10px] leading-normal"
-                  :class="message.isMine ? 'text-co-white' : 'text-text-2'"
+                  class="flex flex-col gap-2 rounded-card px-4 py-3 max-[620px]:gap-1.5 max-[620px]:px-3 max-[620px]:py-2.5"
+                  :class="
+                    message.isMine
+                      ? 'w-[min(380px,85%)] bg-co-blue text-co-white'
+                      : 'w-[min(460px,85%)] border border-traceline bg-co-white text-text-1'
+                  "
                 >
-                  <template v-if="message.deliveryStatus || isMessageRead(message)">
-                    <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
-                    <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
-                    <span v-else-if="isMessageRead(message)">Lida</span>
-                    <button
-                      v-if="message.deliveryStatus === 'failed'"
-                      class="border-0 bg-transparent p-0 text-inherit underline"
-                      type="button"
-                      :disabled="sendingMessage"
-                      @click="retryMessage(message)"
-                    >
-                      Tentar novamente
-                    </button>
-                    <span
-                      class="size-1 shrink-0 rounded-full bg-current"
-                      aria-hidden="true"
-                    ></span>
-                  </template>
-                  <time class="shrink-0">{{ formatTime(message.createdAt) }}</time>
+                  <span
+                    v-if="selectedConversation.category === 'community' && !message.isMine"
+                    class="text-h6 leading-normal font-medium text-co-blue"
+                  >
+                    {{ getMessageSenderName(message) }}
+                  </span>
+                  <p class="m-0 text-h5 leading-5 font-medium">{{ message.content }}</p>
+                  <div
+                    class="flex items-center justify-end gap-1.5 text-[10px] leading-normal"
+                    :class="message.isMine ? 'text-co-white' : 'text-text-2'"
+                  >
+                    <template v-if="message.deliveryStatus || isMessageRead(message)">
+                      <span v-if="message.deliveryStatus === 'sending'">Enviando...</span>
+                      <span v-else-if="message.deliveryStatus === 'failed'">Falha no envio</span>
+                      <span v-else-if="isMessageRead(message)">Lida</span>
+                      <button
+                        v-if="message.deliveryStatus === 'failed'"
+                        class="border-0 bg-transparent p-0 text-inherit underline"
+                        type="button"
+                        :disabled="sendingMessage"
+                        @click="retryMessage(message)"
+                      >
+                        Tentar novamente
+                      </button>
+                      <span
+                        class="size-1 shrink-0 rounded-full bg-current"
+                        aria-hidden="true"
+                      ></span>
+                    </template>
+                    <time class="shrink-0">{{ formatTime(message.createdAt) }}</time>
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
             <div
               v-if="isOtherTyping"
               class="flex shrink-0 justify-start py-1 text-h6 leading-normal text-text-2"
@@ -2449,6 +2494,7 @@ onUnmounted(() => {
             v-if="selectedConversation"
             class="flex min-h-[84px] shrink-0 items-center gap-3 px-5 py-4 max-[620px]:px-4"
             @submit.prevent="sendMessage()"
+            @touchmove="preventKeyboardScroll"
           >
             <p v-if="sendError" role="alert" class="mb-2 text-h6 leading-normal text-danger">
               {{ sendError }}
