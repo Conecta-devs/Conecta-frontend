@@ -8,6 +8,11 @@ import {
   expandChatHeader,
   mobileKeyboardOpen,
 } from '@/features/dashboard/composables/chatHeader'
+import {
+  disposeChatSocketClient,
+  ensureChatSocket,
+} from '@/features/dashboard/composables/chatSocketClient'
+import { currentUser } from '@/shared/services/session'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -65,14 +70,30 @@ onMounted(() => {
   window.addEventListener('scroll', handleDashboardScroll, { passive: true })
   window.addEventListener('resize', handleViewportResize)
   resetDashboardHeader()
+  if (currentUser.user?.sub) {
+    ensureChatSocket()
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleDashboardScroll)
   window.removeEventListener('resize', handleViewportResize)
+  disposeChatSocketClient()
 })
 
 watch(() => route.path, resetDashboardHeader)
+
+watch(
+  () => currentUser.user?.sub ?? null,
+  (userId, previousUserId) => {
+    if (userId === previousUserId) return
+    disposeChatSocketClient()
+    if (userId) {
+      ensureChatSocket()
+    }
+  },
+  { flush: 'post' },
+)
 
 function handleProfileSave() {
   localStorage.setItem('conecta_profile_setup', 'true')
