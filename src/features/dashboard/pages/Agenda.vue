@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
     faExclamationCircle,
 } from '@fortawesome/free-solid-svg-icons'
@@ -63,6 +63,25 @@ const cancellingAgendaId = ref<string | null>(null)
 const agendaToCancel = ref<AgendaItem | null>(null)
 
 const isEditing = computed(() => editingAgendaId.value !== null)
+
+let successMessageTimeout: ReturnType<typeof setTimeout> | null = null
+
+function clearSuccessMessage() {
+    if (successMessageTimeout) {
+        clearTimeout(successMessageTimeout)
+        successMessageTimeout = null
+    }
+    successMessage.value = ''
+}
+
+function showSuccessMessage(message: string) {
+    clearSuccessMessage()
+    successMessage.value = message
+    successMessageTimeout = setTimeout(() => {
+        successMessage.value = ''
+        successMessageTimeout = null
+    }, 5000)
+}
 
 function kindLabel(item: AgendaItem): string {
     return item.kind === 'conversation' ? 'Roda de conversa' : 'Evento'
@@ -130,7 +149,7 @@ function beginCreate() {
     form.value = emptyForm()
     editingAgendaId.value = null
     formError.value = ''
-    successMessage.value = ''
+    clearSuccessMessage()
     formOpen.value = true
 }
 
@@ -149,7 +168,7 @@ function beginEdit(item: AgendaItem) {
     }
     editingAgendaId.value = item.id
     formError.value = ''
-    successMessage.value = ''
+    clearSuccessMessage()
     formOpen.value = true
     closeDetails()
 }
@@ -195,7 +214,7 @@ function buildAgendaInput(): AgendaItemInput {
 
 async function saveAgendaItem() {
     formError.value = ''
-    successMessage.value = ''
+    clearSuccessMessage()
 
     if (!form.value.title.trim() || !form.value.description.trim()) {
         formError.value = 'Título e descrição são obrigatórios.'
@@ -216,10 +235,10 @@ async function saveAgendaItem() {
         const input = buildAgendaInput()
         if (editingAgendaId.value) {
             await updateAgendaItem(editingAgendaId.value, input)
-            successMessage.value = 'Encontro atualizado com sucesso.'
+            showSuccessMessage('Encontro atualizado com sucesso.')
         } else {
             await createAgendaItem(input)
-            successMessage.value = 'Encontro criado com sucesso.'
+            showSuccessMessage('Encontro criado com sucesso.')
         }
 
         formOpen.value = false
@@ -252,7 +271,7 @@ async function confirmCancelAgenda() {
 
     cancellingAgendaId.value = item.id
     loadError.value = ''
-    successMessage.value = ''
+    clearSuccessMessage()
 
     try {
         const cancelled = await cancelAgendaItem(item.id)
@@ -261,7 +280,7 @@ async function confirmCancelAgenda() {
             (entry) => entry.id !== cancelled.id,
         )
 
-        successMessage.value = 'Encontro cancelado com sucesso.'
+        showSuccessMessage('Encontro cancelado com sucesso.')
 
         if (detailsItems.value.some((entry) => entry.id === item.id)) {
             closeDetails()
@@ -279,6 +298,7 @@ async function confirmCancelAgenda() {
 }
 
 onMounted(loadAgenda)
+onUnmounted(clearSuccessMessage)
 </script>
 
 <template>
@@ -379,15 +399,16 @@ onMounted(loadAgenda)
                     </p>
                 </div>
 
-                <div class="flex shrink-0 flex-wrap items-center gap-2.5">
-                    <AgendaDetailsButton @click="openDetails(item)" />
+                <div
+                    class="flex shrink-0 flex-wrap items-center gap-2.5 max-[620px]:!grid max-[620px]:!w-full max-[620px]:grid-cols-2 max-[620px]:gap-2.5">
+                    <AgendaDetailsButton class="max-[620px]:!w-full" @click="openDetails(item)" />
                     <button v-if="isOrganizer(item, currentUser.user?.sub)" type="button"
-                        class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue"
+                        class="h-[50px] w-[150px] rounded-button border border-co-blue bg-co-white text-h5 font-medium text-co-blue transition-colors hover:bg-s-blue/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-blue max-[620px]:!w-full"
                         @click="beginEdit(item)">
                         Editar
                     </button>
                     <button v-if="isOrganizer(item, currentUser.user?.sub)" type="button"
-                        class="h-[50px] w-[150px] rounded-button border border-co-coral bg-co-white text-h5 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:opacity-50"
+                        class="h-[50px] w-[150px] rounded-button border border-co-coral bg-co-white text-h5 font-medium text-co-coral transition-colors hover:bg-s-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-co-coral disabled:opacity-50 max-[620px]:!w-full"
                         :disabled="cancellingAgendaId === item.id" @click="cancelItem(item)">
                         {{ cancellingAgendaId === item.id ? 'Cancelando...' : 'Cancelar' }}
                     </button>
