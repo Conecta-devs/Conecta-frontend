@@ -16,6 +16,7 @@ const mobileMenuOpen = ref(false)
 const dashboardHeaderOffset = ref(0)
 let lastScrollY = 0
 let dashboardHeaderHeight = 0
+let dashboardViewportWidth = 0
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 620px)').matches
@@ -27,9 +28,20 @@ function measureDashboardHeader() {
 }
 
 function resetDashboardHeader() {
+  dashboardViewportWidth = window.innerWidth
   dashboardHeaderOffset.value = 0
   lastScrollY = window.scrollY
   void nextTick(measureDashboardHeader)
+}
+
+function handleViewportResize() {
+  // Esconder/mostrar a barra do navegador muda só a altura; não deve revelar o header.
+  if (window.innerWidth !== dashboardViewportWidth) {
+    resetDashboardHeader()
+    return
+  }
+  measureDashboardHeader()
+  dashboardHeaderOffset.value = Math.min(dashboardHeaderOffset.value, dashboardHeaderHeight)
 }
 
 function handleDashboardScroll() {
@@ -51,13 +63,13 @@ function handleDashboardScroll() {
 onMounted(() => {
   lastScrollY = window.scrollY
   window.addEventListener('scroll', handleDashboardScroll, { passive: true })
-  window.addEventListener('resize', resetDashboardHeader)
+  window.addEventListener('resize', handleViewportResize)
   resetDashboardHeader()
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleDashboardScroll)
-  window.removeEventListener('resize', resetDashboardHeader)
+  window.removeEventListener('resize', handleViewportResize)
 })
 
 watch(() => route.path, resetDashboardHeader)
