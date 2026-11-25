@@ -122,6 +122,10 @@ export function createHeaderScrollHandlers() {
     const target = event.target
     if (!(target instanceof HTMLElement)) return
 
+    // Esconder a lista (ao abrir uma conversa) gera um scroll residual com
+    // scrollTop 0; isso não é gesto do usuário e não deve abrir o header.
+    if (target.offsetParent === null || target.clientHeight === 0) return
+
     const scrollTop = target.scrollTop
     if (scrollTop > 24) chatHeaderCollapsed.value = true
     else if (!mobileKeyboardOpen.value && scrollTop <= 8) chatHeaderCollapsed.value = false
