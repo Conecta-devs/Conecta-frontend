@@ -110,6 +110,7 @@ const chatNotice = ref('')
 const emojiPickerOpen = ref(false)
 const emojiPickerElement = ref<HTMLElement | null>(null)
 const messageInputElement = ref<HTMLInputElement | null>(null)
+const messagesElement = ref<HTMLElement | null>(null)
 const quickEmojis = [
   '😀',
   '😂',
@@ -1449,7 +1450,12 @@ async function loadMessages(conversationId: string, loadOlder = false) {
 
     messages.value = mergeMessages(messages.value, page.messages)
     nextCursor.value = page.nextCursor
-    if (!loadOlder) void markCurrentConversationRead(conversationId)
+    if (!loadOlder) {
+      await nextTick()
+      const messagesContainer = messagesElement.value
+      if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight
+      void markCurrentConversationRead(conversationId)
+    }
   } catch (error) {
     if (!controller.signal.aborted && requestId === messagesRequestId) {
       if (handleConversationAccessError(error, conversationId)) return
@@ -2476,6 +2482,7 @@ onUnmounted(() => {
 
           <div
             v-if="selectedConversation"
+            ref="messagesElement"
             class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain bg-white p-6 max-[620px]:p-4"
             @scroll.passive="messageScrollHandlers.onScroll"
             @touchstart.passive="messageScrollHandlers.onTouchStart"
