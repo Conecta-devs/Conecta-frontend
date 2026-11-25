@@ -1502,6 +1502,16 @@ function handleWindowVisibilityChange() {
   if (document.visibilityState === 'visible') void syncMessagesFromApi()
 }
 
+function resetChatScrollHandlers() {
+  chatListScrollHandlers.reset()
+  messageScrollHandlers.reset()
+}
+
+function showMobileConversationList() {
+  mobileConversationListVisible.value = true
+  resetChatScrollHandlers()
+}
+
 function selectConversation(conversation: ChatConversation) {
   closeContextMenu()
   closeRemoveRecentConfirmation()
@@ -1518,6 +1528,7 @@ function selectConversation(conversation: ChatConversation) {
   groupManagementError.value = ''
   chatNotice.value = ''
   mobileConversationListVisible.value = false
+  resetChatScrollHandlers()
   for (const [clientMessageId, attempt] of failedMessageAttempts) {
     if (attempt.conversationId !== conversation.id) continue
     messages.value = mergeMessages(messages.value, [
@@ -2311,7 +2322,7 @@ onUnmounted(() => {
                 class="hidden size-9 place-items-center rounded-[8px] border-0 bg-traceline text-text-2 max-[620px]:grid"
                 type="button"
                 aria-label="Voltar para conversas"
-                @click="mobileConversationListVisible = true"
+                @click="showMobileConversationList"
               >
                 <font-awesome-icon :icon="faArrowLeft" />
               </button>

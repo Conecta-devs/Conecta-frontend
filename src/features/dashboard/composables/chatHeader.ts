@@ -116,6 +116,8 @@ function scrollableAncestor(target: EventTarget | null): HTMLElement | null {
 export function createHeaderScrollHandlers() {
   let touchStartY = 0
   let touchLastY = 0
+  let scrolledDown = false
+  let scrollTarget: HTMLElement | null = null
 
   function onScroll(event: Event) {
     if (!isMobileHeader()) return
@@ -126,9 +128,19 @@ export function createHeaderScrollHandlers() {
     // scrollTop 0; isso não é gesto do usuário e não deve abrir o header.
     if (target.offsetParent === null || target.clientHeight === 0) return
 
+    if (target !== scrollTarget) {
+      scrollTarget = target
+      scrolledDown = target.scrollTop > 24
+      if (!scrolledDown) return
+    }
+
     const scrollTop = target.scrollTop
-    if (scrollTop > 24) chatHeaderCollapsed.value = true
-    else if (!mobileKeyboardOpen.value && scrollTop <= 8) chatHeaderCollapsed.value = false
+    if (scrollTop > 24) {
+      scrolledDown = true
+      chatHeaderCollapsed.value = true
+    } else if (!mobileKeyboardOpen.value && scrollTop <= 8 && scrolledDown) {
+      chatHeaderCollapsed.value = false
+    }
   }
 
   function onTouchStart(event: Event) {
@@ -164,6 +176,8 @@ export function createHeaderScrollHandlers() {
 
   function reset() {
     onTouchEnd()
+    scrolledDown = false
+    scrollTarget = null
   }
 
   return { onScroll, onTouchStart, onTouchMove, onTouchEnd, reset }
