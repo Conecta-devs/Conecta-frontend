@@ -94,8 +94,7 @@ function rolarPara(id: string) {
   secaoAtiva.value = id
 }
 
-// "seguranca" entra na lista para quando a seção/tela existir.
-const secoes = ['por-que-conecta', 'como-funciona', 'seguranca']
+const secoes = ['por-que-conecta', 'como-funciona']
 
 let observer: IntersectionObserver | null = null
 
