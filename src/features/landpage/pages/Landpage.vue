@@ -181,19 +181,7 @@ onUnmounted(() => {
               @click="rolarPara('como-funciona')"
             >
               Como funciona
-            </button>
-            <!-- Segurança ainda não tem seção própria: quando a tela chegar,
-                 basta dar o id "seguranca" ao destino (ou trocar por router.push). -->
-            <button
-              type="button"
-              class="cursor-pointer border-0 bg-transparent p-0 text-h4 whitespace-nowrap leading-[normal] transition-colors duration-300 motion-reduce:transition-none"
-              :class="
-                secaoAtiva === 'seguranca' ? 'text-co-coral' : 'text-text-1 hover:text-co-coral'
-              "
-              @click="rolarPara('seguranca')"
-            >
-              Segurança
-            </button>
+          </button>
           </nav>
 
           <!-- 380px no Figma: 30px de padding em cada lado + 150 + 20 + 150. -->
@@ -239,13 +227,6 @@ onUnmounted(() => {
             @click="rolarPara('como-funciona')"
           >
             Como funciona
-          </button>
-          <button
-            type="button"
-            class="cursor-pointer border-0 border-b border-traceline bg-transparent px-0 py-4 text-left text-h4 text-text-1"
-            @click="rolarPara('seguranca')"
-          >
-            Segurança
           </button>
         </nav>
 
